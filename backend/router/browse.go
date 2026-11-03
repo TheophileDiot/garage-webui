@@ -9,6 +9,7 @@ import (
 	"khairul169/garage-webui/schema"
 	"khairul169/garage-webui/utils"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -73,7 +74,7 @@ func (b *Browse) GetObjects(w http.ResponseWriter, r *http.Request) {
 			ObjectKey:    &key,
 			LastModified: object.LastModified,
 			Size:         object.Size,
-			Url:          fmt.Sprintf("/browse/%s/%s", bucket, *object.Key),
+			Url:          fmt.Sprintf("/browse/%s/%s", url.PathEscape(bucket), url.PathEscape(*object.Key)),
 		})
 	}
 
@@ -81,6 +82,8 @@ func (b *Browse) GetObjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Browse) GetOneObject(w http.ResponseWriter, r *http.Request) {
+	// Stored objects are untrusted content, never part of the admin application.
+	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'none'")
 	bucket := r.PathValue("bucket")
 	key := r.PathValue("key")
 	queryParams := r.URL.Query()
@@ -146,7 +149,7 @@ func (b *Browse) GetOneObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", "max-age=86400")
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Last-Modified", object.LastModified.Format(time.RFC1123))
 
 	if object.ContentType != nil {

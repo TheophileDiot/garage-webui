@@ -40,12 +40,16 @@ func ServeUI(mux *http.ServeMux) {
 		}
 
 		// Add prefix to each /assets strings in js
-		if len(basePath) > 0 && strings.HasSuffix(_path, ".js") {
+		if len(basePath) > 0 && (strings.HasSuffix(_path, ".js") || strings.HasSuffix(_path, ".css")) {
 			data, _ := fs.ReadFile(distFs, _path)
 			html := string(data)
 			html = strings.ReplaceAll(html, "assets/", basePath[1:]+"/assets/")
 
-			w.Header().Add("Content-Type", "text/javascript")
+			contentType := "text/javascript"
+			if strings.HasSuffix(_path, ".css") {
+				contentType = "text/css"
+			}
+			w.Header().Add("Content-Type", contentType)
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(html))
 			return

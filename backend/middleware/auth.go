@@ -7,21 +7,28 @@ import (
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
-	authData := utils.GetEnv("AUTH_USER_PASS", "")
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth := utils.Session.Get(r, "authenticated")
-
-		if authData == "" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		if auth == nil || !auth.(bool) {
+		if !utils.Session.Authenticated(r) {
 			utils.ResponseErrorStatus(w, errors.New("unauthorized"), http.StatusUnauthorized)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
 
+// Browser mutations require the configured origin or a non-simple request header.
+func SameOrigin(origin string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		switch r.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+		default:
+			requestOrigin := r.Header.Get("Origin")
+			if (requestOrigin != "" && requestOrigin != origin) || (requestOrigin == "" && r.Header.Get("X-Requested-With") != "garage-webui") {
+				http.Error(w, "request origin rejected", http.StatusForbidden)
+				return
+			}
+		}
 		next.ServeHTTP(w, r)
 	})
 }
