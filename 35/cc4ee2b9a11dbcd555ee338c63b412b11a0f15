@@ -1,0 +1,90 @@
+.env.example
+  s_fa9f2fd4c76b99::t_068c0431eaa6da 1-17
+backend/router/auth_test.go
+  s_fa9f2fd4c76b99::t_f74515fa01414f 4-88
+  s_fa9f2fd4c76b99::t_409113855a0a16 1-3,89
+backend/utils/session.go
+  s_fa9f2fd4c76b99::t_f74515fa01414f 6-7,14,19-20,22-29,39-40,43-53,57-59
+  s_fa9f2fd4c76b99::t_a13dd46c780e7f 66-75,78-80,82-92
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 38,42,56
+  s_fa9f2fd4c76b99::t_e9051bffec41f8 4,8,21,41,54-55,60-65,76-77
+backend/.env.example
+  s_fa9f2fd4c76b99::t_068c0431eaa6da 4-15
+  s_fa9f2fd4c76b99::t_ee4d138b602b36 1-3
+backend/router/router.go
+  s_fa9f2fd4c76b99::t_f74515fa01414f 11-13,15-16,18,20,22-28
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 8
+backend/utils/session_test.go
+  s_fa9f2fd4c76b99::t_a13dd46c780e7f 4,7,12-40,42-52
+  s_fa9f2fd4c76b99::t_ee6af20ef2b7be 5-6,8,56-100
+  s_fa9f2fd4c76b99::t_00d594e8e11526 1-3,9-11,41,53-55,101
+backend/router/oidc_test.go
+  s_fa9f2fd4c76b99::t_f74515fa01414f 4-15,17-20,24-27,31-91,94-101,104-125,129-133,137-191,195-221,225-237,241-271,275-282,286-325
+  s_fa9f2fd4c76b99::t_fbfee305a2f7f8 329-357
+  s_fa9f2fd4c76b99::t_e7f7554f52ff69 1-3,16,21-22,326,358
+  s_fa9f2fd4c76b99::t_f1d48b741e5a28 23,28-30,92-93,102-103,126-128,134-136,192-194,222-224,238-240,272-274,283-285
+  s_fa9f2fd4c76b99::t_d525e6178c5fc9 327-328
+backend/router/oidc.go
+  s_fa9f2fd4c76b99::t_fbfee305a2f7f8 41-42,93-98
+  s_fa9f2fd4c76b99::t_f74515fa01414f 4-14,16-18,22-24,27-39,43,46-92,99-100,102-111,114-129,132-197
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 1-3,15,19-21,25-26,44-45,112-113,130-131,198
+  s_fa9f2fd4c76b99::t_ff4c31942bad96 40,101
+backend/router/buckets_test.go
+  s_fa9f2fd4c76b99::t_afaae7ea3c1b27 4-33
+  s_fa9f2fd4c76b99::t_634ea67d725c00 1-3,34
+backend/ui/ui_prod.go
+  s_fa9f2fd4c76b99::t_442f5867ffa2c2 49-51
+  s_fa9f2fd4c76b99::t_2314f69851c670 43,48,52
+backend/router/browse_security_test.go
+  s_fa9f2fd4c76b99::t_1f014196293e64 1-3,11,13-15,50,87
+  s_fa9f2fd4c76b99::t_442f5867ffa2c2 6,8-10,12,16-49
+  s_fa9f2fd4c76b99::t_e87092d84e4ad1 5,7,53-86
+  s_fa9f2fd4c76b99::t_4b2c32035d2ade 4,51-52
+backend/router/auth.go
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 16,20
+  s_fa9f2fd4c76b99::t_f74515fa01414f 6,9,11,17-19,23-26,28-29,31-34,37,40,43-44,47,51-54,59-64,66-67,69-70
+  s_fa9f2fd4c76b99::t_96dca5252e1cb7 38-39
+backend/go.mod
+  s_fa9f2fd4c76b99::t_9171c415f3b6c3 12
+  s_fa9f2fd4c76b99::t_2cb13e38b989f0 3
+  s_fa9f2fd4c76b99::t_afcc148f791c5a 6-11,15-17,21-28
+backend/middleware/auth.go
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 17,19-20
+  s_fa9f2fd4c76b99::t_f74515fa01414f 11,15-16,21-31
+backend/schema/config.go
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 6,13,15
+backend/main.go
+  s_fa9f2fd4c76b99::t_f74515fa01414f 4,12-14,22-38,41-45,49,51,54,56-81
+  s_fa9f2fd4c76b99::t_442f5867ffa2c2 15
+  s_fa9f2fd4c76b99::t_acdcf398473b11 84
+backend/router/buckets.go
+  s_fa9f2fd4c76b99::t_afaae7ea3c1b27 5
+  s_fa9f2fd4c76b99::t_ebf57e4bc21007 27,34,40,45,51-56
+backend/router/proxy.go
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 23-24
+backend/router/browse.go
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 152
+  s_fa9f2fd4c76b99::t_e87092d84e4ad1 12
+  s_fa9f2fd4c76b99::t_dad6c5a53efc46 85-86
+  s_fa9f2fd4c76b99::t_fff0448b80a738 77
+backend/utils/garage.go
+  s_fa9f2fd4c76b99::t_2f7e054ae8144b 34
+backend/go.sum
+  s_fa9f2fd4c76b99::t_86499d79313f6b 1-30,35-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "35cc4ee2b9a11dbcd555ee338c63b412b11a0f15",
+  "prompts": {},
+  "sessions": {
+    "s_fa9f2fd4c76b99": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a1f8-9bac-7d41-a5c2-bc144e4c34e8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    }
+  }
+}
