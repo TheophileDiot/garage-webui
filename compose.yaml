@@ -1,0 +1,37 @@
+services:
+  garage-webui:
+    build: .
+    # Local build tag; no registry image has been published by this fork yet.
+    image: ghcr.io/theophilediot/garage-webui:local
+    container_name: garage-webui
+    restart: "always"
+    stop_grace_period: 35s
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    ports:
+      - "${LISTEN_IP:-127.0.0.1}:${PORT:-3909}:3909"
+    environment:
+      TZ: "Europe/Paris"
+      PUBLIC_URL: "${PUBLIC_URL:?PUBLIC_URL is required}"
+      BASE_PATH: "${BASE_PATH:-}"
+      API_BASE_URL: "${API_BASE_URL:-http://garage:3903}"
+      API_ADMIN_KEY: "${API_ADMIN_KEY:?API_ADMIN_KEY is required}"
+      S3_ENDPOINT_URL: "${S3_ENDPOINT_URL:-http://garage:3900}"
+      S3_REGION: "${S3_REGION:-garage}"
+      AUTH_USER_PASS: "${AUTH_USER_PASS:-}"
+      OIDC_ISSUER_URL: "${OIDC_ISSUER_URL:-}"
+      OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-}"
+      OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      OIDC_ALLOWED_GROUPS: "${OIDC_ALLOWED_GROUPS:-}"
+    networks:
+      - garage-net
+
+networks:
+  garage-net:
+    name: "${GARAGE_NETWORK:-garage-net}"
+    external: true

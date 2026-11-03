@@ -1,11 +1,7 @@
 #!/bin/sh
+set -eu
 
-set -e
-
-IMAGE_NAME="khairul169/garage-webui"
-PACKAGE_VERSION=$(cat package.json | grep \"version\" | cut -d'"' -f 4)
-
-echo "Building version $PACKAGE_VERSION"
-
-docker buildx build --platform linux/amd64,linux/arm64 \
- -t "$IMAGE_NAME:latest" -t "$IMAGE_NAME:$PACKAGE_VERSION" --push .
+# Build locally. Publishing and release tags remain a human action.
+IMAGE_NAME="ghcr.io/theophilediot/garage-webui"
+PACKAGE_VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version')
+docker build -t "$IMAGE_NAME:$PACKAGE_VERSION" .

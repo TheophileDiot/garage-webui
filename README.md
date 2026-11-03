@@ -1,209 +1,79 @@
-# Garage Web UI
+# Garage WebUI
 
-[![image](misc/img/garage-webui.png)](misc/img/garage-webui.png)
+A private administration console for [Garage](https://garagehq.deuxfleurs.fr/): cluster health and layout, buckets, objects and access keys. This fork adds a focused light/dark interface, native OpenID Connect SSO and mandatory authentication.
 
-A simple admin web UI for [Garage](https://garagehq.deuxfleurs.fr/), a self-hosted, S3-compatible, distributed object storage service.
+Based on [khairul169/garage-webui](https://github.com/khairul169/garage-webui), under the original MIT license. Repository: [TheophileDiot/garage-webui](https://github.com/TheophileDiot/garage-webui). Local checkout convention: `fork-garage-webui`; application and image name: `garage-webui`.
 
-[ [Screenshots](misc/SCREENSHOTS.md) | [Install Garage](https://garagehq.deuxfleurs.fr/documentation/quick-start/) | [Garage Git](https://git.deuxfleurs.fr/Deuxfleurs/garage) ]
+## Authentication is required
 
-## Features
+This changes upstream behavior: an unset `AUTH_USER_PASS` no longer exposes an unauthenticated console. Startup fails unless either local bcrypt credentials or the complete OIDC configuration is present. OIDC takes precedence and disables the password endpoint. Partial OIDC settings fail startup rather than falling back to local login.
 
-- Garage health status
-- Cluster & layout management
-- Create, update, or view bucket information
-- Integrated objects/bucket browser
-- Create & assign access keys
+**Every admitted user has full Garage administrator access**, including bucket/key deletion and cluster layout changes. Restrict the OIDC group to trusted operators. This is not a multi-tenant S3 client and has no read-only role.
 
-## Installation
+`PUBLIC_URL` is the browser-facing origin, for example `https://garage-ui.example.com`. HTTPS is required except for loopback development. Use a lowercase host and omit the default port (`:443` for HTTPS, `:80` for HTTP). Put a path prefix in `BASE_PATH`, not in `PUBLIC_URL`. Keep the prefix when forwarding requests through a reverse proxy.
 
-The Garage Web UI is available as a single executable binary and docker image. You can install it using the command line or with Docker Compose.
+### Authentik / OpenID Connect
 
-### Docker CLI
+Create a confidential OAuth2/OpenID provider and application in Authentik:
 
-```sh
-$ docker run -p 3909:3909 -v ./garage.toml:/etc/garage.toml:ro --restart unless-stopped --name garage-webui khairul169/garage-webui:latest
-```
+1. Use the authorization-code flow and assign an RSA signing key to the provider (RS256). The client sends PKCE S256, state and nonce; unsigned or HS256-only ID tokens are not supported.
+2. Set the redirect URI to exactly `https://garage-ui.example.com/api/auth/oidc/callback`. With `BASE_PATH=/garage`, use `https://garage-ui.example.com/garage/api/auth/oidc/callback`.
+3. Use the application's issuer URL from its discovery document as `OIDC_ISSUER_URL`, typically `https://auth.example.com/application/o/garage-webui/`.
+4. Set `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` from that provider.
+5. Include a `groups` string-array claim in the **ID token**. Bind an appropriate scope mapping to the requested `profile` scope; a claim only returned by UserInfo is insufficient. Example claim: `"groups": ["garage-admins"]`.
+6. Set `OIDC_ALLOWED_GROUPS=garage-admins`, or a comma-separated list. Membership in at least one listed group is required. Missing, empty or malformed group claims deny access.
 
-### Docker Compose
+The app requests `openid profile`, verifies the ID token's signature, issuer, audience, expiry and nonce, and keeps tokens away from the browser. Discovery/token requests use the server's trusted CA certificates. Do not disable TLS verification for an internal identity provider. Authorization, token and JWKS endpoints must also use HTTPS outside loopback development. Discovery has a 10-second timeout at startup; an unavailable or invalid provider stops the app, and Compose retries through its restart policy. Start the identity provider before this console.
 
-If you install Garage using Docker, you can install this web UI alongside Garage as follows:
+Sessions live in server memory, expire after at most eight hours (or the ID token's earlier expiry), and idle out after 30 minutes. Restarting the app logs everyone out. Sign-out destroys the application session; it does not sign out of Authentik. Group changes take effect on the next login or session expiry, not continuously during a session.
 
-```yml
-services:
-  garage:
-    image: dxflrs/garage:v2.0.0
-    container_name: garage
-    volumes:
-      - ./garage.toml:/etc/garage.toml
-      - ./meta:/var/lib/garage/meta
-      - ./data:/var/lib/garage/data
-    restart: unless-stopped
-    ports:
-      - 3900:3900
-      - 3901:3901
-      - 3902:3902
-      - 3903:3903
+### Local login
 
-  webui:
-    image: khairul169/garage-webui:latest
-    container_name: garage-webui
-    restart: unless-stopped
-    volumes:
-      - ./garage.toml:/etc/garage.toml:ro
-    ports:
-      - 3909:3909
-    environment:
-      API_BASE_URL: "http://garage:3903"
-      S3_ENDPOINT_URL: "http://garage:3900"
-```
+Set `AUTH_USER_PASS` to `username:bcrypt_hash`. Generate the hash with a trusted bcrypt/htpasswd tool. Keep it in the local `.env` or secret manager; never in a `VITE_` variable. Single-quote a bcrypt value in a Compose `.env` file so its `$` characters remain literal. Local login is intended for a private deployment without OIDC, not as an SSO bypass. Keep it private and apply login rate limiting at the reverse proxy; the application has no account lockout or brute-force limiter.
 
-### Without Docker
+## Container deployment
 
-Get the latest binary from the [release page](https://github.com/khairul169/garage-webui/releases/latest) according to your OS architecture. For example:
+`compose.yaml` builds this fork locally. `ghcr.io/theophilediot/garage-webui:local` is a local image tag, **not a published release**. No registry publication or production deployment happens automatically. Once an image is published, pin its release tag and global manifest digest in the infrastructure repository.
 
-```sh
-$ wget -O garage-webui https://github.com/khairul169/garage-webui/releases/download/1.1.0/garage-webui-v1.1.0-linux-amd64
-$ chmod +x garage-webui
-$ sudo cp garage-webui /usr/local/bin
-```
+Copy `.env.example` to a local `.env`, fill the Garage admin key, public origin and chosen authentication settings, then build/start the Compose stack using your normal deployment workflow. The external network named by `GARAGE_NETWORK` must already exist and reach Garage. Garage's admin and S3 listeners should remain private.
 
-Run the program with specified `garage.toml` config path.
+The supplied stack publishes on loopback by default. Attach your reverse proxy to the private network, or explicitly choose a private listening address. Configure TLS at that proxy and use the same browser origin in `PUBLIC_URL`. Cross-origin write requests are rejected. Programmatic same-origin clients without an `Origin` header must send `X-Requested-With: garage-webui` as well as their authenticated session cookie.
 
-```sh
-$ CONFIG_PATH=./garage.toml garage-webui
-```
-
-If you want to run the program at startup, you may want to create a systemd service.
-
-```sh
-$ sudo nano /etc/systemd/system/garage-webui.service
-```
-
-```
-[Unit]
-Description=Garage Web UI
-After=network.target
-
-[Service]
-Environment="PORT=3919"
-Environment="CONFIG_PATH=/etc/garage.toml"
-ExecStart=/usr/local/bin/garage-webui
-Restart=always
-
-[Install]
-WantedBy=default.target
-```
-
-Then reload and start the garage-webui service.
-
-```sh
-$ sudo systemctl daemon-reload
-$ sudo systemctl enable --now garage-webui
-```
+The image runs as UID/GID 65532 with a read-only root filesystem, no Linux capabilities and a 64 MiB temporary filesystem. Multipart uploads above 32 MiB spill the whole file to `/tmp`; large or concurrent uploads can exhaust that space. Increase the Compose `/tmp` capacity or use a direct S3 client for larger objects. The supplied network and `Europe/Paris` timezone defaults follow this fork's deployment conventions. It includes its own healthcheck and CA certificates. No Garage config mount is required when API settings are supplied through environment variables; if you mount a config, mount its containing directory read-only and make it readable by UID 65532.
 
 ### Configuration
 
-To simplify installation, the Garage Web UI uses values from the Garage configuration, such as `rpc_public_addr`, `admin.admin_token`, `s3_web.root_domain`, etc.
+| Variable              | Purpose                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| `PUBLIC_URL`          | Required browser-facing origin, without a path or trailing slash.  |
+| `BASE_PATH`           | Optional prefix, e.g. `/garage`; no trailing slash.                |
+| `AUTH_USER_PASS`      | Local `username:bcrypt_hash`, when not using OIDC.                 |
+| `OIDC_ISSUER_URL`     | OIDC discovery issuer; configure all four OIDC variables together. |
+| `OIDC_CLIENT_ID`      | Confidential client ID.                                            |
+| `OIDC_CLIENT_SECRET`  | Confidential client secret.                                        |
+| `OIDC_ALLOWED_GROUPS` | Comma-separated allowed group names; at least one required.        |
+| `API_BASE_URL`        | Garage admin API origin, e.g. `http://garage:3903`.                |
+| `API_ADMIN_KEY`       | Garage admin token; server-side only.                              |
+| `S3_ENDPOINT_URL`     | Private S3 endpoint, e.g. `http://garage:3900`.                    |
+| `S3_REGION`           | Garage region, default `garage`.                                   |
+| `CONFIG_PATH`         | Optional Garage TOML path, default `/etc/garage.toml`.             |
+| `HOST` / `PORT`       | App listener, defaults `0.0.0.0:3909`.                             |
+| `TZ`                  | Timezone; Compose sets `Europe/Paris`.                             |
+| `LISTEN_IP`           | Compose host binding, default `127.0.0.1`.                         |
+| `GARAGE_NETWORK`      | Existing Compose network, default `garage-net`.                    |
 
-Example content of `config.toml`:
+Garage TOML remains supported for non-secret configuration and server credentials. RPC, admin and metrics secrets are excluded from the browser configuration response. Browser cookies and authorization headers are never forwarded to Garage.
 
-```toml
-metadata_dir = "/var/lib/garage/meta"
-data_dir = "/var/lib/garage/data"
-db_engine = "sqlite"
-metadata_auto_snapshot_interval = "6h"
+Stored objects are treated as untrusted documents. Object previews use a sandboxed Content Security Policy and are not cached as administrator pages; HTML, PDF and media previews may therefore be restricted by the browser. Download these objects when inline rendering is blocked.
 
-replication_factor = 3
-compression_level = 2
+## Development and checks
 
-rpc_bind_addr = "[::]:3901"
-rpc_public_addr = "localhost:3901" # Required
-rpc_secret = "YOUR_RPC_SECRET_HERE"
+Toolchain: Node 24 LTS (`.node-version`), pnpm 10.34.9, Go 1.27.3. Docker uses pinned multi-stage builders and produces a static Go binary with embedded production assets. The Go module retains its upstream import path to avoid unrelated import churn.
 
-[s3_api]
-s3_region = "garage"
-api_bind_addr = "[::]:3900"
-root_domain = ".s3.domain.com"
+Install with the pinned pnpm version, copy the backend environment example to a local `.env`, and supply development credentials. `pnpm dev` runs the Vite client and Go server. The Vite proxy forwards `/api` to `VITE_API_URL`; credentials belong only in the backend environment. Build/typecheck scripts are `pnpm build` and `pnpm typecheck`; frontend lint is `pnpm lint`. Run backend checks from `backend/`: `go vet ./...` and `go test -race ./...`.
 
-[s3_web] # Optional, if you want to expose bucket as web
-bind_addr = "[::]:3902"
-root_domain = ".web.domain.com"
-index = "index.html"
+The GitHub Actions workflow runs frontend lint/typecheck/build, dependency audits, Go vet/race tests, vulnerability analysis, a Docker build and an arm64 compile. It has read-only repository permissions and does not publish images or deploy services.
 
-[admin] # Required
-api_bind_addr = "[::]:3903"
-admin_token = "YOUR_ADMIN_TOKEN_HERE"
-metrics_token = "YOUR_METRICS_TOKEN_HERE"
-```
+Auth tests use a local signed mock identity provider and cover PKCE, token claims, group denial, state replay, session rotation/logout, prefix routing and cross-origin writes. They do not prove an actual Authentik provider is configured correctly. Visual review uses synthetic Garage fixtures; validate real cluster operations and your identity provider before rollout.
 
-However, if it fails to load, you can set `API_BASE_URL` & `API_ADMIN_KEY` environment variables instead.
-
-### Environment Variables
-
-Configurable envs:
-
-- `CONFIG_PATH`: Path to the Garage `config.toml` file. Defaults to `/etc/garage.toml`.
-- `BASE_PATH`: Base path or prefix for Web UI.
-- `API_BASE_URL`: Garage admin API endpoint URL.
-- `API_ADMIN_KEY`: Admin API key.
-- `S3_REGION`: S3 Region.
-- `S3_ENDPOINT_URL`: S3 Endpoint url.
-
-### Authentication
-
-Enable authentication by setting the `AUTH_USER_PASS` environment variable in the format `username:password_hash`, where `password_hash` is a bcrypt hash of the password.
-
-Generate the username and password hash using the following command:
-
-```bash
-htpasswd -nbBC 10 "YOUR_USERNAME" "YOUR_PASSWORD"
-```
-
-> If command 'htpasswd' is not found, install `apache2-utils` using your package manager.
-
-Then update your `docker-compose.yml`:
-
-```yml
-webui:
-  ....
-  environment:
-    AUTH_USER_PASS: "username:$2y$10$DSTi9o..."
-```
-
-### Running
-
-Once your instance of Garage Web UI is started, you can open the web UI at http://your-ip:3909. You can place it behind a reverse proxy to secure it with SSL.
-
-## Development
-
-This project is bootstrapped using TypeScript & React for the UI, and Go for backend. If you want to build it yourself or add additional features, follow these steps:
-
-### Setup
-
-```sh
-$ git clone https://github.com/khairul169/garage-webui.git
-$ cd garage-webui && pnpm install
-$ cd backend && pnpm install && cd ..
-```
-
-### Running
-
-Start both the client and server concurrently:
-
-```sh
-$ pnpm run dev # or npm run dev
-```
-
-Or start each instance separately:
-
-```sh
-$ pnpm run dev:client
-$ cd backend
-$ pnpm run dev:server
-```
-
-## Troubleshooting
-
-Make sure you are using the latest version of Garage. If the data cannot be loaded, please check whether your instance of Garage has the admin API enabled and the ports are accessible.
-
-If you encounter any problems, please do not hesitate to submit an issue [here](https://github.com/khairul169/garage-webui/issues). You can describe the problem and attach the error logs.
+Fonts are self-hosted. Manrope's license is in `misc/licenses/Manrope-OFL.txt`.
