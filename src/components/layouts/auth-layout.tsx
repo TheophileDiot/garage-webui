@@ -1,22 +1,16 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate, Outlet } from "react-router-dom";
+import AuthState from "../containers/auth-state";
 
 const AuthLayout = () => {
   const auth = useAuth();
-
-  if (auth.isLoading) {
-    return null;
-  }
-
-  if (auth.isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
+  if (auth.error || auth.isLoading)
+    return <AuthState error={auth.error} onRetry={() => void auth.retry()} />;
+  if (auth.isAuthenticated) return <Navigate to="/" replace />;
   return (
-    <div className="min-h-svh flex items-center justify-center">
+    <main className="h-dvh overflow-y-auto">
       <Outlet />
-    </div>
+    </main>
   );
 };
-
 export default AuthLayout;

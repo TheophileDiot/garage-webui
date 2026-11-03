@@ -37,7 +37,7 @@ const GotoTopButton = () => {
       icon={ArrowUp}
       className={cn(
         "fixed bottom-4 right-4 invisible opacity-0 transition-opacity",
-        show && "visible opacity-100"
+        show && "visible opacity-100",
       )}
       onClick={onClick}
     >

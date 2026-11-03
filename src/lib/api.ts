@@ -2,9 +2,9 @@ import * as utils from "@/lib/utils";
 import { BASE_PATH } from "./consts";
 
 type FetchOptions = Omit<RequestInit, "headers" | "body"> & {
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
 };
 
 export const API_URL = BASE_PATH + "/api";
@@ -20,28 +20,32 @@ export class APIError extends Error {
 }
 
 const api = {
-  async fetch<T = any>(url: string, options?: Partial<FetchOptions>) {
-    const headers: Record<string, string> = {};
+  async fetch<T = unknown>(url: string, options?: Partial<FetchOptions>) {
+    const { params, body, headers: extraHeaders, ...init } = options ?? {};
+    const headers: Record<string, string> = {
+      "X-Requested-With": "garage-webui",
+    };
     const _url = new URL(API_URL + url, window.location.origin);
 
-    if (options?.params) {
-      Object.entries(options.params).forEach(([key, value]) => {
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
         _url.searchParams.set(key, String(value));
       });
     }
 
-    if (
-      typeof options?.body === "object" &&
-      !(options.body instanceof FormData)
-    ) {
-      options.body = JSON.stringify(options.body);
+    let payload: BodyInit | null | undefined;
+    if (typeof body === "object" && !(body instanceof FormData)) {
+      payload = JSON.stringify(body);
       headers["Content-Type"] = "application/json";
+    } else {
+      payload = body as BodyInit | null | undefined;
     }
 
     const res = await fetch(_url, {
-      ...options,
+      ...init,
+      body: payload,
       credentials: "include",
-      headers: { ...headers, ...(options?.headers || {}) },
+      headers: { ...headers, ...(extraHeaders || {}) },
     });
 
     const isJson = res.headers
@@ -58,36 +62,36 @@ const api = {
       const message = isJson
         ? data?.message
         : typeof data === "string"
-        ? data
-        : res.statusText;
+          ? data
+          : res.statusText;
       throw new APIError(message, res.status);
     }
 
     return data as unknown as T;
   },
 
-  async get<T = any>(url: string, options?: Partial<FetchOptions>) {
+  async get<T = unknown>(url: string, options?: Partial<FetchOptions>) {
     return this.fetch<T>(url, {
       ...options,
       method: "GET",
     });
   },
 
-  async post<T = any>(url: string, options?: Partial<FetchOptions>) {
+  async post<T = unknown>(url: string, options?: Partial<FetchOptions>) {
     return this.fetch<T>(url, {
       ...options,
       method: "POST",
     });
   },
 
-  async put<T = any>(url: string, options?: Partial<FetchOptions>) {
+  async put<T = unknown>(url: string, options?: Partial<FetchOptions>) {
     return this.fetch<T>(url, {
       ...options,
       method: "PUT",
     });
   },
 
-  async delete<T = any>(url: string, options?: Partial<FetchOptions>) {
+  async delete<T = unknown>(url: string, options?: Partial<FetchOptions>) {
     return this.fetch<T>(url, {
       ...options,
       method: "DELETE",

@@ -5,11 +5,13 @@ import { useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useUpdateBucket } from "../hooks";
 import { useConfig } from "@/hooks/useConfig";
-import { Info, LinkIcon } from "lucide-react";
+import { ExternalLink, Info } from "lucide-react";
 import Button from "@/components/ui/button";
 import { InputField } from "@/components/ui/input";
 import { ToggleField } from "@/components/ui/toggle";
 import { useBucketContext } from "../context";
+import { handleError } from "@/lib/utils";
+import SaveState from "./save-state";
 
 const WebsiteAccessSection = () => {
   const { bucket: data, bucketName } = useBucketContext();
@@ -17,31 +19,34 @@ const WebsiteAccessSection = () => {
   const form = useForm<WebsiteConfigSchema>({
     resolver: zodResolver(websiteConfigSchema),
   });
+  const { reset, watch } = form;
   const isEnabled = useWatch({ control: form.control, name: "websiteAccess" });
 
   const websitePort = config?.s3_web?.bind_addr?.split(":").pop() || "80";
   const rootDomain = config?.s3_web?.root_domain;
 
   const updateMutation = useUpdateBucket(data?.id);
+  const { mutate } = updateMutation;
 
   const onChange = useDebounce((values: DeepPartial<WebsiteConfigSchema>) => {
-    const data = {
-      enabled: values.websiteAccess,
-      indexDocument: values.websiteAccess
-        ? values.websiteConfig?.indexDocument
-        : undefined,
-      errorDocument: values.websiteAccess
-        ? values.websiteConfig?.errorDocument
-        : undefined,
-    };
-
-    updateMutation.mutate({
-      websiteAccess: data,
-    });
+    mutate(
+      {
+        websiteAccess: {
+          enabled: values.websiteAccess,
+          indexDocument: values.websiteAccess
+            ? values.websiteConfig?.indexDocument
+            : undefined,
+          errorDocument: values.websiteAccess
+            ? values.websiteConfig?.errorDocument
+            : undefined,
+        },
+      },
+      { onError: handleError },
+    );
   });
 
   useEffect(() => {
-    form.reset({
+    reset({
       websiteAccess: data?.websiteAccess,
       websiteConfig: {
         indexDocument: data?.websiteConfig?.indexDocument || "index.html",
@@ -49,72 +54,77 @@ const WebsiteAccessSection = () => {
       },
     });
 
-    const { unsubscribe } = form.watch((values) => onChange(values));
+    const { unsubscribe } = watch((values) => onChange(values));
     return unsubscribe;
-  }, [data]);
+  }, [data, reset, watch, onChange]);
+
+  const links = [
+    `${bucketName}`,
+    ...(rootDomain
+      ? [
+          `${bucketName}${rootDomain}`,
+          `${bucketName}${rootDomain}:${websitePort}`,
+        ]
+      : []),
+  ];
 
   return (
-    <div className="mt-8">
-      <div className="flex flex-row gap-2">
-        <p className="label label-text py-0 grow-0">Website Access</p>
-        <Button
-          href="https://garagehq.deuxfleurs.fr/documentation/cookbook/exposing-websites"
-          target="_blank"
-          size="sm"
-          shape="circle"
-          color="ghost"
-        >
-          <Info size={16} />
-        </Button>
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-1">
+          <h3 className="title">Website access</h3>
+          <Button
+            href="https://garagehq.deuxfleurs.fr/documentation/cookbook/exposing-websites"
+            target="_blank"
+            size="sm"
+            color="ghost"
+            icon={Info}
+            aria-label="Website hosting documentation (opens in a new tab)"
+          />
+        </div>
+        <SaveState mutation={updateMutation} />
       </div>
-
-      <ToggleField form={form} name="websiteAccess" label="Enabled" />
+      <p className="muted mt-1 text-sm">
+        Serve the bucket as a static website. Changes save automatically.
+      </p>
+      <ToggleField
+        form={form}
+        name="websiteAccess"
+        label="Serve as website"
+        className="mt-3"
+      />
 
       {isEnabled && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
             <InputField
               form={form}
               name="websiteConfig.indexDocument"
-              title="Index Document"
+              title="Index document"
             />
             <InputField
               form={form}
               name="websiteConfig.errorDocument"
-              title="Error Document"
+              title="Error document"
             />
           </div>
 
-          <div className="mt-4 alert flex flex-row flex-wrap text-sm gap-x-2 gap-y-1">
-            <a
-              href={`http://${bucketName}`}
-              className="inline-flex items-center flex-row gap-2 font-medium hover:link"
-              target="_blank"
-            >
-              <LinkIcon size={14} />
-              {bucketName}
-            </a>
-            {rootDomain ? (
-              <>
+          <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 rounded-lg border border-base-300 bg-base-200 p-4 text-sm">
+            {links.map((host) => (
+              <li key={host}>
                 <a
-                  href={`http://${bucketName}${rootDomain}`}
-                  className="inline-flex items-center flex-row gap-2 font-medium hover:link"
+                  href={`http://${host}`}
+                  className="link-latch inline-flex items-center gap-2 font-bold"
                   target="_blank"
+                  rel="noreferrer"
                 >
-                  <LinkIcon size={14} />
-                  {bucketName + rootDomain}
+                  <ExternalLink size={14} aria-hidden />
+                  {host}
+                  <span className="sr-only"> (opens in a new tab)</span>
                 </a>
-                <a
-                  href={`http://${bucketName}${rootDomain}:${websitePort}`}
-                  className="inline-flex items-center flex-row gap-2 font-medium hover:link"
-                  target="_blank"
-                >
-                  <LinkIcon size={14} />
-                  {bucketName + rootDomain + ":" + websitePort}
-                </a>
-              </>
-            ) : null}
-          </div>
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </div>

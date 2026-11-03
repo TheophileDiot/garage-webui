@@ -2,18 +2,13 @@ import { useParams } from "react-router-dom";
 import { useBucket } from "./hooks";
 import Page from "@/context/page-context";
 import TabView, { Tab } from "@/components/containers/tab-view";
-import {
-  ChartLine,
-  CircleXIcon,
-  FolderSearch,
-  LockKeyhole,
-} from "lucide-react";
+import { ChartLine, FolderSearch, LockKeyhole } from "lucide-react";
 import OverviewTab from "./overview/overview-tab";
 import PermissionsTab from "./permissions/permissions-tab";
 import MenuButton from "./components/menu-button";
 import BrowseTab from "./browse/browse-tab";
 import { BucketContext } from "./context";
-import { Alert, Loading } from "react-daisyui";
+import { ErrorState, SkeletonRows } from "@/components/ui/state";
 
 const tabs: Tab[] = [
   {
@@ -28,12 +23,7 @@ const tabs: Tab[] = [
     icon: LockKeyhole,
     Component: PermissionsTab,
   },
-  {
-    name: "browse",
-    title: "Browse",
-    icon: FolderSearch,
-    Component: BrowseTab,
-  },
+  { name: "browse", title: "Browse", icon: FolderSearch, Component: BrowseTab },
 ];
 
 const ManageBucketPage = () => {
@@ -45,21 +35,25 @@ const ManageBucketPage = () => {
   return (
     <>
       <Page
-        title={name || "Manage Bucket"}
+        title={name || data?.localAliases?.[0]?.alias || "Bucket"}
         prev="/buckets"
         actions={data ? <MenuButton /> : undefined}
       />
 
       {isLoading && (
-        <div className="h-full flex items-center justify-center">
-          <Loading size="lg" />
+        <div className="container panel">
+          <SkeletonRows label="Loading bucket" rows={5} />
         </div>
       )}
 
       {error != null && (
-        <Alert status="error" icon={<CircleXIcon />}>
-          <span>{error.message}</span>
-        </Alert>
+        <div className="container panel">
+          <ErrorState
+            title="Could not load this bucket"
+            error={error}
+            onRetry={() => void refetch()}
+          />
+        </div>
       )}
 
       {data && (
@@ -67,7 +61,7 @@ const ManageBucketPage = () => {
           <BucketContext.Provider
             value={{ bucket: data, refetch, bucketName: name || "" }}
           >
-            <TabView tabs={tabs} className="bg-base-100 h-14 px-1.5" />
+            <TabView tabs={tabs} />
           </BucketContext.Provider>
         </div>
       )}

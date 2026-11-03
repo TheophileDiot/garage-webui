@@ -51,7 +51,7 @@ const router = createBrowserRouter(
   ],
   {
     basename: BASE_PATH,
-  }
+  },
 );
 
 const Router = () => {

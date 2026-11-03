@@ -1,16 +1,18 @@
 import Code from "@/components/ui/code";
-import { Button, Input, Modal } from "react-daisyui";
+import Dialog from "@/components/ui/dialog";
+import Button from "@/components/ui/button";
+import { InputField } from "@/components/ui/input";
 import { useConnectNode } from "../hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConnectNodeSchema, connectNodeSchema } from "../schema";
-import { useCallback, useRef } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plug } from "lucide-react";
 
 const ConnectNodeDialog = () => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const form = useForm<ConnectNodeSchema>({
@@ -21,23 +23,15 @@ const ConnectNodeDialog = () => {
   const connectNode = useConnectNode({
     onSuccess() {
       form.reset({ nodeId: "" });
-      handleHide();
-      toast.success("Node connected!");
+      setOpen(false);
+      toast.success("Node connected");
       queryClient.invalidateQueries({ queryKey: ["status"] });
     },
     onError(err) {
-      handleHide();
+      setOpen(false);
       toast.error(err?.message || "Unknown error");
     },
   });
-
-  const handleShow = useCallback(() => {
-    dialogRef.current?.showModal();
-  }, [dialogRef]);
-
-  const handleHide = useCallback(() => {
-    dialogRef.current?.close();
-  }, [dialogRef]);
 
   const onSubmit = form.handleSubmit((values) => {
     connectNode.mutate(values.nodeId);
@@ -45,44 +39,44 @@ const ConnectNodeDialog = () => {
 
   return (
     <>
-      <Button color="primary" onClick={handleShow}>
-        <Plug />
-        Connect
+      <Button color="primary" icon={Plug} onClick={() => setOpen(true)}>
+        Connect node
       </Button>
 
-      <Modal ref={dialogRef} backdrop>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit(e);
-          }}
-        >
-          <Modal.Header>Connect Node</Modal.Header>
-          <Modal.Body>
-            <p>Run this command in your target node to get node id:</p>
-            <Code className="mt-2">docker exec garage /garage node id</Code>
-
-            <p className="mt-8">Enter node id:</p>
-            <Input
-              placeholder="..."
-              className="w-full"
-              {...form.register("nodeId")}
-            />
-          </Modal.Body>
-          <Modal.Actions>
-            <Button type="button" onClick={handleHide}>
-              Cancel
-            </Button>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Connect node"
+        actions={
+          <>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
             <Button
               type="submit"
+              form="connect-node-form"
               color="primary"
-              disabled={connectNode.isPending}
+              loading={connectNode.isPending}
             >
-              Save
+              Connect
             </Button>
-          </Modal.Actions>
+          </>
+        }
+      >
+        <p className="muted text-sm">
+          Run this command on the target node to read its node id:
+        </p>
+        <Code className="mt-2">docker exec garage /garage node id</Code>
+
+        <form id="connect-node-form" onSubmit={onSubmit} className="mt-6">
+          <InputField
+            form={form}
+            name="nodeId"
+            title="Node id"
+            placeholder="<id>@<host>:3901"
+            autoComplete="off"
+            className="w-full"
+          />
         </form>
-      </Modal>
+      </Dialog>
     </>
   );
 };

@@ -1,5 +1,3 @@
-import { Card } from "react-daisyui";
-import { ChartPie, ChartScatter } from "lucide-react";
 import { readableBytes } from "@/lib/utils";
 import WebsiteAccessSection from "./overview-website-access";
 import AliasesSection from "./overview-aliases";
@@ -10,38 +8,44 @@ const OverviewTab = () => {
   const { bucket: data } = useBucketContext();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 items-start">
-      <Card className="card-body gap-0 items-start order-2 md:order-1">
-        <Card.Title>Summary</Card.Title>
+    <div className="grid items-start gap-6 lg:grid-cols-[1fr_1.4fr]">
+      <section
+        className="panel panel-pad lg:sticky lg:top-0"
+        aria-labelledby="usage-heading"
+      >
+        <h2 id="usage-heading" className="title">
+          Usage
+        </h2>
+        <dl className="mt-5 space-y-5">
+          <div>
+            <dt className="label-caps">Stored</dt>
+            <dd className="display num mt-2">{readableBytes(data.bytes)}</dd>
+          </div>
+          <div>
+            <dt className="label-caps">Objects</dt>
+            <dd className="num mt-1 text-2xl font-extrabold tracking-tight">
+              {data.objects.toLocaleString()}
+            </dd>
+          </div>
+          {data.unfinishedMultipartUploads > 0 ? (
+            <div>
+              <dt className="label-caps">Unfinished multipart uploads</dt>
+              <dd className="num mt-1 text-lg font-bold">
+                {data.unfinishedMultipartUploads.toLocaleString()}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      </section>
 
+      <section
+        className="panel panel-pad divide-y divide-base-300 [&>*]:py-6 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0"
+        aria-label="Bucket settings"
+      >
         <AliasesSection />
         <WebsiteAccessSection />
         <QuotaSection />
-      </Card>
-
-      <Card className="card-body order-1 md:order-2">
-        <Card.Title>Usage</Card.Title>
-
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="flex flex-row gap-3">
-            <ChartPie className="mt-1" size={20} />
-            <div className="flex-1">
-              <p className="text-sm flex items-center gap-1">Storage</p>
-              <p className="text-2xl font-medium">
-                {readableBytes(data?.bytes)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-row gap-3">
-            <ChartScatter className="mt-1" size={20} />
-            <div className="flex-1">
-              <p className="text-sm flex items-center gap-1">Objects</p>
-              <p className="text-2xl font-medium">{data?.objects}</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+      </section>
     </div>
   );
 };

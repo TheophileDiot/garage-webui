@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ComponentPropsWithoutRef } from "react";
+import { ComponentPropsWithoutRef, useId } from "react";
 import {
   FieldValues,
   UseFormReturn,
@@ -12,10 +12,10 @@ import {
 
 type FormControlProps<
   T extends FieldValues,
-  U extends FieldPath<T> = FieldPath<T>
+  U extends FieldPath<T> = FieldPath<T>,
 > = ComponentPropsWithoutRef<"div"> & {
   form: UseFormReturn<T>;
-  name: FieldPath<T>;
+  name: U;
   title?: string;
 
   render: (
@@ -23,31 +23,53 @@ type FormControlProps<
     fieldProps: {
       fieldState: ControllerFieldState;
       formState: UseFormStateReturn<T>;
-    }
+      id: string;
+      describedBy?: string;
+    },
   ) => React.ReactElement;
 };
 
-const FormControl = <T extends FieldValues>({
+const FormControl = <
+  T extends FieldValues,
+  U extends FieldPath<T> = FieldPath<T>,
+>({
   form,
   name,
   title,
   className,
   render,
-}: FormControlProps<T>) => {
+}: FormControlProps<T, U>) => {
+  const uid = useId();
+  const id = `${uid}-${name}`;
+  const errorId = `${id}-error`;
+
   return (
     <Controller
       control={form.control}
       name={name}
       render={({ field, fieldState, formState }) => (
         <div className={cn("form-control", className)}>
-          {title ? <label className="label label-text">{title}</label> : null}
+          {title ? (
+            <label htmlFor={id} className="label label-text">
+              {title}
+            </label>
+          ) : null}
 
-          {render(field, { fieldState, formState })}
+          {render(field, {
+            fieldState,
+            formState,
+            id,
+            describedBy: fieldState.error ? errorId : undefined,
+          })}
 
           {fieldState.error ? (
-            <label className="label label-text text-error">
+            <p
+              id={errorId}
+              role="alert"
+              className="label label-text text-error"
+            >
               {fieldState.error.message}
-            </label>
+            </p>
           ) : null}
         </div>
       )}

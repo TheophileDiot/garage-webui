@@ -34,8 +34,25 @@ export const InputField = <T extends FieldValues>({
       name={name}
       title={title}
       className={className}
-      render={(field) => (
-        <Input {...props} {...field} className={inputClassName} />
+      render={(field, { id, describedBy, fieldState }) => (
+        <Input
+          {...props}
+          {...field}
+          value={field.value ?? ""}
+          onChange={(e) =>
+            field.onChange(
+              props.type === "number"
+                ? e.target.value === ""
+                  ? null
+                  : e.target.valueAsNumber
+                : e,
+            )
+          }
+          id={props.id || id}
+          aria-invalid={fieldState.error ? true : undefined}
+          aria-describedby={describedBy}
+          className={inputClassName}
+        />
       )}
     />
   );

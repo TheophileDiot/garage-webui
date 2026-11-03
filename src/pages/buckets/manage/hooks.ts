@@ -7,6 +7,15 @@ import {
 } from "@tanstack/react-query";
 import { Bucket, Permissions } from "../types";
 
+export type UpdateBucketBody = {
+  quotas?: { maxObjects: number | null; maxSize: number | null };
+  websiteAccess?: {
+    enabled?: boolean;
+    indexDocument?: string;
+    errorDocument?: string;
+  };
+};
+
 export const useBucket = (id?: string | null) => {
   return useQuery({
     queryKey: ["bucket", id],
@@ -17,8 +26,8 @@ export const useBucket = (id?: string | null) => {
 
 export const useUpdateBucket = (id?: string | null) => {
   return useMutation({
-    mutationFn: (values: any) => {
-      return api.post<any>("/v2/UpdateBucket", {
+    mutationFn: (values: UpdateBucketBody) => {
+      return api.post<unknown>("/v2/UpdateBucket", {
         params: { id },
         body: values,
       });
@@ -28,7 +37,7 @@ export const useUpdateBucket = (id?: string | null) => {
 
 export const useAddAlias = (
   bucketId?: string | null,
-  options?: UseMutationOptions<any, Error, string>
+  options?: UseMutationOptions<unknown, Error, string>,
 ) => {
   return useMutation({
     mutationFn: (alias: string) => {
@@ -42,7 +51,7 @@ export const useAddAlias = (
 
 export const useRemoveAlias = (
   bucketId?: string | null,
-  options?: UseMutationOptions<any, Error, string>
+  options?: UseMutationOptions<unknown, Error, string>,
 ) => {
   return useMutation({
     mutationFn: (alias: string) => {
@@ -57,10 +66,10 @@ export const useRemoveAlias = (
 export const useAllowKey = (
   bucketId?: string | null,
   options?: MutationOptions<
-    any,
+    unknown,
     Error,
     { keyId: string; permissions: Permissions }[]
-  >
+  >,
 ) => {
   return useMutation({
     mutationFn: async (payload) => {
@@ -83,10 +92,10 @@ export const useAllowKey = (
 export const useDenyKey = (
   bucketId?: string | null,
   options?: MutationOptions<
-    any,
+    unknown,
     Error,
     { keyId: string; permissions: Permissions }
-  >
+  >,
 ) => {
   return useMutation({
     mutationFn: (payload) => {
@@ -103,7 +112,7 @@ export const useDenyKey = (
 };
 
 export const useRemoveBucket = (
-  options?: MutationOptions<any, Error, string>
+  options?: MutationOptions<unknown, Error, string>,
 ) => {
   return useMutation({
     mutationFn: (id) => api.post("/v2/DeleteBucket", { params: { id } }),

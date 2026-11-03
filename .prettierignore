@@ -1,0 +1,8 @@
+node_modules
+dist
+backend
+pnpm-lock.yaml
+misc/img
+misc/licenses
+.jury
+.shots

@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="pastel">
+<!doctype html>
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +9,32 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <title>Garage Web UI</title>
+    <meta
+      name="description"
+      content="Private administration console for Garage object storage."
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Garage · Storage console</title>
     <script>
       window.__BASE_PATH = "%BASE_PATH%";
+      // Apply the saved theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem("appdata") || "null");
+          var theme = saved && saved.state && saved.state.theme;
+          if (theme !== "light" && theme !== "dark") {
+            theme = window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+          }
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
     </script>
   </head>
   <body>
+    <noscript>Garage console needs JavaScript enabled.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

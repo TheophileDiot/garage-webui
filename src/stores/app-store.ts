@@ -9,12 +9,14 @@ type AppState = {
 const store = createStore(
   persist<AppState>(
     () => ({
-      theme: "pastel",
+      theme: window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light",
     }),
     {
       name: "appdata",
-    }
-  )
+    },
+  ),
 );
 
 const appStore = {

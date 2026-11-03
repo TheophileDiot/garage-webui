@@ -1,10 +1,10 @@
 import Button from "@/components/ui/button";
-import { EllipsisVertical, Trash } from "lucide-react";
-import { Dropdown } from "react-daisyui";
+import { Trash } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRemoveBucket } from "../hooks";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils";
+import { confirmAction } from "@/components/ui/confirm-store";
 
 const MenuButton = () => {
   const { id } = useParams();
@@ -12,30 +12,34 @@ const MenuButton = () => {
 
   const removeBucket = useRemoveBucket({
     onSuccess: () => {
-      toast.success("Bucket removed!");
+      toast.success("Bucket removed");
       navigate("/buckets", { replace: true });
     },
     onError: handleError,
   });
 
-  const onRemove = () => {
-    if (window.confirm("Are you sure you want to remove this bucket?")) {
-      removeBucket.mutate(id!);
-    }
+  const onRemove = async () => {
+    const ok = await confirmAction({
+      title: "Remove bucket",
+      message:
+        "Remove this bucket? Garage only deletes empty buckets, and its aliases are released.",
+      confirmLabel: "Remove bucket",
+      danger: true,
+    });
+    if (ok && id) removeBucket.mutate(id);
   };
 
   return (
-    <Dropdown end>
-      <Dropdown.Toggle button={false}>
-        <Button icon={EllipsisVertical} color="ghost" />
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu>
-        <Dropdown.Item onClick={onRemove} className="bg-error/10 text-error">
-          <Trash /> Remove
-        </Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
+    <Button
+      color="ghost"
+      className="text-error hover:bg-error/10"
+      icon={Trash}
+      loading={removeBucket.isPending}
+      onClick={onRemove}
+    >
+      <span className="hidden sm:inline">Remove bucket</span>
+      <span className="sr-only sm:hidden">Remove bucket</span>
+    </Button>
   );
 };
 

@@ -7,6 +7,8 @@ import { useUpdateBucket } from "../hooks";
 import { InputField } from "@/components/ui/input";
 import { ToggleField } from "@/components/ui/toggle";
 import { useBucketContext } from "../context";
+import { handleError } from "@/lib/utils";
+import SaveState from "./save-state";
 
 const QuotaSection = () => {
   const { bucket: data } = useBucketContext();
@@ -14,53 +16,71 @@ const QuotaSection = () => {
   const form = useForm<QuotaSchema>({
     resolver: zodResolver(quotaSchema),
   });
+  const { reset, watch } = form;
   const isEnabled = useWatch({ control: form.control, name: "enabled" });
 
   const updateMutation = useUpdateBucket(data?.id);
+  const { mutate } = updateMutation;
 
   const onChange = useDebounce((values: DeepPartial<QuotaSchema>) => {
     const { enabled } = values;
     const maxObjects = Number(values.maxObjects);
     const maxSize = Math.round(Number(values.maxSize) * 1024 ** 3);
 
-    const data = {
-      maxObjects: enabled && maxObjects > 0 ? maxObjects : null,
-      maxSize: enabled && maxSize > 0 ? maxSize : null,
-    };
-
-    updateMutation.mutate({ quotas: data });
+    mutate(
+      {
+        quotas: {
+          maxObjects: enabled && maxObjects > 0 ? maxObjects : null,
+          maxSize: enabled && maxSize > 0 ? maxSize : null,
+        },
+      },
+      { onError: handleError },
+    );
   });
 
   useEffect(() => {
-    form.reset({
+    reset({
       enabled:
         data?.quotas?.maxSize != null || data?.quotas?.maxObjects != null,
-      maxSize: data?.quotas?.maxSize ? data?.quotas?.maxSize / 1024 ** 3 : null,
+      maxSize: data?.quotas?.maxSize ? data.quotas.maxSize / 1024 ** 3 : null,
       maxObjects: data?.quotas?.maxObjects || null,
     });
 
-    const { unsubscribe } = form.watch((values) => onChange(values));
+    const { unsubscribe } = watch((values) => onChange(values));
     return unsubscribe;
-  }, [data]);
+  }, [data, reset, watch, onChange]);
 
   return (
-    <div className="mt-8">
-      <ToggleField form={form} name="enabled" title="Quotas" label="Enabled" />
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="title">Quotas</h3>
+        <SaveState mutation={updateMutation} />
+      </div>
+      <p className="muted mt-1 text-sm">
+        Limit how much a bucket can hold. Changes save automatically.
+      </p>
+      <ToggleField
+        form={form}
+        name="enabled"
+        label="Enforce quotas"
+        className="mt-3"
+      />
 
       {isEnabled && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
           <InputField
             form={form}
             name="maxObjects"
-            title="Max Objects"
+            title="Max objects"
             type="number"
+            min={0}
           />
-
           <InputField
             form={form}
             name="maxSize"
-            title="Max Size (GB)"
+            title="Max size (GiB)"
             type="number"
+            min={0}
           />
         </div>
       )}

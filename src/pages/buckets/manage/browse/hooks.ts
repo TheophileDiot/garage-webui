@@ -12,7 +12,7 @@ import {
 
 export const useBrowseObjects = (
   bucket: string,
-  options?: UseBrowserObjectOptions
+  options?: UseBrowserObjectOptions,
 ) => {
   return useQuery({
     queryKey: ["browse", bucket, options],
@@ -23,7 +23,7 @@ export const useBrowseObjects = (
 
 export const usePutObject = (
   bucket: string,
-  options?: UseMutationOptions<any, Error, PutObjectPayload>
+  options?: UseMutationOptions<unknown, Error, PutObjectPayload>,
 ) => {
   return useMutation({
     mutationFn: async (body) => {
@@ -32,7 +32,9 @@ export const usePutObject = (
         formData.append("file", body.file);
       }
 
-      return api.put(`/browse/${bucket}/${body.key}`, { body: formData });
+      return api.put(`/browse/${bucket}/${encodeURIComponent(body.key)}`, {
+        body: formData,
+      });
     },
     ...options,
   });
@@ -40,11 +42,15 @@ export const usePutObject = (
 
 export const useDeleteObject = (
   bucket: string,
-  options?: UseMutationOptions<any, Error, { key: string; recursive?: boolean }>
+  options?: UseMutationOptions<
+    unknown,
+    Error,
+    { key: string; recursive?: boolean }
+  >,
 ) => {
   return useMutation({
     mutationFn: (data) =>
-      api.delete(`/browse/${bucket}/${data.key}`, {
+      api.delete(`/browse/${bucket}/${encodeURIComponent(data.key)}`, {
         params: { recursive: data.recursive },
       }),
     ...options,

@@ -12,13 +12,13 @@ export const createKeySchema = z
   })
   .refine(
     (v) => !v.isImport || (v.accessKeyId != null && v.accessKeyId.length > 0),
-    { message: "Access key ID is required", path: ["accessKeyId"] }
+    { message: "Access key ID is required", path: ["accessKeyId"] },
   )
   .refine(
     (v) =>
       !v.isImport ||
       (v.secretAccessKey != null && v.secretAccessKey.length > 0),
-    { message: "Secret access key is required", path: ["secretAccessKey"] }
+    { message: "Secret access key is required", path: ["secretAccessKey"] },
   );
 
 export type CreateKeySchema = z.infer<typeof createKeySchema>;

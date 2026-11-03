@@ -17,8 +17,8 @@ export type WebsiteConfigSchema = z.infer<typeof websiteConfigSchema>;
 
 export const quotaSchema = z.object({
   enabled: z.boolean(),
-  maxObjects: z.coerce.number().nullish(),
-  maxSize: z.coerce.number().nullish(),
+  maxObjects: z.number().nullish(),
+  maxSize: z.number().nullish(),
 });
 
 export type QuotaSchema = z.infer<typeof quotaSchema>;

@@ -7,7 +7,6 @@ export type Config = {
   compression_level: number;
   rpc_bind_addr: string;
   rpc_public_addr: string;
-  rpc_secret: string;
   s3_api?: S3API;
   s3_web?: S3Web;
   admin?: Admin;
@@ -15,8 +14,6 @@ export type Config = {
 
 export type Admin = {
   api_bind_addr: string;
-  admin_token: string;
-  metrics_token: string;
 };
 
 export type S3API = {

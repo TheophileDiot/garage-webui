@@ -1,134 +1,209 @@
 import Button from "@/components/ui/button";
 import Page from "@/context/page-context";
-import { Copy, Eye, Trash } from "lucide-react";
-import { Card, Input, Table } from "react-daisyui";
+import { Copy, Eye, EyeOff, KeySquare, Search, Trash } from "lucide-react";
 import { useKeys, useRemoveKey } from "./hooks";
 import CreateKeyDialog from "./components/create-key-dialog";
 import { toast } from "sonner";
 import { copyToClipboard, handleError } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import api from "@/lib/api";
+import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
+import { confirmAction } from "@/components/ui/confirm-store";
+
+type KeyInfo = { secretAccessKey?: string };
 
 const KeysPage = () => {
-  const { data, refetch } = useKeys();
+  const { data, refetch, isPending, error } = useKeys();
   const [search, setSearch] = useState("");
   const [secretKeys, setSecretKeys] = useState<Record<string, string>>({});
 
   const removeKey = useRemoveKey({
     onSuccess: () => {
-      refetch();
-      toast.success("Key removed!");
+      void refetch();
+      toast.success("Key removed");
     },
     onError: handleError,
   });
 
   const fetchSecretKey = useCallback(async (id: string) => {
     try {
-      const result = await api.get("/v2/GetKeyInfo", {
+      const result = await api.get<KeyInfo>("/v2/GetKeyInfo", {
         params: { id, showSecretKey: "true" },
       });
       if (!result?.secretAccessKey) {
         throw new Error("Failed to fetch secret key");
       }
-      setSecretKeys((prev) => ({ ...prev, [id]: result.secretAccessKey }));
+      setSecretKeys((prev) => ({
+        ...prev,
+        [id]: result.secretAccessKey as string,
+      }));
     } catch (err) {
       handleError(err);
     }
   }, []);
 
-  const onRemove = (id: string) => {
-    if (window.confirm("Are you sure you want to remove this key?")) {
-      removeKey.mutate(id);
-    }
+  const hideSecret = (id: string) =>
+    setSecretKeys((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+
+  const onRemove = async (id: string, name: string) => {
+    const ok = await confirmAction({
+      title: "Remove access key",
+      message: `Remove ${name || id}? Clients using this key lose access to every bucket immediately.`,
+      confirmLabel: "Remove key",
+      danger: true,
+    });
+    if (ok) removeKey.mutate(id);
   };
 
   const items = useMemo(() => {
-    if (!search?.length) {
-      return data;
-    }
-
-    const q = search.toLowerCase();
-    return data?.filter((item) => item.id.includes(q) || item.name.includes(q));
+    const q = search.trim().toLowerCase();
+    if (!q) return data;
+    return data?.filter(
+      (item) =>
+        item.id.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q),
+    );
   }, [data, search]);
 
   return (
     <div className="container">
-      <Page title="Keys" />
+      <Page title="Access keys" />
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <Input
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label className="input input-bordered flex w-full items-center gap-2 sm:max-w-sm">
+          <Search
+            size={16}
+            aria-hidden
+            className="shrink-0 text-base-content/70"
+          />
+          <span className="sr-only">Search keys</span>
+          <input
+            type="search"
+            className="grow bg-transparent outline-none"
+            placeholder="Search by name or key id"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <p className="num text-sm text-base-content/70" aria-live="polite">
+          {data
+            ? `${items?.length ?? 0} of ${data.length} ${data.length === 1 ? "key" : "keys"}`
+            : null}
+        </p>
         <div className="flex-1" />
         <CreateKeyDialog />
       </div>
 
-      <Card className="card-body mt-4 md:mt-8 p-4">
-        <div className="w-full overflow-x-auto">
-          <Table zebra>
-            <Table.Head>
-              <span>#</span>
-              <span>Name</span>
-              <span>Key ID</span>
-              <span>Secret Key</span>
-              <span />
-            </Table.Head>
-
-            <Table.Body>
-              {items?.map((key, idx) => (
-                <Table.Row key={key.id}>
-                  <span>{idx + 1}</span>
-                  <span>{key.name}</span>
-                  <div className="flex flex-row items-center">
-                    <p className="truncate max-w-20" title={key.id}>
-                      {key.id}
-                    </p>
-                    <Button
-                      size="sm"
-                      icon={Copy}
-                      onClick={() => copyToClipboard(key.id)}
-                    />
-                  </div>
-                  {!secretKeys[key.id] ? (
-                    <Button
-                      icon={Eye}
-                      size="sm"
-                      onClick={() => fetchSecretKey(key.id)}
-                      className="shrink-0 min-w-[80px]"
-                    >
-                      View
-                    </Button>
-                  ) : (
-                    <div className="flex flex-row items-center">
-                      <p
-                        className="font-mono max-w-20 truncate"
-                        title={secretKeys[key.id]}
+      <section className="panel mt-6 overflow-hidden" aria-label="Access keys">
+        {isPending ? (
+          <SkeletonRows label="Loading keys" rows={4} />
+        ) : error ? (
+          <ErrorState
+            title="Could not load access keys"
+            error={error}
+            onRetry={() => void refetch()}
+          />
+        ) : data.length === 0 ? (
+          <EmptyState icon={KeySquare} title="No access keys yet">
+            Create a key, then allow it on a bucket so applications can read and
+            write.
+          </EmptyState>
+        ) : !items?.length ? (
+          <EmptyState icon={Search} title="No key matches your search">
+            Try a different name or part of a key id.
+          </EmptyState>
+        ) : (
+          <table className="table table-stack">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Key ID</th>
+                <th scope="col">Secret key</th>
+                <th scope="col">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((key) => (
+                <tr key={key.id} className="row-hover">
+                  <td data-primary className="font-bold">
+                    {key.name || (
+                      <span className="text-base-content/70">Unnamed</span>
+                    )}
+                  </td>
+                  <td data-label="Key ID">
+                    <span className="flex items-center gap-1">
+                      <span
+                        className="mono max-w-[14rem] truncate"
+                        title={key.id}
                       >
-                        {secretKeys[key.id]}
-                      </p>
+                        {key.id}
+                      </span>
                       <Button
                         size="sm"
+                        color="ghost"
                         icon={Copy}
-                        onClick={() => copyToClipboard(secretKeys[key.id])}
+                        aria-label={`Copy key id of ${key.name || key.id}`}
+                        onClick={() => copyToClipboard(key.id)}
                       />
-                    </div>
-                  )}
-
-                  <span>
+                    </span>
+                  </td>
+                  <td data-label="Secret key">
+                    {!secretKeys[key.id] ? (
+                      <Button
+                        size="sm"
+                        icon={Eye}
+                        onClick={() => fetchSecretKey(key.id)}
+                        aria-label={`Reveal secret key of ${key.name || key.id}`}
+                      >
+                        Reveal
+                      </Button>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className="mono max-w-[12rem] truncate"
+                          title={secretKeys[key.id]}
+                        >
+                          {secretKeys[key.id]}
+                        </span>
+                        <Button
+                          size="sm"
+                          color="ghost"
+                          icon={Copy}
+                          aria-label={`Copy secret key of ${key.name || key.id}`}
+                          onClick={() => copyToClipboard(secretKeys[key.id])}
+                        />
+                        <Button
+                          size="sm"
+                          color="ghost"
+                          icon={EyeOff}
+                          aria-label={`Hide secret key of ${key.name || key.id}`}
+                          onClick={() => hideSecret(key.id)}
+                        />
+                      </span>
+                    )}
+                  </td>
+                  <td data-label="" className="md:text-right">
                     <Button
+                      size="sm"
                       color="ghost"
+                      className="text-error hover:bg-error/10"
                       icon={Trash}
-                      onClick={() => onRemove(key.id)}
+                      aria-label={`Remove key ${key.name || key.id}`}
+                      onClick={() => onRemove(key.id, key.name)}
                     />
-                  </span>
-                </Table.Row>
+                  </td>
+                </tr>
               ))}
-            </Table.Body>
-          </Table>
-        </div>
-      </Card>
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
 };

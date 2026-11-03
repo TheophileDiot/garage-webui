@@ -1,17 +1,16 @@
 import { FolderPlus, UploadIcon } from "lucide-react";
 import Button from "@/components/ui/button";
+import Dialog from "@/components/ui/dialog";
 import { usePutObject } from "./hooks";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBucketContext } from "../context";
 import { useDisclosure } from "@/hooks/useDisclosure";
-import { Modal } from "react-daisyui";
 import { createFolderSchema, CreateFolderSchema } from "./schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField } from "@/components/ui/input";
-import { useEffect } from "react";
 
 type Props = {
   prefix: string;
@@ -23,7 +22,7 @@ const Actions = ({ prefix }: Props) => {
 
   const putObject = usePutObject(bucketName, {
     onSuccess: () => {
-      toast.success("File uploaded!");
+      toast.success("File uploaded");
       queryClient.invalidateQueries({ queryKey: ["browse", bucketName] });
     },
     onError: handleError,
@@ -56,17 +55,17 @@ const Actions = ({ prefix }: Props) => {
   };
 
   return (
-    <>
+    <div className="flex items-center gap-1">
       <CreateFolderAction prefix={prefix} />
-      {/* <Button icon={FilePlus} color="ghost" /> */}
       <Button
+        size="sm"
         icon={UploadIcon}
-        color="ghost"
-        title="Upload File"
+        loading={putObject.isPending}
         onClick={onUploadFile}
-      />
-      {/* <Button icon={EllipsisVertical} color="ghost" /> */}
-    </>
+      >
+        Upload
+      </Button>
+    </div>
   );
 };
 
@@ -84,13 +83,9 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
     defaultValues: { name: "" },
   });
 
-  useEffect(() => {
-    if (isOpen) form.setFocus("name");
-  }, [isOpen]);
-
   const createFolder = usePutObject(bucketName, {
     onSuccess: () => {
-      toast.success("Folder created!");
+      toast.success("Folder created");
       queryClient.invalidateQueries({ queryKey: ["browse", bucketName] });
       onClose();
       form.reset();
@@ -104,33 +99,38 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
 
   return (
     <>
-      <Button
-        icon={FolderPlus}
-        color="ghost"
-        onClick={onOpen}
-        title="Create Folder"
-      />
+      <Button size="sm" icon={FolderPlus} onClick={onOpen}>
+        New folder
+      </Button>
 
-      <Modal open={isOpen}>
-        <Modal.Header>Create Folder</Modal.Header>
-
-        <Modal.Body>
-          <form onSubmit={onSubmit}>
-            <InputField form={form} name="name" title="Name" />
-          </form>
-        </Modal.Body>
-
-        <Modal.Actions>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            color="primary"
-            onClick={onSubmit}
-            disabled={createFolder.isPending}
-          >
-            Submit
-          </Button>
-        </Modal.Actions>
-      </Modal>
+      <Dialog
+        open={isOpen}
+        onClose={onClose}
+        title="Create folder"
+        actions={
+          <>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              type="submit"
+              form="create-folder-form"
+              color="primary"
+              loading={createFolder.isPending}
+            >
+              Create folder
+            </Button>
+          </>
+        }
+      >
+        <form id="create-folder-form" onSubmit={onSubmit}>
+          <InputField
+            form={form}
+            name="name"
+            title="Folder name"
+            autoComplete="off"
+            className="w-full"
+          />
+        </form>
+      </Dialog>
     </>
   );
 };

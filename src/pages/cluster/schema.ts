@@ -12,7 +12,7 @@ export const assignNodeSchema = z
   .object({
     nodeId: z.string().min(1, "Node ID is required"),
     zone: z.string().min(1, 'Zone is required, e.g. "dc1"'),
-    capacity: z.coerce.number().nullish(),
+    capacity: z.number().nullish(),
     capacityUnit: z.enum(capacityUnits),
     isGateway: z.boolean(),
     tags: z.string().min(1).array(),
@@ -22,17 +22,17 @@ export const assignNodeSchema = z
     {
       message: "Capacity required",
       path: ["capacity"],
-    }
+    },
   );
 
 export type AssignNodeSchema = z.infer<typeof assignNodeSchema>;
 
 export const calculateCapacity = (
   value?: number | null,
-  unit?: (typeof capacityUnits)[number]
+  unit?: (typeof capacityUnits)[number],
 ) => {
   if (!value || !unit) return 0;
-  return value * 1000 ** (capacityUnits.indexOf(unit) + 2);
+  return Math.round(value * 1000 ** (capacityUnits.indexOf(unit) + 2));
 };
 
 export const parseCapacity = (value?: number | null) => {
@@ -43,11 +43,11 @@ export const parseCapacity = (value?: number | null) => {
   for (let i = capacityUnits.length - 1; i >= 0; i--) {
     if (value >= 1000 ** (i + 2)) {
       return {
-        value: Math.floor(value / 1000 ** (i + 2)),
+        value: value / 1000 ** (i + 2),
         unit: capacityUnits[i],
       };
     }
   }
 
-  return { value, unit: undefined };
+  return { value: value / 1000 ** 2, unit: capacityUnits[0] };
 };

@@ -1,14 +1,17 @@
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Home, LucideIcon } from "lucide-react";
-import { Fragment } from "react/jsx-runtime";
+import { ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { Fragment } from "react";
 
 type Props = {
   curPrefix: number;
-  setCurPrefix: React.Dispatch<React.SetStateAction<number>>;
+  setCurPrefix: (index: number) => void;
   prefixHistory: string[];
   actions?: React.ReactNode;
 };
+
+const folderName = (prefix: string) =>
+  prefix.substring(0, prefix.lastIndexOf("/")).split("/").pop();
 
 const ObjectListNavigator = ({
   curPrefix,
@@ -16,96 +19,85 @@ const ObjectListNavigator = ({
   prefixHistory,
   actions,
 }: Props) => {
-  const onGoBack = () => {
-    if (curPrefix >= 0) setCurPrefix(curPrefix - 1);
-  };
-
-  const onGoForward = () => {
-    if (curPrefix < prefixHistory.length - 1) setCurPrefix(curPrefix + 1);
-  };
-
   return (
-    <div className="flex flex-row flex-wrap items-center p-2 gap-y-2">
-      <div className="order-1 flex flex-row items-center">
+    <div className="flex flex-wrap items-center gap-2 border-b border-base-300 p-3">
+      <div className="order-1 flex items-center">
         <Button
           icon={ChevronLeft}
+          size="sm"
           color="ghost"
+          aria-label="Previous folder"
           disabled={curPrefix < 0}
-          onClick={onGoBack}
-          className="col-span-2"
+          onClick={() => setCurPrefix(curPrefix - 1)}
         />
         <Button
           icon={ChevronRight}
+          size="sm"
           color="ghost"
+          aria-label="Next folder"
           disabled={curPrefix >= prefixHistory.length - 1}
-          onClick={onGoForward}
-          className="col-span-2"
+          onClick={() => setCurPrefix(curPrefix + 1)}
         />
       </div>
 
-      <div className="order-3 md:order-2 flex flex-row w-full overflow-x-auto items-center bg-base-200 h-10 flex-1 shrink-0 min-w-[80%] md:min-w-0 rounded-lg mx-2 px-2">
-        <HistoryItem
-          icon={Home}
-          isActive={curPrefix === -1}
-          onClick={() => setCurPrefix(-1)}
-        />
+      <nav
+        aria-label="Folder path"
+        className="order-3 h-10 w-full min-w-0 flex-none overflow-x-auto rounded-lg bg-base-200 px-1 md:order-2 md:w-auto md:flex-1"
+      >
+        <ol className="flex h-full items-center">
+          <li className="shrink-0">
+            <Crumb
+              active={curPrefix === -1}
+              onClick={() => setCurPrefix(-1)}
+              label="Bucket root"
+            >
+              <Home size={16} aria-hidden />
+            </Crumb>
+          </li>
+          {prefixHistory.map((prefix, i) => (
+            <Fragment key={prefix}>
+              <li aria-hidden className="shrink-0 text-base-content/50">
+                <ChevronRight size={16} />
+              </li>
+              <li className="shrink-0">
+                <Crumb active={i === curPrefix} onClick={() => setCurPrefix(i)}>
+                  {folderName(prefix)}
+                </Crumb>
+              </li>
+            </Fragment>
+          ))}
+        </ol>
+      </nav>
 
-        {prefixHistory.map((prefix, i) => (
-          <Fragment key={prefix}>
-            <ChevronRight className="shrink-0" size={18} />
-            <HistoryItem
-              title={prefix
-                .substring(0, prefix.lastIndexOf("/"))
-                .split("/")
-                .pop()}
-              isActive={i === curPrefix}
-              onClick={() => setCurPrefix(i)}
-            />
-          </Fragment>
-        ))}
-      </div>
-
-      <div className="order-2 flex flex-row items-center flex-1 md:order-3 md:flex-initial justify-end">
+      <div className="order-2 flex flex-1 items-center justify-end md:order-3 md:flex-initial">
         {actions}
       </div>
     </div>
   );
 };
 
-type HistoryItemProps = {
-  icon?: LucideIcon;
-  title?: string;
-  isActive: boolean;
+type CrumbProps = {
+  label?: string;
+  active: boolean;
   onClick: () => void;
+  children: React.ReactNode;
 };
 
-const HistoryItem = ({
-  icon: Icon,
-  title,
-  isActive,
-  onClick,
-}: HistoryItemProps) => {
-  if (!title && !Icon) {
-    return null;
-  }
-
-  return (
-    <a
-      href="#"
-      onClick={(e) => {
-        e.preventDefault();
-        onClick();
-      }}
-      className={cn(
-        "px-2 rounded-md shrink-0 max-w-[150px] truncate",
-        isActive && "bg-neutral",
-        Icon ? "py-1" : null
-      )}
-    >
-      {Icon ? <Icon size={18} /> : null}
-      {title}
-    </a>
-  );
-};
+const Crumb = ({ label, active, onClick, children }: CrumbProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    aria-current={active ? "location" : undefined}
+    className={cn(
+      "flex h-8 max-w-[10rem] items-center truncate rounded-md px-2 text-sm font-bold transition-colors",
+      active
+        ? "bg-base-100 text-primary"
+        : "text-base-content/80 hover:bg-base-content/10",
+    )}
+  >
+    {children}
+  </button>
+);
 
 export default ObjectListNavigator;

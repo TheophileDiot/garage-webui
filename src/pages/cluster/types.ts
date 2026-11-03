@@ -3,16 +3,15 @@
 export type GetNodeInfoResult = {
   success: {
     [key: string]: {
-      nodeId:         string;
-      garageVersion:  string;
+      nodeId: string;
+      garageVersion: string;
       garageFeatures: string[];
-      rustVersion:    string;
-      dbEngine:       string;
+      rustVersion: string;
+      dbEngine: string;
     };
   };
-  error:   Error;
-}
-
+  error: { message?: string } | null;
+};
 
 export type GetStatusResult = {
   node: string;
@@ -46,7 +45,7 @@ export type DataPartition = {
 export type Role = {
   id: string;
   zone: string;
-  capacity: number;
+  capacity: number | null;
   tags: string[];
 };
 

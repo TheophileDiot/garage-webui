@@ -11,7 +11,7 @@ export const useBucketContext = () => {
   const bucket = useContext(BucketContext);
   if (!bucket) {
     throw new Error(
-      "BucketContext must be used within a BucketContextProvider"
+      "BucketContext must be used within a BucketContextProvider",
     );
   }
 

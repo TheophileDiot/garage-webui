@@ -1,5 +1,4 @@
-import React, {
-  createContext,
+import {
   memo,
   PropsWithChildren,
   useCallback,
@@ -7,35 +6,29 @@ import React, {
   useEffect,
   useState,
 } from "react";
-
-type PageContextValues = {
-  title: string | null;
-  prev: string | null;
-  actions: React.ReactNode | null;
-};
-
-export const PageContext = createContext<
-  | (PageContextValues & {
-      setValue: (values: Partial<PageContextValues>) => void;
-    })
-  | null
->(null);
-
-const initialValues: PageContextValues = {
-  title: null,
-  prev: null,
-  actions: null,
-};
+import {
+  initialPageValues,
+  PageContext,
+  PageContextValues,
+} from "./page-context-value";
 
 export const PageContextProvider = ({ children }: PropsWithChildren) => {
-  const [values, setValues] = useState<PageContextValues>(initialValues);
+  const [values, setValues] = useState<PageContextValues>(initialPageValues);
+
+  useEffect(() => {
+    document.title = values.title
+      ? `${values.title} · Garage`
+      : "Garage · Storage console";
+  }, [values.title]);
 
   const setValue = useCallback((value: Partial<PageContextValues>) => {
     setValues((prev) => ({ ...prev, ...value }));
   }, []);
 
   return (
-    <PageContext.Provider children={children} value={{ ...values, setValue }} />
+    <PageContext.Provider value={{ ...values, setValue }}>
+      {children}
+    </PageContext.Provider>
   );
 };
 
@@ -46,14 +39,15 @@ const Page = memo((props: PageProps) => {
   if (!context) {
     throw new Error("Page component must be used within a PageContextProvider");
   }
+  const { setValue } = context;
 
   useEffect(() => {
-    context.setValue(props);
+    setValue(props);
 
     return () => {
-      context.setValue(initialValues);
+      setValue(initialPageValues);
     };
-  }, [props, context.setValue]);
+  }, [props, setValue]);
 
   return null;
 });

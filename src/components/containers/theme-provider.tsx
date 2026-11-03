@@ -6,7 +6,10 @@ const ThemeProvider = () => {
   const theme = useStore(appStore, (i) => i.theme);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute(
+      "data-theme",
+      theme === "light" ? "light" : "dark",
+    );
   }, [theme]);
 
   return null;

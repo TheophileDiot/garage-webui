@@ -1,7 +1,7 @@
 import Button from "@/components/ui/button";
+import Dialog from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
-import { Modal } from "react-daisyui";
 import { useForm } from "react-hook-form";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { createBucketSchema, CreateBucketSchema } from "../schema";
@@ -10,25 +10,21 @@ import { useCreateBucket } from "../hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { handleError } from "@/lib/utils";
 import { toast } from "sonner";
-import { useEffect } from "react";
 
 const CreateBucketDialog = () => {
-  const { dialogRef, isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const form = useForm<CreateBucketSchema>({
     resolver: zodResolver(createBucketSchema),
     defaultValues: { globalAlias: "" },
   });
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (isOpen) form.setFocus("globalAlias");
-  }, [isOpen]);
-
   const createBucket = useCreateBucket({
     onSuccess: () => {
+      form.reset();
       onClose();
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
-      toast.success("Bucket created!");
+      toast.success("Bucket created");
     },
     onError: handleError,
   });
@@ -40,30 +36,41 @@ const CreateBucketDialog = () => {
   return (
     <>
       <Button icon={Plus} color="primary" onClick={onOpen}>
-        Create Bucket
+        Create bucket
       </Button>
 
-      <Modal ref={dialogRef} backdrop open={isOpen}>
-        <Modal.Header className="mb-1">Create New Bucket</Modal.Header>
-        <Modal.Body>
-          <p>Enter the details of the bucket you wish to create.</p>
-
-          <form onSubmit={onSubmit}>
-            <InputField form={form} name="globalAlias" title="Bucket Name" />
-          </form>
-        </Modal.Body>
-
-        <Modal.Actions>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            color="primary"
-            disabled={createBucket.isPending}
-            onClick={onSubmit}
-          >
-            Submit
-          </Button>
-        </Modal.Actions>
-      </Modal>
+      <Dialog
+        open={isOpen}
+        onClose={onClose}
+        title="Create bucket"
+        actions={
+          <>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              type="submit"
+              form="create-bucket-form"
+              color="primary"
+              loading={createBucket.isPending}
+            >
+              Create bucket
+            </Button>
+          </>
+        }
+      >
+        <p className="muted text-sm">
+          The name becomes the global alias clients use to reach the bucket.
+        </p>
+        <form id="create-bucket-form" onSubmit={onSubmit} className="mt-4">
+          <InputField
+            form={form}
+            name="globalAlias"
+            title="Bucket name"
+            autoComplete="off"
+            autoFocus
+            className="w-full"
+          />
+        </form>
+      </Dialog>
     </>
   );
 };

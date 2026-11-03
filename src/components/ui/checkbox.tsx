@@ -18,7 +18,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       <label
         className={cn(
           "label label-text inline-flex items-center justify-start gap-2 cursor-pointer",
-          className
+          className,
         )}
       >
         <BaseCheckbox
@@ -31,7 +31,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         {label}
       </label>
     );
-  }
+  },
 );
 
 type CheckboxFieldProps<T extends FieldValues> = Omit<

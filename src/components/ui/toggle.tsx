@@ -16,7 +16,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
         {label}
       </label>
     );
-  }
+  },
 );
 
 type ToggleFieldProps<T extends FieldValues> = Omit<
