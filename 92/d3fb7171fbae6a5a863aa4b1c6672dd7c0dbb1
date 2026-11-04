@@ -1,0 +1,478 @@
+src/pages/buckets/manage/overview/overview-aliases.tsx
+  s_3f928379c70de9::t_7a6fc5cf8436e6 1,8-9,16,21,29,31,35,38-72,74,80-103,107-108,124,130-135,144-145,147,150-152,155-156,164,170-171,175-182
+  s_b306c3e2906499::t_91999ea8a14203 75-77
+src/pages/buckets/manage/overview/autosave.test.ts
+  s_940ae178c59160::t_a7a2fd5634030c 1-30,36-50,56-72
+  s_940ae178c59160::t_86de602647c2be 31-35,51-55
+src/lib/address.ts
+  s_c1b1198bacafc2::t_8042a74ee058f4 32-33
+  s_940ae178c59160::t_5284db215528c1 35-40
+  s_7a8f4f853f92fe::t_b4213151d0a948 60,66-70
+  s_7a8f4f853f92fe::t_c5fd07773cc86b 61-65,71-74,76-101
+  s_7a8f4f853f92fe::t_a580ab1a39a7d5 75
+  s_fee9a793db774c::t_32068f86bfa4bb 1-31,34,41-59,102-164
+src/pages/buckets/manage/browse/hooks.ts
+  s_cf8dbf26f4a467::t_602fa824d2ae4b 6,8,28-29,31-35,37-38
+  s_7a8f4f853f92fe::t_b4213151d0a948 50
+  s_7a8f4f853f92fe::t_120af45db24e05 26-27,30,36,42,55-58,69,72,76-79
+src/pages/buckets/manage/hooks.ts
+  s_3f928379c70de9::t_2fc41f2f204a9b 20-30,39-43,51-55,63,71-74,82,90-93,99,101,103,129-137,143,145,147,157-160,165,167,169-170,172-181
+  s_7a8f4f853f92fe::t_b4213151d0a948 10,19
+  s_3f928379c70de9::t_7a5a5a982abacb 113-126
+  s_7a8f4f853f92fe::t_2dffac1ca1fa34 6
+tailwind.config.js
+  s_fee9a793db774c::t_ad1d42bf5ee382 1,5,48-67,69-71
+  s_28a7db46158d84::t_0e8092321ec799 9,73
+  s_28a7db46158d84::t_497660b60da8f1 7-8,10-47
+src/pages/cluster/components/node-ledger.tsx
+  s_8a192ea80019c0::t_88b57db5f8ee5c 192
+  s_8a192ea80019c0::t_ced30e717de4a0 8,107,119,156,189,196
+  s_8a192ea80019c0::t_5a65c8373d8b31 1-2,4,6-7,9-59,61-106,108-118,120-155,157-188,190-191,193-195,197-216
+  s_28a7db46158d84::t_6c0dd26c68e839 3
+  s_7a8f4f853f92fe::t_74dd2a8f31f9c9 5
+  s_8a192ea80019c0::t_8aa17b1b18426d 60
+src/lib/address.test.ts
+  s_fee9a793db774c::t_8a4e907e569697 63-65
+  s_7a8f4f853f92fe::t_b4213151d0a948 153-155
+  s_7a8f4f853f92fe::t_c5fd07773cc86b 7,139-152,156-191
+  s_940ae178c59160::t_5284db215528c1 5,130-138
+  s_fee9a793db774c::t_0a50e939a87977 1-4,6,8-28,33-62,66-129,192
+  s_fee9a793db774c::t_f4949e4cd3bd2b 29-32
+src/pages/buckets/manage/browse/object-list.tsx
+  s_cf8dbf26f4a467::t_f83150b7f063f5 3,9-13,16-19,24-34,40,53-101,106-151,153-159,163-164,166,201
+  s_cf8dbf26f4a467::t_f90ddb170def6a 160-162
+  s_3f928379c70de9::t_9df747e3346533 102-105,192
+  s_cf8dbf26f4a467::t_e04826d38f9ec8 5
+src/components/ui/checkbox.tsx
+  s_fee9a793db774c::t_d8ae706584e7bc 6,11,17-18,22,24-25,33
+src/pages/auth/hooks.ts
+  s_7a8f4f853f92fe::t_05a7152d648ba9 5,17
+src/lib/clipboard.test.ts
+  s_fee9a793db774c::t_8b682bd9a3e236 1-58
+src/components/ui/toggle.tsx
+  s_fee9a793db774c::t_d8ae706584e7bc 1-2,6-9,11-14,16,18-47,53
+  s_fee9a793db774c::t_531267a0c054ed 48,77,81
+src/components/ui/dialog.tsx
+  s_fee9a793db774c::t_93e49ddd3f7fb2 4,42-45,57-60
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 65-67
+  s_28a7db46158d84::t_0fea8913c6b154 73
+  s_fee9a793db774c::t_3318f95b617909 1,3,5-14,20,22-25,28,33,35-36,39-41,48-51,54-56,61-64,68-72,74-109
+.prettierignore
+  s_940ae178c59160::t_5284db215528c1 9
+src/pages/buckets/hooks.ts
+  s_b306c3e2906499::t_0a2e6c4da8145b 6,21,25-29
+src/pages/buckets/manage/components/delete-bucket-button.tsx
+  s_3f928379c70de9::t_cc033b3acedcac 1-34
+src/pages/home/model.test.ts
+  s_7a8f4f853f92fe::t_ff8b8a73046e21 3,6,16
+  s_7a8f4f853f92fe::t_ff593e88ff1053 1-2,4-5,7-15,17-142
+src/components/ui/perm.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 1-49
+src/app/router.tsx
+  s_7a8f4f853f92fe::t_f9cbe0ea04d11a 31-36
+  s_feaa8de3df2979::t_179d1b753b97e2 5,39
+  s_fee9a793db774c::t_ba15a730a75652 14
+  s_feaa8de3df2979::t_3f043ee12cb391 41-60
+src/pages/auth/login.tsx
+  s_28a7db46158d84::t_f035915ea4e131 70
+  s_fee9a793db774c::t_6847b9c3727f21 2-7,9,11-12,14-20,22-36,42,50-67,69,71-91,93-94,96-117,120,126-128,131-132,139,150-152,158-174,177,181-183,187
+src/pages/buckets/manage/browse/object-actions.tsx
+  s_cf8dbf26f4a467::t_e3cb44b14e2adb 3-9,25,28,31-32,41-45,47,51-52,54-55,60-65,68-101
+  s_7a8f4f853f92fe::t_120af45db24e05 22
+src/pages/cluster/components/zone-mark.tsx
+  s_8a192ea80019c0::t_1440e70766c0e7 1-3,5-63
+  s_7a8f4f853f92fe::t_b4213151d0a948 4
+src/components/ui/confirm.tsx
+  s_fee9a793db774c::t_3318f95b617909 4,7-8,14,16,19-21,23-25,32-37
+src/components/ui/form-control.tsx
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 67
+  s_fee9a793db774c::t_d8ae706584e7bc 2,20-21,34,42,49,56,58,71,74-76
+  s_fee9a793db774c::t_1786bed63afa47 77
+src/components/shell/nav.ts
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 1-7
+  s_fee9a793db774c::t_80739b6fba4ffb 8,10-23
+  s_7a8f4f853f92fe::t_b4213151d0a948 9
+src/pages/buckets/components/create-bucket-dialog.tsx
+  s_3f928379c70de9::t_21fe65d2e5245c 13-14,30,36-41,44,50-51,53,56-58,61-62,70,75,77,82-89
+src/app/tokens.css
+  s_fee9a793db774c::t_c5baa69f3125f6 1-27,31-80
+  s_fee9a793db774c::t_f4949e4cd3bd2b 28-30
+src/pages/cluster/page.tsx
+  s_7a8f4f853f92fe::t_937d95fa62708e 24,34
+  s_feaa8de3df2979::t_f287fb5076dea9 144-145
+  s_feaa8de3df2979::t_179d1b753b97e2 25
+  s_8a192ea80019c0::t_8aa17b1b18426d 114-115,137-139,146,176-178,324-328
+  s_8a192ea80019c0::t_2f66ecffc9dd23 2-19,21-23,27-33,35-36,38-42,45-47,49-52,54-66,68-103,105-113,116-136,140-143,147,150,152-156,158-175,179-245,247-272,274-299,301-323,329-355
+  s_28a7db46158d84::t_6c0dd26c68e839 20
+  s_7a8f4f853f92fe::t_74dd2a8f31f9c9 67
+  s_8a192ea80019c0::t_ced30e717de4a0 37,104
+src/components/ui/action-sheet.tsx
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 57-62
+  s_fee9a793db774c::t_4321605e31ee41 1-56,63-79
+src/pages/buckets/manage/overview/autosave.ts
+  s_940ae178c59160::t_3f1997336bc44c 1-40,42-44
+  s_940ae178c59160::t_ba85384f62e0c8 41
+src/components/ui/icon-button.tsx
+  s_fee9a793db774c::t_4cefe289905fcf 1-70
+src/pages/buckets/manage/overview/save-state.tsx
+  s_3f928379c70de9::t_d9cc723d44cba5 1-2,4,10,12-14,16,18
+src/context/page-context-value.ts
+  s_28a7db46158d84::t_f035915ea4e131 1,4
+src/pages/buckets/manage/browse/browse-tab.tsx
+  s_cf8dbf26f4a467::t_abc49374239e15 9-14,25-26,28-77,110-112,115,120,124,132,135-143
+  s_cf8dbf26f4a467::t_198d5c4571cb31 125-131,133
+  s_cf8dbf26f4a467::t_f90ddb170def6a 105-108
+  s_cf8dbf26f4a467::t_583fd4a7244d9b 109,134
+eslint.config.js
+  s_940ae178c59160::t_0079e95d07d1ac 7-29,31
+src/pages/buckets/manage/overview/overview-tab.tsx
+  s_b306c3e2906499::t_91999ea8a14203 94
+  s_3f928379c70de9::t_56e6a25159dd89 2-4,9,13-16,19-28,30-44,46-93,95-102,104-107,110
+src/app/app.tsx
+  s_fee9a793db774c::t_40bdf17c0f6d62 5,11-19,29-39
+src/components/containers/route-error.tsx
+  s_feaa8de3df2979::t_179d1b753b97e2 1-26
+src/pages/buckets/manage/browse/object-list-navigator.tsx
+  s_cf8dbf26f4a467::t_5fc6dff7635d69 1-4,10-11,16,18,23,26-30,32-48,50-70,72-73
+src/pages/keys/page.tsx
+  s_28a7db46158d84::t_f035915ea4e131 281
+  s_b306c3e2906499::t_fbee633d0e35e7 2-10,12-13,15,17,19-20,24-30,34,36,47,49-50,54-62,65-66,68-69,72-73,75,84,90,92-95,98-103,109-114,117-118,125-132,134-145,147-151,156-163,165-169,171-182,184-194,196-224,226-227,229-239,241-253,255-268,270-271,275-280,282-315,317,322-339,349,353-357,361-371,373-386,388-392,396-423,425-429,431-440
+  s_7a8f4f853f92fe::t_4de4f8dda08b0d 14,104-108
+  s_7a8f4f853f92fe::t_2607e4a3522e70 21,87,154,225,228,240,254,269,387
+  s_cf8dbf26f4a467::t_e42454d68a2074 133,146,164,170,183,372
+  s_b306c3e2906499::t_ebdab90fc8932f 152-153,195,272-274,393-395
+  s_7a8f4f853f92fe::t_dc08ea9ba0c4bb 16,35,37-45,51-53,63
+src/pages/cluster/model.ts
+  s_8a192ea80019c0::t_9d90fda31a3dcd 8-30,40,45-100,102-149,151-170,173-179,182-184,190-217,226-228
+  s_7a8f4f853f92fe::t_74dd2a8f31f9c9 1-7,33-39
+  s_7a8f4f853f92fe::t_b4213151d0a948 101
+  s_8a192ea80019c0::t_ced30e717de4a0 31-32,41-44,150,171-172,180-181,185-189,218-225
+src/pages/keys/types.ts
+  s_b306c3e2906499::t_f3d4668d8827d5 6-7
+src/pages/not-found.tsx
+  s_fee9a793db774c::t_ca8d8ea885602b 1-11,13-25,28-50
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 26-27
+  s_28a7db46158d84::t_f035915ea4e131 12
+src/components/ui/diff.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 1-19,24-37
+  s_28a7db46158d84::t_6c0dd26c68e839 20-23
+src/lib/partitions.test.ts
+  s_fee9a793db774c::t_d0551bedb217f3 54-72
+  s_7a8f4f853f92fe::t_1a63e4aacf51c3 6,9,102-139
+  s_feaa8de3df2979::t_8c9efa7dc8aba8 3-5,7-8,10-11,78-89,95-101
+  s_feaa8de3df2979::t_3f043ee12cb391 90-94
+  s_fee9a793db774c::t_73054ba52eac6e 73-77
+  s_fee9a793db774c::t_f05b4ab36dd666 1-2,12-53,140
+src/components/ui/chips.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 4,12,21-22,26,28-33,35
+src/components/layouts/auth-layout.tsx
+  s_fee9a793db774c::t_47710d37c70b6b 10
+src/components/shell/app-shell.tsx
+  s_fee9a793db774c::t_32cb3d007caf4b 197,205
+  s_fee9a793db774c::t_f6433fea6d4d81 1-21,23-67,85-102,105-110,112-126,128-185,187-190,192,194-196,198-204,206-228,230-283
+  s_28a7db46158d84::t_c06b7d5001a375 186
+  s_28a7db46158d84::t_3a0f3d8981f2c5 191,193
+  s_7a8f4f853f92fe::t_1a63e4aacf51c3 22
+  s_28a7db46158d84::t_6ef45ed6af5113 68-84,103-104,111,127,229
+src/pages/buckets/manage/permissions/allow-key-dialog.tsx
+  s_8a192ea80019c0::t_597550bfd48f0e 34,53-57,65-66,69-79,82,98-107
+  s_7a8f4f853f92fe::t_2607e4a3522e70 136,162
+  s_7a8f4f853f92fe::t_82b7483e67933e 19
+  s_3f928379c70de9::t_f16b657122e39e 6-8,12-13,26-28,33,35,45,59,83-85,87,90,93-97,108-109,120,123,127-135,137-161,163-173,176,182-183,185-186,189-191,194-195,197,204-272
+  s_7a8f4f853f92fe::t_003b1d03db552d 17
+src/pages/buckets/utils.ts
+  s_7a8f4f853f92fe::t_cca4d48aa3ddc1 1,61-66
+  s_3f928379c70de9::t_33407c1d2f7c85 5-8,23-60
+  s_7a8f4f853f92fe::t_b4213151d0a948 22
+  s_7a8f4f853f92fe::t_4de4f8dda08b0d 9-12,16-20
+  s_7a8f4f853f92fe::t_f586ce5d31cfbc 13-15,21
+DESIGN.md
+  s_28a7db46158d84::t_0dda0df3469faa 3-16,27-35,39-119
+  s_28a7db46158d84::t_60d2f39e062c3d 17-26
+src/components/layouts/main-layout.tsx
+  s_fee9a793db774c::t_c0af57f18e08af 1-2,5,7,16-20
+index.html
+  s_fee9a793db774c::t_b18657bfbe9dd9 18-27
+src/components/ui/goto-top-btn.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 1,6,11-14,17-23,28-30,32-33
+src/pages/buckets/components/bucket-summary.tsx
+  s_3f928379c70de9::t_ef97db1e7f8aea 140,142
+  s_b306c3e2906499::t_91999ea8a14203 23-30
+  s_3f928379c70de9::t_bf80b9b0ce97ec 64-70
+  s_3f928379c70de9::t_36c98f401b905b 1-6,8-10,12-22,31-63,71-139,141,143-149
+  s_7a8f4f853f92fe::t_cca4d48aa3ddc1 7,11
+src/pages/cluster/types.ts
+  s_8a192ea80019c0::t_9a0db9410df1ac 31-32
+  s_7a8f4f853f92fe::t_b4213151d0a948 41
+src/components/ui/state-glyph.tsx
+  s_7a8f4f853f92fe::t_1a63e4aacf51c3 1-127
+src/lib/clipboard.ts
+  s_7a8f4f853f92fe::t_b4213151d0a948 3
+  s_fee9a793db774c::t_860452055d52a1 1-2,4-23
+src/components/shell/tab-bar.tsx
+  s_fee9a793db774c::t_80739b6fba4ffb 1-31
+src/pages/keys/components/create-key-dialog.tsx
+  s_8a192ea80019c0::t_210cc98f92ee62 35-40,47
+  s_b306c3e2906499::t_b12b2acd1e2cc2 22-25
+  s_b306c3e2906499::t_97aca70070eeec 9,29-30,53-56,59-61,65,73,78,80,82,86,96
+  s_b306c3e2906499::t_595e1556bba739 21
+src/components/ui/input.tsx
+  s_fee9a793db774c::t_d8ae706584e7bc 1-2,6-10,12-75,89,99
+src/pages/keys/hooks.ts
+  s_b306c3e2906499::t_ebdab90fc8932f 20-22
+  s_b306c3e2906499::t_f3d4668d8827d5 6,18-19,23-26,30,39-46,53,57-65
+src/pages/buckets/manage/browse/actions.tsx
+  s_cf8dbf26f4a467::t_7750cb68dd7404 2,15-16,22-23,25-37,41-45,49-54,56,60,62-71,73,75-76,100,105-109,116,122-125,128-130,134,147-154,156
+  s_7a8f4f853f92fe::t_120af45db24e05 24,97
+  s_cf8dbf26f4a467::t_f90ddb170def6a 38-40,46-48
+src/components/containers/tab-view.tsx
+  s_fee9a793db774c::t_4f518a4b116721 16,75,77,98-99,101-102,106,118
+  s_7a8f4f853f92fe::t_36c470b0be97f0 17,25,42-44
+src/lib/utils.ts
+  s_7a8f4f853f92fe::t_74dd2a8f31f9c9 25-27
+  s_fee9a793db774c::t_f3a8d34b0657cf 7,32-43,45-46,48-49,53-64
+  s_7a8f4f853f92fe::t_eb5a390be6409b 65-66
+src/components/ui/page-header.tsx
+  s_fee9a793db774c::t_4321605e31ee41 1-133
+src/components/shell/use-cluster-summary.ts
+  s_fee9a793db774c::t_c7d8ec9e616b16 2,4,10-16,18-41,43,47-55,58-65,70-71
+  s_28a7db46158d84::t_c06b7d5001a375 68
+  s_feaa8de3df2979::t_f287fb5076dea9 5-9,42,44-46,56-57,67,69
+  s_7a8f4f853f92fe::t_74dd2a8f31f9c9 1,3,17
+  s_fee9a793db774c::t_bb5854624ee0ef 66
+src/pages/cluster/components/assign-node-dialog.tsx
+  s_8a192ea80019c0::t_e88af5777c3429 17,19,23-25,37-39,45,60,63,67-69,74-75,79,81-83,85-86,91,99-102,106,108-110,113-115,119,127,130-131,133-135,137-139,141-142,147-190,193,197-198,208-209,221,225,241,248-253,258-263
+  s_7a8f4f853f92fe::t_475e34e2eaa3f9 26
+  s_7a8f4f853f92fe::t_05a7152d648ba9 61
+src/pages/home/model.ts
+  s_7a8f4f853f92fe::t_b4213151d0a948 68,88
+  s_7a8f4f853f92fe::t_46e79bbf8ebebf 1-67,69-87,89-159
+src/pages/buckets/utils.test.ts
+  s_7a8f4f853f92fe::t_a2087dbbcfeb28 6,69-88
+  s_7a8f4f853f92fe::t_ff593e88ff1053 1-5,7-68,89
+src/pages/keys/utils.ts
+  s_7a8f4f853f92fe::t_2607e4a3522e70 1-6
+src/components/ui/state.tsx
+  s_fee9a793db774c::t_3318f95b617909 5,7,9,13,21-28,30-31,38,56-64,68,73-75,81-84,86-90,95-118
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 15-19,52,91-94
+src/components/ui/confirm-store.ts
+  s_fee9a793db774c::t_3318f95b617909 8-12,16-19,21,23-24,27-30,32-33,36-38,43-64,66-67
+  s_fee9a793db774c::t_3629798ad1dbf2 68-69
+  s_7a8f4f853f92fe::t_b4213151d0a948 3,15
+src/components/shell/address-bar.tsx
+  s_7a8f4f853f92fe::t_c5fd07773cc86b 1
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 23-26,29-32,43-44
+  s_fee9a793db774c::t_80739b6fba4ffb 2-22,27-28,33-42,45-89
+src/pages/buckets/components/bucket-ledger.tsx
+  s_3f928379c70de9::t_36c98f401b905b 179
+  s_b306c3e2906499::t_0a2e6c4da8145b 1-178,180-212
+src/components/containers/auth-state.tsx
+  s_fee9a793db774c::t_f604f7904713de 3,12-21,24,30
+src/lib/partitions.ts
+  s_fee9a793db774c::t_73054ba52eac6e 70-71
+  s_fee9a793db774c::t_d0551bedb217f3 53-69,72-79,112
+  s_feaa8de3df2979::t_3f043ee12cb391 17-19,23-25
+  s_7a8f4f853f92fe::t_1a63e4aacf51c3 9-11,26-34,80-111
+  s_fee9a793db774c::t_65d9a48c6b1b74 1-2,4-8,36-52
+  s_7a8f4f853f92fe::t_b4213151d0a948 3
+  s_feaa8de3df2979::t_f287fb5076dea9 12-16,20-22,35
+src/pages/buckets/manage/page.tsx
+  s_3f928379c70de9::t_f1f52bb53c00ac 13,99
+  s_7a8f4f853f92fe::t_36c470b0be97f0 111
+  s_28a7db46158d84::t_f035915ea4e131 45
+  s_3f928379c70de9::t_ac476c95213c1c 1,8,11,14-16,36,39,41,46-81,85,87,91,96-98,100-101,103,107
+src/pages/cluster/hooks.ts
+  s_8a192ea80019c0::t_685c8a5b8251be 14,59-65,67-75,77-79,84-97,100-102,106-107,111-113,117-118,122-126,130-134
+src/components/ui/button.tsx
+  s_fee9a793db774c::t_4cefe289905fcf 1-3,5-11,16-18,21-25,29-46,48-50,52-77,80-87,89,91-95,98-99,103-110
+  s_28a7db46158d84::t_0417f4e94e917f 14-15,47,51
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 78-79
+  s_7a8f4f853f92fe::t_b4213151d0a948 13
+src/components/ui/kbd.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 1-22
+src/components/ui/copy-button.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 1-49
+src/pages/buckets/manage/browse/share-dialog.tsx
+  s_cf8dbf26f4a467::t_5d1df4eea2ce83 6,8-9,20,22-29,41-48,51-69,73,78,82,85-96
+  s_cf8dbf26f4a467::t_f90ddb170def6a 34-35
+src/components/ui/status.tsx
+  s_7a8f4f853f92fe::t_74dd2a8f31f9c9 5
+  s_fee9a793db774c::t_1da03df76e31d2 1,3,8-11,14-15,21,26,31-34,36-51,55-58,63-73,81-84,95-99,101-105
+  s_28a7db46158d84::t_0fea8913c6b154 76-79,88-89,91-93,100
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 52-54
+  s_7a8f4f853f92fe::t_80007481f211ad 74-75
+src/pages/home/page.tsx
+  s_8a192ea80019c0::t_6184a816062dcb 389
+  s_7a8f4f853f92fe::t_ff8b8a73046e21 2,16,79
+  s_28a7db46158d84::t_6c0dd26c68e839 33
+  s_28a7db46158d84::t_f035915ea4e131 120
+  s_8a192ea80019c0::t_8aa17b1b18426d 57-58,60-61,64-65,179-182,197-200,202-205,217-218,228-232,276-278,288-292,294-300,302-306,316-317,356-357,408-410,425-428,461-462
+  s_7a8f4f853f92fe::t_ab7d0e1bdb8d48 15,21,34-35,53,69-71,75,81-93,400,467
+  s_feaa8de3df2979::t_3f043ee12cb391 313-314
+  s_feaa8de3df2979::t_f287fb5076dea9 22-27,77-78,247-248
+  s_8a192ea80019c0::t_ced30e717de4a0 17,274,391-392,399
+  s_8a192ea80019c0::t_3c1ac9ad2c26ed 3-4,7-14,18-20,29,31-32,37,43-44,48-52,55-56,72-74,80,94-99,105,110-116,119,121-123,125,127,129,134-138,140-146,150-172,174-178,183-196,201,206-216,219-223,225-227,233-246,249-273,275,279-287,293,301,307-312,315,318-344,350,358-362,365-367,372-373,376,378-380,382-388,390,393-398,401-407,411-416,419,421-424,429-432,434-454,456-460,463-466,468-502,504,506,509
+  s_7a8f4f853f92fe::t_c66110f40a0339 76
+src/pages/buckets/manage/permissions/permissions-tab.tsx
+  s_3f928379c70de9::t_b96fc32c5ebbda 2-3,9-14,18-19,21,28,32,35-39,41,44-55,57-95,97-108,110-112,116-135
+  s_7a8f4f853f92fe::t_2607e4a3522e70 15,29,56,96
+  s_b306c3e2906499::t_91999ea8a14203 113,115
+src/components/ui/button-styles.ts
+  s_fee9a793db774c::t_4cefe289905fcf 1,3-16,19-32
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 2
+  s_fee9a793db774c::t_d8ccdc676ba922 17-18
+src/pages/cluster/model.test.ts
+  s_8a192ea80019c0::t_4ac7f80a628e6d 1-99
+  s_8a192ea80019c0::t_66c8cd321d1529 100-108
+src/app/styles.css
+  s_fee9a793db774c::t_c85d29d340e6e7 1-15,17-18,20-22,31-32,35-36,38,41-44,46-47,50-51,53-55,57-61,63-65,67-72,74-78,80-82,84-86,88-90,92-95,100-101,103-104,107-152,155-162,164-177,179-182,184-187,190-202,205-231,234-264,266-268,270-274,277-294,299-312,314-321,323-324,326-327,329-330,333-335,337-340,343-346,348-350,353-354,356-360,363,366-371,373-375,377,379,381-382,384-385,387-393,434,436-439,449,453-471
+  s_fee9a793db774c::t_d8ccdc676ba922 265,269,275-276
+  s_fee9a793db774c::t_1a7265f17ca888 295-298,394-433
+  s_28a7db46158d84::t_97f9382e4dac55 435
+src/pages/buckets/manage/overview/overview-website-access.tsx
+  s_3f928379c70de9::t_18c1e7eac7d7f9 9-13,18,137-138,140,142-150
+  s_3f928379c70de9::t_8c521b384d95af 4,16,28-37,82-85,87,92-94,99-100,117-128,131-136,151-153,157,159-161,163-165,170,176,180-206,208
+  s_b306c3e2906499::t_91999ea8a14203 95-98,107-115
+  s_940ae178c59160::t_470f521b9df215 20-26,52-54,57-64,66-79,88-91,102-105
+  s_940ae178c59160::t_64c7729ace0fa7 27
+src/components/ui/ledger.tsx
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 64-68
+  s_fee9a793db774c::t_4321605e31ee41 1-63,69-95
+.github/workflows/ci.yaml
+  s_fee9a793db774c::t_f3a8d34b0657cf 32
+src/pages/cluster/components/connect-node-dialog.tsx
+  s_8a192ea80019c0::t_f4a8612982e394 28,32-36,38,43,49,51,54-56,60,68,73,80,83-84,86-88
+  s_7a8f4f853f92fe::t_05a7152d648ba9 29,85
+  s_7a8f4f853f92fe::t_36c470b0be97f0 11
+src/pages/buckets/page.tsx
+  s_7a8f4f853f92fe::t_cca4d48aa3ddc1 43
+  s_7a8f4f853f92fe::t_46e79bbf8ebebf 12
+  s_3f928379c70de9::t_c577e2ddb73c3a 3-4,7-9,11,18,23,26,32,35,46,48-56,58-74,84,88-92,95,97-100
+  s_7a8f4f853f92fe::t_d79890a537e4c2 44
+src/pages/keys/utils.test.ts
+  s_7a8f4f853f92fe::t_2607e4a3522e70 1-5,10-14
+  s_7a8f4f853f92fe::t_b4213151d0a948 6-9
+package.json
+  s_fee9a793db774c::t_88bf02d631aa45 14
+  s_fee9a793db774c::t_6c3e8bec66b96e 19,22
+src/components/ui/tag-input.tsx
+  s_fee9a793db774c::t_4321605e31ee41 1-107
+src/pages/buckets/manage/overview/overview-quota.tsx
+  s_3f928379c70de9::t_500d311d46e8b2 25-29,83
+  s_3f928379c70de9::t_cc46ae89efe99c 4,9,12,22-24,48,50-53,64-65,71-76,91-92,102,109,117,121
+  s_b306c3e2906499::t_91999ea8a14203 86-90
+  s_940ae178c59160::t_470f521b9df215 14-20,41-43,58-61,78-81
+  s_940ae178c59160::t_86de602647c2be 54-56,68-70
+  s_940ae178c59160::t_4f0bb8717cc436 21,66
+src/components/shell/palette.tsx
+  s_fee9a793db774c::t_49f44f48f68e93 1-5,10,37-39,41-47,77-81,127-129,224-228
+  s_fee9a793db774c::t_c7d8ec9e616b16 6-9,11-36,40,48-76,82-126,130-223,229-247
+src/pages/buckets/types.ts
+  s_fee9a793db774c::t_f3a8d34b0657cf 44-47,49-50
+  s_7a8f4f853f92fe::t_b4213151d0a948 21,39
+src/components/ui/partition-map.tsx
+  s_7a8f4f853f92fe::t_1a63e4aacf51c3 3,6,17,21,140-148,150,171,189,195,207
+  s_fee9a793db774c::t_17b27afde42d9a 8-16,18-20,22-70,72,78-91,94-139,149,151-154,158-170,172-188,190-194,196-206,208-213,218-226,234-317
+  s_feaa8de3df2979::t_f287fb5076dea9 214-217
+  s_fee9a793db774c::t_8e6ac0fa67f2e0 92-93
+  s_feaa8de3df2979::t_179d1b753b97e2 1-2,4-5,7,155-157
+  s_fee9a793db774c::t_1a7265f17ca888 71,73-77,227-233
+src/components/ui/code.tsx
+  s_fee9a793db774c::t_1da03df76e31d2 1,3,9,14,19-22
+README.md
+  s_28a7db46158d84::t_0fc0424aa1823b 79
+misc/licenses/BricolageGrotesque-OFL.txt
+  s_fee9a793db774c::t_e5355fc3f3bb47 1
+misc/licenses/JetBrainsMono-OFL.txt
+  s_fee9a793db774c::t_3687b69ea39c95 1-93
+pnpm-lock.yaml
+  s_28a7db46158d84::t_3c56466378a888 18-20,27-29,373-534,861-864,924-929,988-990,1129-1132,1505-1523,1542-1544,1546-1550,1719-1721,1724-1734,2067-2204,2471-2474,2543-2554,2603-2604,2754-2755,3030-3047,3063,3065,3067-3069,3264-3271,3273,3275,3314-3315
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92d3fb7171fbae6a5a863aa4b1c6672dd7c0dbb1",
+  "prompts": {},
+  "sessions": {
+    "s_28a7db46158d84": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1577a174-094f-4a79-b6a6-b18ed24fbc34",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_3f928379c70de9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "91d19124-97cf-4c3e-acca-0fbecf4ffadc",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_7a8f4f853f92fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6852ebb-ff5d-4cd0-bed8-318bb7f78904",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_8a192ea80019c0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ba0ae72-671a-4f6c-a564-951316a7fabc",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_940ae178c59160": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7a51479b-2479-47ab-944b-cc04692784e8",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_b306c3e2906499": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1696fa37-791e-429a-a180-66b2d0facfa7",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_c1b1198bacafc2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "881efd9d-8b99-42bc-a3a8-5852dbc19fa8",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_cf8dbf26f4a467": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e223a0cb-c9c3-4da2-acd9-72759e07dfbf",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_feaa8de3df2979": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04726736-fe3c-4ed1-9fd0-8765e91bf84b",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_fee9a793db774c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8e7f2ccf-0b39-4aad-a604-476608cd7981",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    }
+  }
+}
