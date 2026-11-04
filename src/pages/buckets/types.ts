@@ -18,7 +18,7 @@ export type Bucket = {
   quotas: Quotas;
 };
 
-export type LocalAlias = {
+type LocalAlias = {
   accessKeyId: string;
   alias: string;
 };
@@ -36,12 +36,16 @@ export type Permissions = {
   owner: boolean;
 };
 
-export type WebsiteConfig = {
+type WebsiteConfig = {
   indexDocument: string;
   errorDocument: string;
 };
 
+/**
+ * `null` = no quota. The app-owned `/api/buckets` list re-encodes Go int64 quotas, so there "no quota" can arrive
+ * as `0`: list consumers treat `null` and `0` alike as no quota.
+ */
 export type Quotas = {
-  maxSize: null;
-  maxObjects: null;
+  maxSize: number | null;
+  maxObjects: number | null;
 };

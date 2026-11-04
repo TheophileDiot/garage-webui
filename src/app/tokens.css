@@ -1,0 +1,80 @@
+/*
+ * Design tokens. Names come from the address world: ground, lift, sunk, rule, ink, gold (the logo yellow).
+ * One olive-neutral hue; surfaces shift only in lightness. Keyed on the app's data-theme values (light | dark);
+ * light is the :root default and the prefers-color-scheme block mirrors dark for a document with no data-theme.
+ */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ground: #f2f3ef;
+  --lift: #fafaf7;
+  --lift-2: #ffffff;
+  --sunk: #e8eae3;
+  --rule: rgb(22 23 15 / 0.14);
+  --rule-strong: rgb(22 23 15 / 0.3);
+  --wash: rgb(22 23 15 / 0.045);
+  --fill: rgb(22 23 15 / 0.11);
+  --ink: #16170f;
+  --ink-2: #44453a;
+  --ink-3: #565749;
+  --ink-4: #9a9b90;
+  --gold: #ffd952;
+  --gold-ink: #1a1600;
+  --gold-text: #6b4f00;
+  --gold-wash: rgb(255 217 82 / 0.28);
+  --ok: #1d6a3e;
+  --warn: #8a4100;
+  --bad: #ae3020;
+  --shadow-pop:
+    0 0 0 1px rgb(22 23 15 / 0.1), 0 8px 24px -6px rgb(22 23 15 / 0.22),
+    0 2px 6px rgb(22 23 15 / 0.08);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e0f0c;
+  --lift: #151712;
+  --lift-2: #1c1f18;
+  --sunk: #0a0b09;
+  --rule: rgb(238 235 221 / 0.12);
+  --rule-strong: rgb(238 235 221 / 0.26);
+  --wash: rgb(238 235 221 / 0.05);
+  --fill: rgb(238 235 221 / 0.13);
+  --ink: #eeebdd;
+  --ink-2: #b9b6a5;
+  --ink-3: #a4a293;
+  --ink-4: #5e5d52;
+  --gold: #ffd952;
+  --gold-ink: #17140a;
+  --gold-text: #ffd952;
+  --gold-wash: rgb(255 217 82 / 0.12);
+  --ok: #7ed89b;
+  --warn: #ff9a3c;
+  --bad: #ff7a6e;
+  --shadow-pop: 0 0 0 1px rgb(238 235 221 / 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --ground: #0e0f0c;
+    --lift: #151712;
+    --lift-2: #1c1f18;
+    --sunk: #0a0b09;
+    --rule: rgb(238 235 221 / 0.12);
+    --rule-strong: rgb(238 235 221 / 0.26);
+    --wash: rgb(238 235 221 / 0.05);
+    --fill: rgb(238 235 221 / 0.13);
+    --ink: #eeebdd;
+    --ink-2: #b9b6a5;
+    --ink-3: #a4a293;
+    --ink-4: #5e5d52;
+    --gold-ink: #17140a;
+    --gold-text: #ffd952;
+    --gold-wash: rgb(255 217 82 / 0.12);
+    --ok: #7ed89b;
+    --warn: #ff9a3c;
+    --bad: #ff7a6e;
+    --shadow-pop: 0 0 0 1px rgb(238 235 221 / 0.06);
+  }
+}

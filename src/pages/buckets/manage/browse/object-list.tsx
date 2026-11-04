@@ -1,49 +1,48 @@
-import { useBrowseObjects } from "./hooks";
 import { dayjs, readableBytes } from "@/lib/utils";
 import mime from "mime/lite";
-import { Object } from "./types";
+import { GetObjectsResult, Object } from "./types";
 import { API_URL } from "@/lib/api";
-import {
-  FileArchive,
-  FileIcon,
-  FileType,
-  Folder,
-  FolderOpen,
-} from "lucide-react";
-import { useBucketContext } from "../context";
+import { FileArchive, FileIcon, FileType, Folder } from "lucide-react";
 import ObjectActions from "./object-actions";
 import GotoTopButton from "@/components/ui/goto-top-btn";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
+import { Ledger, LedgerColumn } from "@/components/ui/ledger";
+
+type Row =
+  | { kind: "folder"; folder: string; name: string }
+  | { kind: "file"; object: Object };
 
 type Props = {
+  data?: GetObjectsResult;
+  error: Error | null;
+  isLoading: boolean;
+  onRetry: () => void;
   prefix?: string;
   onPrefixChange?: (prefix: string) => void;
 };
 
-const ObjectList = ({ prefix, onPrefixChange }: Props) => {
-  const { bucketName } = useBucketContext();
-  const { data, error, isLoading, refetch } = useBrowseObjects(bucketName, {
-    prefix,
-    limit: 1000,
-  });
+const nameClass = "min-w-0 [overflow-wrap:anywhere] md:truncate";
 
-  const onObjectClick = (object: Object) => {
-    window.open(API_URL + object.url + "?view=1", "_blank", "noopener");
-  };
-
-  if (isLoading) return <SkeletonRows label="Loading objects" rows={5} />;
+const ObjectList = ({
+  data,
+  error,
+  isLoading,
+  onRetry,
+  prefix = "",
+  onPrefixChange,
+}: Props) => {
+  if (isLoading) return <SkeletonRows label="Loading objects" rows={6} />;
   if (error)
     return (
       <ErrorState
         title="Could not list objects"
         error={error}
-        onRetry={() => void refetch()}
+        onRetry={onRetry}
       />
     );
   if (!data?.prefixes?.length && !data?.objects?.length) {
     return (
       <EmptyState
-        icon={FolderOpen}
         title={prefix ? "This folder is empty" : "This bucket is empty"}
       >
         Use the toolbar to upload files or create a folder.
@@ -51,107 +50,120 @@ const ObjectList = ({ prefix, onPrefixChange }: Props) => {
     );
   }
 
+  const rows: Row[] = [
+    ...data.prefixes.map((folder): Row => {
+      const name = folder
+        .substring(0, folder.lastIndexOf("/"))
+        .split("/")
+        .pop();
+      return { kind: "folder", folder, name: name ?? folder };
+    }),
+    ...data.objects.map((object): Row => ({ kind: "file", object })),
+  ];
+
+  const columns: LedgerColumn<Row>[] = [
+    {
+      key: "name",
+      header: "Name",
+      mobile: "title",
+      cell: (row) => {
+        if (row.kind === "folder") {
+          return (
+            <button
+              type="button"
+              className="xlink inline-flex max-w-full items-center gap-2 text-left font-medium"
+              title={row.folder}
+              onClick={() => onPrefixChange?.(row.folder)}
+            >
+              <Folder
+                size={14}
+                aria-hidden
+                className="shrink-0 text-gold-text"
+              />
+              <span className={nameClass}>{row.name}/</span>
+              <span className="sr-only"> (folder)</span>
+            </button>
+          );
+        }
+        const { object } = row;
+        const extIdx = object.objectKey.lastIndexOf(".");
+        const filename =
+          extIdx > 0 ? object.objectKey.substring(0, extIdx) : object.objectKey;
+        const ext = extIdx > 0 ? object.objectKey.substring(extIdx) : null;
+        return (
+          <a
+            href={API_URL + object.url + "?view=1"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="xlink inline-flex max-w-full items-center gap-2 text-left font-medium"
+            title={data.prefix + object.objectKey}
+          >
+            <FilePreview ext={ext?.substring(1)} object={object} />
+            <span className="inline-flex min-w-0">
+              <span className={nameClass}>{filename}</span>
+              {ext && <span className="shrink-0 text-ink-3">{ext}</span>}
+            </span>
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        );
+      },
+    },
+    {
+      key: "size",
+      header: "Size",
+      align: "right",
+      width: "7rem",
+      cell: (row) =>
+        row.kind === "file" ? (
+          <span className="whitespace-nowrap">
+            {readableBytes(row.object.size)}
+          </span>
+        ) : null,
+    },
+    {
+      key: "modified",
+      header: "Last modified",
+      width: "10rem",
+      cell: (row) =>
+        row.kind === "file" ? (
+          <time
+            className="whitespace-nowrap text-ink-2"
+            dateTime={dayjs(row.object.lastModified).toISOString()}
+            title={dayjs(row.object.lastModified).format("YYYY-MM-DD HH:mm:ss")}
+          >
+            {dayjs(row.object.lastModified).fromNow()}
+          </time>
+        ) : null,
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "right",
+      width: "7.5rem",
+      mobile: "actions",
+      cell: (row) =>
+        row.kind === "folder" ? (
+          <ObjectActions object={{ objectKey: row.folder, url: "" }} />
+        ) : (
+          <ObjectActions prefix={data.prefix} object={row.object} />
+        ),
+    },
+  ];
+
   return (
-    <div className="min-h-[16rem]">
-      <table className="table table-stack">
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col" className="md:text-right">
-              Size
-            </th>
-            <th scope="col">Last modified</th>
-            <th scope="col">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {data?.prefixes.map((folder) => {
-            const name = folder
-              .substring(0, folder.lastIndexOf("/"))
-              .split("/")
-              .pop();
-            return (
-              <tr key={folder} className="row-hover group">
-                <td data-primary>
-                  <button
-                    type="button"
-                    className="flex min-h-6 items-center gap-2 font-bold"
-                    onClick={() => onPrefixChange?.(folder)}
-                  >
-                    <Folder size={18} className="text-primary" aria-hidden />
-                    {name}
-                    <span className="sr-only"> (folder)</span>
-                  </button>
-                </td>
-                <td
-                  data-label="Size"
-                  className="md:text-right text-base-content/70"
-                >
-                  Folder
-                </td>
-                <td data-label="Last modified" className="text-base-content/70">
-                  None
-                </td>
-                <ObjectActions object={{ objectKey: folder, url: "" }} />
-              </tr>
-            );
-          })}
-
-          {data?.objects.map((object) => {
-            const extIdx = object.objectKey.lastIndexOf(".");
-            const filename =
-              extIdx >= 0
-                ? object.objectKey.substring(0, extIdx)
-                : object.objectKey;
-            const ext = extIdx >= 0 ? object.objectKey.substring(extIdx) : null;
-
-            return (
-              <tr key={object.objectKey} className="row-hover group">
-                <td data-primary>
-                  <button
-                    type="button"
-                    className="flex min-h-6 max-w-full items-center text-left font-bold"
-                    onClick={() => onObjectClick(object)}
-                  >
-                    <FilePreview ext={ext?.substring(1)} object={object} />
-                    <span className="truncate md:max-w-[28rem]">
-                      {filename}
-                    </span>
-                    {ext && (
-                      <span className="shrink-0 text-base-content/70">
-                        {ext}
-                      </span>
-                    )}
-                    <span className="sr-only"> (opens in a new tab)</span>
-                  </button>
-                </td>
-                <td
-                  data-label="Size"
-                  className="whitespace-nowrap md:text-right"
-                >
-                  {readableBytes(object.size)}
-                </td>
-                <td
-                  data-label="Last modified"
-                  className="whitespace-nowrap"
-                  title={dayjs(object.lastModified).format(
-                    "YYYY-MM-DD HH:mm:ss",
-                  )}
-                >
-                  {dayjs(object.lastModified).fromNow()}
-                </td>
-                <ObjectActions prefix={data.prefix} object={object} />
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
+    <>
+      <Ledger
+        caption={`Objects under ${prefix || "the bucket root"}`}
+        columns={columns}
+        rows={rows}
+        rowKey={(row) =>
+          row.kind === "folder"
+            ? `d:${row.folder}`
+            : `f:${row.object.objectKey}`
+        }
+      />
       <GotoTopButton />
-    </div>
+    </>
   );
 };
 
@@ -177,7 +189,7 @@ const FilePreview = ({ ext, object }: FilePreviewProps) => {
         src={API_URL + object.url + (thumbnailSupport ? "?thumb=1" : "?view=1")}
         alt=""
         loading="lazy"
-        className="mr-2 size-5 shrink-0 overflow-hidden rounded-sm object-cover"
+        className="size-5 shrink-0 overflow-hidden rounded-sm bg-sunk object-cover"
       />
     );
   }
@@ -186,13 +198,7 @@ const FilePreview = ({ ext, object }: FilePreviewProps) => {
     Icon = FileType;
   }
 
-  return (
-    <Icon
-      size={18}
-      aria-hidden
-      className="mr-2 shrink-0 text-base-content/70"
-    />
-  );
+  return <Icon size={14} aria-hidden className="shrink-0 text-ink-3" />;
 };
 
 export default ObjectList;

@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import AuthLayout from "@/components/layouts/auth-layout";
 import MainLayout from "@/components/layouts/main-layout";
+import RouteError from "@/components/containers/route-error";
 import { BASE_PATH } from "@/lib/consts";
 
 const LoginPage = lazy(() => import("@/pages/auth/login"));
@@ -10,6 +11,7 @@ const HomePage = lazy(() => import("@/pages/home/page"));
 const BucketsPage = lazy(() => import("@/pages/buckets/page"));
 const ManageBucketPage = lazy(() => import("@/pages/buckets/manage/page"));
 const KeysPage = lazy(() => import("@/pages/keys/page"));
+const NotFoundPage = lazy(() => import("@/pages/not-found"));
 
 const router = createBrowserRouter(
   [
@@ -26,25 +28,37 @@ const router = createBrowserRouter(
     {
       path: "/",
       Component: MainLayout,
+      // A render error in the shell itself (the nested one below only covers pages): no shell around it.
+      errorElement: (
+        <main className="mx-auto max-w-3xl p-4 md:p-8">
+          <RouteError />
+        </main>
+      ),
       children: [
         {
-          index: true,
-          Component: HomePage,
-        },
-        {
-          path: "cluster",
-          Component: ClusterPage,
-        },
-        {
-          path: "buckets",
+          errorElement: <RouteError />,
           children: [
-            { index: true, Component: BucketsPage },
-            { path: ":id", Component: ManageBucketPage },
+            {
+              index: true,
+              Component: HomePage,
+            },
+            {
+              path: "cluster",
+              Component: ClusterPage,
+            },
+            {
+              path: "buckets",
+              children: [
+                { index: true, Component: BucketsPage },
+                { path: ":id", Component: ManageBucketPage },
+              ],
+            },
+            {
+              path: "keys",
+              Component: KeysPage,
+            },
+            { path: "*", Component: NotFoundPage },
           ],
-        },
-        {
-          path: "keys",
-          Component: KeysPage,
         },
       ],
     },

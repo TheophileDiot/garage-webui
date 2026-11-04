@@ -28,7 +28,8 @@ export type GetStatusResult = {
 export type Node = {
   id: string;
   role?: Role | StagedRole;
-  addr: string;
+  /** `null` for a node that is not connected. */
+  addr: string | null;
   hostname: string;
   isUp: boolean;
   lastSeenSecsAgo: number | null;
@@ -37,7 +38,7 @@ export type Node = {
   metadataPartition?: DataPartition;
 };
 
-export type DataPartition = {
+type DataPartition = {
   available: number;
   total: number;
 };

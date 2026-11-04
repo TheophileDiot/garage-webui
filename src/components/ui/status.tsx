@@ -1,75 +1,108 @@
+import { safeRatio } from "@/lib/partitions";
 import { cn } from "@/lib/utils";
+import { CSSProperties, ReactNode } from "react";
 
-type Tone = "ok" | "warn" | "bad" | "idle";
-
-const dot: Record<Tone, string> = {
-  ok: "bg-success",
-  warn: "bg-warning",
-  bad: "bg-error",
-  idle: "bg-base-content/40",
-};
+export type Tone = "ok" | "warn" | "bad" | "idle";
 
 const text: Record<Tone, string> = {
-  ok: "text-success",
-  warn: "text-warning",
-  bad: "text-error",
-  idle: "text-base-content/70",
+  ok: "text-ok",
+  warn: "text-warn",
+  bad: "text-bad",
+  idle: "text-ink-3",
 };
 
-/** Status is always a dot plus a text label, never colour alone. */
-export const StatusPill = ({
+/** Status = a shape plus a word. Filled square: fine. Hollow square: not fine. Triangle: degraded. Dash: unknown. */
+export const Status = ({
   tone,
   children,
   className,
 }: {
   tone: Tone;
-  children: string;
+  children: ReactNode;
   className?: string;
 }) => (
   <span
     className={cn(
-      "inline-flex items-center gap-2 text-sm font-bold",
+      "inline-flex items-center gap-1.5 whitespace-nowrap font-medium",
       text[tone],
       className,
     )}
   >
-    <span
+    <svg
+      width="9"
+      height="9"
+      viewBox="0 0 9 9"
       aria-hidden
-      className={cn("h-2 w-2 shrink-0 rounded-full", dot[tone])}
-    />
+      className="shrink-0"
+    >
+      {tone === "ok" && (
+        <rect x="0.5" y="0.5" width="8" height="8" fill="currentColor" />
+      )}
+      {tone === "bad" && (
+        <rect
+          x="1"
+          y="1"
+          width="7"
+          height="7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+      )}
+      {tone === "warn" && (
+        <path d="M4.5 0.5 8.5 8.5H0.5Z" fill="currentColor" />
+      )}
+      {tone === "idle" && (
+        <rect x="1" y="3.5" width="7" height="2" fill="currentColor" />
+      )}
+    </svg>
     {children}
   </span>
 );
 
-type Segment = { value: number; className: string };
+type Tint = "ink" | "ok" | "warn" | "bad" | "gold";
 
-/** Stacked meter. Segments are drawn left to right, widths are shares of `max`. */
-export const Meter = ({
-  segments,
-  max,
-  label,
-  className,
-}: {
-  segments: Segment[];
+const fill: Record<Tint, string> = {
+  ink: "var(--ink-2)",
+  ok: "var(--ok)",
+  warn: "var(--warn)",
+  bad: "var(--bad)",
+  gold: "var(--gold-text)",
+};
+
+type MeterProps = {
   max: number;
   label: string;
+  value: number;
+  tone?: Tint;
   className?: string;
-}) => {
-  const total = Math.max(max, 1);
+};
+
+/**
+ * Cell meter. Always sits next to its numbers in text; the bar is a second reading, not the only one.
+ * A zero or missing `max` draws an empty bar, never NaN.
+ */
+export const Meter = ({
+  max,
+  label,
+  value,
+  tone = "ink",
+  className,
+}: MeterProps) => {
+  const p = safeRatio(value, max) * 100;
+  const style = { "--meter-fill": fill[tone] } as CSSProperties;
   return (
-    <div role="img" aria-label={label} className={cn("meter", className)}>
-      {segments.map((segment, i) =>
-        segment.value > 0 ? (
-          <span
-            key={i}
-            className={segment.className}
-            style={{
-              width: `${(segment.value / total) * 100}%`,
-              animationDelay: `${i * 120}ms`,
-            }}
-          />
-        ) : null,
-      )}
+    <div
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={max > 0 ? max : 0}
+      aria-valuenow={Math.max(0, value)}
+      aria-valuetext={`${Math.round(p)}%`}
+      className={cn("meter w-full", className)}
+      style={style}
+    >
+      <i style={{ width: `${p}%` }} />
     </div>
   );
 };

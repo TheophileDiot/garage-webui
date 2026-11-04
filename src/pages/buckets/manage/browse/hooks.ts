@@ -3,7 +3,9 @@ import {
   useMutation,
   UseMutationOptions,
   useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
+import { useBucketContext } from "../context";
 import {
   GetObjectsResult,
   PutObjectPayload,
@@ -21,10 +23,23 @@ export const useBrowseObjects = (
   });
 };
 
+/** The bucket a browse write targets, and the refresh that follows it: the listing, plus the bucket list and detail that carry object counts and bytes. */
+const useBrowseWrite = () => {
+  const queryClient = useQueryClient();
+  const { bucket, bucketName } = useBucketContext();
+  const invalidate = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["browse", bucketName] }),
+      queryClient.invalidateQueries({ queryKey: ["buckets"] }),
+      queryClient.invalidateQueries({ queryKey: ["bucket", bucket.id] }),
+    ]);
+  return { bucketName, invalidate };
+};
+
 export const usePutObject = (
-  bucket: string,
   options?: UseMutationOptions<unknown, Error, PutObjectPayload>,
 ) => {
+  const { bucketName, invalidate } = useBrowseWrite();
   return useMutation({
     mutationFn: async (body) => {
       const formData = new FormData();
@@ -32,27 +47,35 @@ export const usePutObject = (
         formData.append("file", body.file);
       }
 
-      return api.put(`/browse/${bucket}/${encodeURIComponent(body.key)}`, {
+      return api.put(`/browse/${bucketName}/${encodeURIComponent(body.key)}`, {
         body: formData,
       });
     },
     ...options,
+    onSuccess: async (...args) => {
+      await invalidate();
+      return options?.onSuccess?.(...args);
+    },
   });
 };
 
 export const useDeleteObject = (
-  bucket: string,
   options?: UseMutationOptions<
     unknown,
     Error,
     { key: string; recursive?: boolean }
   >,
 ) => {
+  const { bucketName, invalidate } = useBrowseWrite();
   return useMutation({
     mutationFn: (data) =>
-      api.delete(`/browse/${bucket}/${encodeURIComponent(data.key)}`, {
+      api.delete(`/browse/${bucketName}/${encodeURIComponent(data.key)}`, {
         params: { recursive: data.recursive },
       }),
     ...options,
+    onSuccess: async (...args) => {
+      await invalidate();
+      return options?.onSuccess?.(...args);
+    },
   });
 };

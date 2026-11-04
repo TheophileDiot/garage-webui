@@ -7,10 +7,6 @@ const AuthLayout = () => {
   if (auth.error || auth.isLoading)
     return <AuthState error={auth.error} onRetry={() => void auth.retry()} />;
   if (auth.isAuthenticated) return <Navigate to="/" replace />;
-  return (
-    <main className="h-dvh overflow-y-auto">
-      <Outlet />
-    </main>
-  );
+  return <Outlet />;
 };
 export default AuthLayout;

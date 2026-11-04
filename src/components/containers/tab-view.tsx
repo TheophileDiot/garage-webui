@@ -13,6 +13,8 @@ export type Tab = {
 type Props = {
   tabs: Tab[];
   name?: string;
+  /** Accessible name of the tab list. */
+  label: string;
   className?: string;
   contentClassName?: string;
 };
@@ -20,6 +22,7 @@ type Props = {
 const TabView = ({
   tabs,
   name = "tab",
+  label,
   className,
   contentClassName,
 }: Props) => {
@@ -36,8 +39,9 @@ const TabView = ({
   const select = (tabName: string) =>
     setSearchParams(
       (params) => {
-        params.set(name, tabName);
-        return params;
+        const next = new URLSearchParams(params);
+        next.set(name, tabName);
+        return next;
       },
       { replace: true },
     );
@@ -68,9 +72,9 @@ const TabView = ({
     <>
       <div
         role="tablist"
-        aria-label="Bucket sections"
+        aria-label={label}
         className={cn(
-          "flex gap-1 overflow-x-auto border-b border-base-300",
+          "-mx-4 flex gap-1 overflow-x-auto border-b border-rule px-4 md:mx-0 md:px-0",
           className,
         )}
       >
@@ -91,23 +95,17 @@ const TabView = ({
               onClick={() => select(tab.name)}
               onKeyDown={(e) => onKeyDown(e, index)}
               className={cn(
-                "relative flex h-12 shrink-0 items-center gap-2 px-3 text-sm font-bold sm:px-4 transition-colors",
+                "relative -mb-px inline-flex h-10 shrink-0 items-center gap-2 px-3 font-medium transition-colors duration-caret hover:bg-fill md:h-8",
+                "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-bottom-left after:scale-x-0 after:bg-transparent after:transition-transform after:duration-caret after:ease-caret hover:after:scale-x-100 hover:after:scale-y-[2] hover:after:bg-gold focus-visible:after:bg-gold",
                 active
-                  ? "text-primary"
-                  : "text-base-content/70 hover:text-base-content",
+                  ? "text-ink after:scale-x-100 after:bg-gold hover:after:scale-y-[2]"
+                  : "text-ink-3 hover:text-ink",
               )}
             >
               {Icon ? (
-                <Icon size={18} aria-hidden className="hidden sm:block" />
+                <Icon size={14} aria-hidden className="hidden sm:block" />
               ) : null}
               <span>{tab.title || tab.name}</span>
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute inset-x-3 bottom-[-1px] h-0.5 origin-left rounded-full bg-primary transition-transform duration-150",
-                  active ? "scale-x-100" : "scale-x-0",
-                )}
-              />
             </button>
           );
         })}
@@ -117,7 +115,7 @@ const TabView = ({
         role="tabpanel"
         id={`${uid}-panel`}
         aria-labelledby={`${uid}-tab-${curTab}`}
-        className={cn("mt-6", contentClassName)}
+        className={cn("mt-5", contentClassName)}
       >
         {Content ? <Content /> : null}
       </div>

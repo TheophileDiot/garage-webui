@@ -4,16 +4,13 @@ import { twMerge } from "tailwind-merge";
 import dayjsRelativeTime from "dayjs/plugin/relativeTime";
 import dayjs from "dayjs";
 import { BASE_PATH } from "./consts";
+import { copyText } from "./clipboard";
 
 dayjs.extend(dayjsRelativeTime);
 export { dayjs };
 
 export const cn = (...args: ClassValue[]) => {
   return twMerge(clsx(...args));
-};
-
-export const ucfirst = (text?: string | null) => {
-  return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
 };
 
 export const readableBytes = (bytes?: number | null, divider = 1024) => {
@@ -25,34 +22,46 @@ export const readableBytes = (bytes?: number | null, divider = 1024) => {
   return `${(bytes / Math.pow(divider, i)).toFixed(1)} ${sizes[i]}`;
 };
 
+/** Decimal units (1 GB = 1000 MB): what Garage reports node capacity in. */
+export const dec = (bytes: number) => readableBytes(bytes, 1000);
+
 export const handleError = (err: unknown) => {
   toast.error((err as Error)?.message || "Unknown error");
 };
 
-export const copyToClipboard = async (text: string) => {
-  let textArea: HTMLTextAreaElement | undefined;
-
+/** Selects a hidden textarea and runs the legacy copy command. Inside an open dialog so its focus trap keeps the selection. */
+const execCommandCopy = (text: string) => {
+  const host =
+    document.activeElement?.closest<HTMLElement>('[role="dialog"]') ??
+    document.body;
+  const previous = document.activeElement as HTMLElement | null;
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.left = "-999999px";
+  host.prepend(textArea);
   try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      textArea = document.createElement("textarea");
-      textArea.value = text;
-
-      textArea.style.position = "absolute";
-      textArea.style.left = "-999999px";
-
-      document.body.prepend(textArea);
-      textArea.select();
-      document.execCommand("copy");
-    }
-
-    toast.success("Copied to clipboard");
-  } catch (err) {
-    handleError(err);
+    textArea.select();
+    return document.execCommand("copy");
   } finally {
-    textArea?.remove();
+    textArea.remove();
+    previous?.focus?.();
   }
+};
+
+/** Copies `text`. Resolves true only when the browser took it; toasts the outcome either way. */
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+  const ok = await copyText(text, {
+    writeText:
+      navigator.clipboard && window.isSecureContext
+        ? (t) => navigator.clipboard.writeText(t)
+        : undefined,
+    execCopy: execCommandCopy,
+  });
+  if (ok) toast.success("Copied to clipboard");
+  else toast.error("Could not copy to the clipboard");
+  return ok;
 };
 
 export const url = (...paths: unknown[]) => {

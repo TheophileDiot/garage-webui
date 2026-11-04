@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { loginSchema } from "./schema";
 import api from "@/lib/api";
-import { toast } from "sonner";
+import { handleError } from "@/lib/utils";
 
 export const useLogin = () => {
   const queryClient = useQueryClient();
@@ -14,8 +14,6 @@ export const useLogin = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
-    onError: (err) => {
-      toast.error(err?.message || "Unknown error");
-    },
+    onError: handleError,
   });
 };

@@ -6,8 +6,12 @@ import Actions from "./actions";
 import { useBucketContext } from "../context";
 import ShareDialog from "./share-dialog";
 import { EmptyState } from "@/components/ui/state";
-import { LockKeyhole } from "lucide-react";
-import Button from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/button";
+import { Panel } from "@/components/ui/page-header";
+import { readableBytes } from "@/lib/utils";
+import { useBrowseObjects } from "./hooks";
+
+const LIMIT = 1000;
 
 const getInitialPrefixes = (searchParams: URLSearchParams) => {
   const prefix = searchParams.get("prefix");
@@ -18,8 +22,59 @@ const getInitialPrefixes = (searchParams: URLSearchParams) => {
   return [];
 };
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 const BrowseTab = () => {
-  const { bucket } = useBucketContext();
+  const { bucket, bucketName } = useBucketContext();
+
+  if (!bucket.keys.find((k) => k.permissions.read && k.permissions.write)) {
+    return (
+      <Panel flush>
+        <EmptyState
+          title="Browsing needs a key"
+          action={
+            <LinkButton
+              href={`/buckets/${bucket.id}?tab=permissions`}
+              variant="primary"
+            >
+              Open permissions
+            </LinkButton>
+          }
+        >
+          Allow a key with read and write access on this bucket to browse its
+          objects.
+        </EmptyState>
+      </Panel>
+    );
+  }
+
+  // The backend reaches a bucket by its global alias, so a bucket without one cannot be listed.
+  if (!bucketName) {
+    return (
+      <Panel flush>
+        <EmptyState
+          title="Browsing needs a global alias"
+          action={
+            <LinkButton
+              href={`/buckets/${bucket.id}?tab=overview`}
+              variant="primary"
+            >
+              Open overview
+            </LinkButton>
+          }
+        >
+          Objects are listed through the bucket&apos;s global alias, and this
+          bucket has none. Add one on the overview tab.
+        </EmptyState>
+      </Panel>
+    );
+  }
+
+  return <Browser />;
+};
+
+const Browser = () => {
+  const { bucketName } = useBucketContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const prefix = searchParams.get("prefix") || "";
   const [savedHistory, setPrefixHistory] = useState<string[]>(
@@ -47,38 +102,45 @@ const BrowseTab = () => {
     updatePrefix(next);
   };
 
-  if (!bucket.keys.find((k) => k.permissions.read && k.permissions.write)) {
-    return (
-      <section className="panel">
-        <EmptyState
-          icon={LockKeyhole}
-          title="Browsing needs a key"
-          action={
-            <Button
-              href={`/buckets/${bucket.id}?tab=permissions`}
-              color="primary"
-            >
-              Open permissions
-            </Button>
-          }
-        >
-          Allow a key with read and write access on this bucket to browse its
-          objects.
-        </EmptyState>
-      </section>
-    );
-  }
+  const { data, error, isLoading, refetch } = useBrowseObjects(bucketName, {
+    prefix,
+    limit: LIMIT,
+  });
+
+  const files = data?.objects ?? [];
+  const folders = data?.prefixes ?? [];
+  const total = files.reduce((sum, o) => sum + o.size, 0);
 
   return (
-    <section className="panel overflow-hidden" aria-label="Objects">
+    <section aria-label="Objects">
       <ObjectListNavigator
         curPrefix={curPrefix}
         setCurPrefix={setCurPrefix}
         prefixHistory={prefixHistory}
+        prefix={prefix}
         actions={<Actions prefix={prefix} />}
       />
 
-      <ObjectList prefix={prefix} onPrefixChange={gotoPrefix} />
+      <Panel flush id="objects">
+        {data ? (
+          <p
+            className="border-b border-rule px-3 py-2 text-ink-3"
+            aria-live="polite"
+          >
+            {`${plural(folders.length, "folder")} · ${plural(files.length, "object")} · ${readableBytes(total)}`}
+            {data.nextToken ? ` · the first ${LIMIT} entries are shown` : null}
+          </p>
+        ) : null}
+
+        <ObjectList
+          data={data}
+          error={error}
+          isLoading={isLoading}
+          onRetry={() => void refetch()}
+          prefix={prefix}
+          onPrefixChange={gotoPrefix}
+        />
+      </Panel>
 
       <ShareDialog />
     </section>

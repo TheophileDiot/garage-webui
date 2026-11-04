@@ -1,121 +1,138 @@
 import { useDenyKey } from "../hooks";
-import Button from "@/components/ui/button";
-import { Check, KeySquare, Minus, Trash } from "lucide-react";
+import { Link } from "react-router-dom";
+import { X } from "lucide-react";
 import AllowKeyDialog from "./allow-key-dialog";
 import { toast } from "sonner";
-import { handleError } from "@/lib/utils";
 import { useBucketContext } from "../context";
 import { EmptyState } from "@/components/ui/state";
 import { confirmAction } from "@/components/ui/confirm-store";
-
-const Flag = ({ on, label }: { on: boolean; label: string }) =>
-  on ? (
-    <span className="inline-flex items-center gap-1 font-bold text-success">
-      <Check size={16} aria-hidden />
-      <span className="sr-only">{label}: </span>Yes
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1 text-base-content/70">
-      <Minus size={16} aria-hidden />
-      <span className="sr-only">{label}: </span>No
-    </span>
-  );
+import { Ledger, LedgerColumn } from "@/components/ui/ledger";
+import { Panel } from "@/components/ui/page-header";
+import IconButton from "@/components/ui/icon-button";
+import Perm from "@/components/ui/perm";
+import { bucketName } from "../../utils";
+import { Key } from "../../types";
+import { keyLabel } from "@/pages/keys/utils";
 
 const PermissionsTab = () => {
-  const { bucket, refetch } = useBucketContext();
+  const { bucket } = useBucketContext();
+  const name = bucketName(bucket);
 
-  const denyKey = useDenyKey(bucket.id, {
-    onSuccess: () => {
-      toast.success("Key access removed");
-      refetch();
-    },
-    onError: handleError,
-  });
+  const denyKey = useDenyKey(bucket.id);
 
   const keys = bucket.keys.filter(
     (key) =>
       key.permissions.read || key.permissions.write || key.permissions.owner,
   );
 
-  const onRemove = async (id: string, label: string) => {
+  const onRemove = async (key: Key) => {
+    const label = keyLabel(key);
     const ok = await confirmAction({
       title: "Remove key access",
-      message: `Remove ${label} from this bucket? The key itself stays available for other buckets.`,
+      message: `Remove ${label} from ${name}? The key itself stays available for other buckets.`,
       confirmLabel: "Remove access",
       danger: true,
+      action: () =>
+        denyKey.mutateAsync({
+          keyId: key.accessKeyId,
+          permissions: { read: true, write: true, owner: true },
+        }),
     });
-    if (ok) {
-      denyKey.mutate({
-        keyId: id,
-        permissions: { read: true, write: true, owner: true },
-      });
-    }
+    if (ok) toast.success("Key access removed");
   };
 
-  return (
-    <section className="panel overflow-hidden" aria-labelledby="keys-heading">
-      <div className="flex flex-row items-center gap-3 p-5">
-        <h2 id="keys-heading" className="title flex-1 truncate">
-          Keys with access
-        </h2>
-        <AllowKeyDialog currentKeys={keys.map((key) => key.accessKeyId)} />
-      </div>
+  const columns: LedgerColumn<Key>[] = [
+    {
+      key: "key",
+      header: "Key",
+      mobile: "title",
+      width: "24%",
+      cell: (key) => (
+        <Link
+          to={`/keys?q=${encodeURIComponent(key.accessKeyId)}`}
+          title={key.name || key.accessKeyId}
+          className="xlink font-medium max-md:[overflow-wrap:anywhere]"
+        >
+          {keyLabel(key)}
+        </Link>
+      ),
+    },
+    {
+      key: "id",
+      header: "Access key id",
+      width: "30%",
+      cell: (key) => (
+        <span title={key.accessKeyId} className="text-ink-2">
+          {key.accessKeyId}
+        </span>
+      ),
+    },
+    {
+      key: "grant",
+      header: "Grant",
+      width: "13%",
+      cell: (key) => <Perm {...key.permissions} />,
+    },
+    {
+      key: "aliases",
+      header: "Local aliases",
+      width: "21%",
+      cell: (key) => {
+        const text = key.bucketLocalAliases?.join(", ");
+        return text ? (
+          <span title={text}>{text}</span>
+        ) : (
+          <span className="text-ink-3">none</span>
+        );
+      },
+    },
+    {
+      key: "remove",
+      header: <span className="sr-only">Remove access</span>,
+      align: "right",
+      mobile: "actions",
+      width: "5rem",
+      cell: (key) => {
+        const label = keyLabel(key);
+        return (
+          <IconButton
+            label={`Remove access of ${label}`}
+            icon={X}
+            variant="ghost-danger"
+            onClick={() => void onRemove(key)}
+          />
+        );
+      },
+    },
+  ];
 
-      {keys.length === 0 ? (
-        <EmptyState icon={KeySquare} title="No key can use this bucket">
-          Allow a key with read and write access to browse and fill this bucket.
-        </EmptyState>
-      ) : (
-        <table className="table table-stack">
-          <thead>
-            <tr>
-              <th scope="col">Key</th>
-              <th scope="col">Local aliases</th>
-              <th scope="col">Read</th>
-              <th scope="col">Write</th>
-              <th scope="col">Owner</th>
-              <th scope="col">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {keys.map((key) => {
-              const label = key.name || key.accessKeyId.substring(0, 8);
-              return (
-                <tr key={key.accessKeyId} className="row-hover">
-                  <td data-primary className="font-bold">
-                    {label}
-                  </td>
-                  <td data-label="Local aliases">
-                    {key.bucketLocalAliases?.join(", ") || "None"}
-                  </td>
-                  <td data-label="Read">
-                    <Flag on={key.permissions.read} label="Read" />
-                  </td>
-                  <td data-label="Write">
-                    <Flag on={key.permissions.write} label="Write" />
-                  </td>
-                  <td data-label="Owner">
-                    <Flag on={key.permissions.owner} label="Owner" />
-                  </td>
-                  <td data-label="" className="md:text-right">
-                    <Button
-                      size="sm"
-                      color="ghost"
-                      className="text-error hover:bg-error/10"
-                      icon={Trash}
-                      aria-label={`Remove access of ${label}`}
-                      onClick={() => onRemove(key.accessKeyId, label)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </section>
+  return (
+    <Panel
+      id="permissions"
+      title="Keys with access"
+      aside={
+        <AllowKeyDialog currentKeys={keys.map((key) => key.accessKeyId)} />
+      }
+      flush
+    >
+      <p className="border-b border-rule px-3 py-2 text-ink-3">
+        <span className="text-ink-2">R</span> read ·{" "}
+        <span className="text-ink-2">W</span> write ·{" "}
+        <span className="text-ink-2">O</span> owner. A filled cell is granted.
+      </p>
+      <Ledger
+        caption={`Keys with access to ${name}`}
+        columns={columns}
+        rows={keys}
+        rowKey={(key) => key.accessKeyId}
+        empty={
+          <EmptyState title="No key can use this bucket">
+            Allow a key with read and write access to browse and fill this
+            bucket.
+          </EmptyState>
+        }
+      />
+    </Panel>
   );
 };
 

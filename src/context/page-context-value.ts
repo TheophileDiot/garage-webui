@@ -1,15 +1,12 @@
-import { createContext, ReactNode } from "react";
+import { createContext } from "react";
 
 export type PageContextValues = {
+  /** Sets document.title. Each page renders its own PageHeader. */
   title: string | null;
-  prev: string | null;
-  actions: ReactNode | null;
 };
 
 export const initialPageValues: PageContextValues = {
   title: null,
-  prev: null,
-  actions: null,
 };
 
 export const PageContext = createContext<

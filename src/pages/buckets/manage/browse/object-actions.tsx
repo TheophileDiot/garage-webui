@@ -1,11 +1,14 @@
 import { Object } from "./types";
 import Button from "@/components/ui/button";
-import { DownloadIcon, Share2, Trash } from "lucide-react";
+import IconButton from "@/components/ui/icon-button";
+import {
+  ActionSheet,
+  ActionSheetItem,
+  ActionSheetSeparator,
+} from "@/components/ui/action-sheet";
+import { DownloadIcon, MoreHorizontal, Share2, Trash2 } from "lucide-react";
 import { useDeleteObject } from "./hooks";
-import { useBucketContext } from "../context";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { handleError } from "@/lib/utils";
 import { API_URL } from "@/lib/api";
 import { shareDialog } from "./stores";
 import { confirmAction } from "@/components/ui/confirm-store";
@@ -16,22 +19,16 @@ type Props = {
 };
 
 const ObjectActions = ({ prefix = "", object }: Props) => {
-  const { bucketName } = useBucketContext();
-  const queryClient = useQueryClient();
+  const deleteObject = useDeleteObject();
   const isDirectory = object.objectKey.endsWith("/");
   const name = object.objectKey.replace(/\/$/, "").split("/").pop();
-
-  const deleteObject = useDeleteObject(bucketName, {
-    onSuccess: () => {
-      toast.success(isDirectory ? "Folder deleted" : "Object deleted");
-      queryClient.invalidateQueries({ queryKey: ["browse", bucketName] });
-    },
-    onError: handleError,
-  });
+  const downloadUrl = API_URL + object.url + "?dl=1";
 
   const onDownload = () => {
-    window.open(API_URL + object.url + "?dl=1", "_blank", "noopener");
+    window.open(downloadUrl, "_blank", "noopener");
   };
+
+  const onShare = () => shareDialog.open({ key: object.objectKey, prefix });
 
   const onDelete = async () => {
     const ok = await confirmAction({
@@ -41,44 +38,67 @@ const ObjectActions = ({ prefix = "", object }: Props) => {
         : `Delete ${name}? This cannot be undone.`,
       confirmLabel: "Delete",
       danger: true,
+      action: () =>
+        deleteObject.mutateAsync({
+          key: prefix + object.objectKey,
+          recursive: isDirectory,
+        }),
     });
-    if (ok) {
-      deleteObject.mutate({
-        key: prefix + object.objectKey,
-        recursive: isDirectory,
-      });
-    }
+    if (ok) toast.success(isDirectory ? "Folder deleted" : "Object deleted");
   };
 
   return (
-    <td data-label="" className="md:text-right">
-      <span className="inline-flex">
+    <>
+      <span className="flex justify-end gap-0.5 max-md:hidden">
         {!isDirectory && (
-          <Button
-            size="sm"
+          <IconButton
+            label={`Download ${name}`}
             icon={DownloadIcon}
-            color="ghost"
-            aria-label={`Download ${name}`}
             onClick={onDownload}
           />
         )}
-        <Button
-          size="sm"
-          icon={Share2}
-          color="ghost"
-          aria-label={`Share ${name}`}
-          onClick={() => shareDialog.open({ key: object.objectKey, prefix })}
-        />
-        <Button
-          size="sm"
-          icon={Trash}
-          color="ghost"
-          className="text-error hover:bg-error/10"
-          aria-label={`Delete ${name}`}
-          onClick={onDelete}
+        <IconButton label={`Share ${name}`} icon={Share2} onClick={onShare} />
+        <IconButton
+          label={`Delete ${name}`}
+          icon={Trash2}
+          variant="ghost-danger"
+          onClick={() => void onDelete()}
         />
       </span>
-    </td>
+      <span className="md:hidden">
+        <ActionSheet
+          label={`Actions for ${name}`}
+          trigger={
+            <Button size="sm" icon={MoreHorizontal}>
+              Actions<span className="sr-only"> for {name}</span>
+            </Button>
+          }
+        >
+          {!isDirectory && (
+            <ActionSheetItem
+              href={downloadUrl}
+              icon={<DownloadIcon size={16} aria-hidden />}
+            >
+              Download
+            </ActionSheetItem>
+          )}
+          <ActionSheetItem
+            onSelect={onShare}
+            icon={<Share2 size={16} aria-hidden />}
+          >
+            Share
+          </ActionSheetItem>
+          <ActionSheetSeparator />
+          <ActionSheetItem
+            danger
+            onSelect={() => void onDelete()}
+            icon={<Trash2 size={16} aria-hidden />}
+          >
+            Delete
+          </ActionSheetItem>
+        </ActionSheet>
+      </span>
+    </>
   );
 };
 

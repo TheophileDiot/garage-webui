@@ -14,16 +14,16 @@ import {
   parseCapacity,
 } from "../schema";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { assignNodeDialog } from "../stores";
-import { GetClusterLayoutResult } from "../types";
+import { buildRows } from "../model";
 import FormControl from "@/components/ui/form-control";
-import Select2, { SelectOption } from "@/components/ui/select";
 import Dialog from "@/components/ui/dialog";
 import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
-import Checkbox from "@/components/ui/checkbox";
+import Input, { inputClass } from "@/components/ui/input";
+import Toggle from "@/components/ui/toggle";
+import TagInput from "@/components/ui/tag-input";
+import { cn, handleError } from "@/lib/utils";
 
 const defaultValues: AssignNodeSchema = {
   nodeId: "",
@@ -34,29 +34,15 @@ const defaultValues: AssignNodeSchema = {
   tags: [],
 };
 
-const toOptions = (values: (string | undefined)[]): SelectOption[] =>
-  [...new Set(values.filter((value): value is string => !!value))].map(
-    (value) => ({ label: value, value }),
-  );
-
-const roleOf = (
-  layout: GetClusterLayoutResult | undefined,
-  id: string,
-  fallback: { zone?: string; tags?: string[] } | undefined,
-) => {
-  const role = layout?.roles.find((r) => r.id === id);
-  const staged = layout?.stagedRoleChanges.find((r) => r.id === id);
-  return {
-    zone: staged?.zone || role?.zone || fallback?.zone,
-    tags: staged?.tags || role?.tags || fallback?.tags,
-  };
-};
+const unique = (values: (string | undefined | null)[]) => [
+  ...new Set(values.filter((value): value is string => !!value)),
+];
 
 const AssignNodeDialog = () => {
   const { isOpen, data } = assignNodeDialog.use();
   const { data: cluster } = useClusterStatus();
   const { data: layout } = useClusterLayout();
-  const queryClient = useQueryClient();
+  const zoneListId = useId();
 
   const form = useForm<AssignNodeSchema>({
     resolver: zodResolver(assignNodeSchema),
@@ -69,48 +55,40 @@ const AssignNodeDialog = () => {
     onSuccess() {
       form.reset();
       toast.success("Node staged for assignment");
-      queryClient.invalidateQueries({ queryKey: ["status"] });
-      queryClient.invalidateQueries({ queryKey: ["layout"] });
       assignNodeDialog.close();
     },
-    onError(err) {
-      toast.error(err?.message || "Unknown error");
-    },
+    // The dialog stays open with the error.
+    onError: handleError,
   });
+  const { reset: resetMutation } = assignNode;
 
   useEffect(() => {
     if (data) {
-      const cap = parseCapacity(data.capacity);
+      resetMutation();
+      const hasCapacity = data.capacity != null && data.capacity > 0;
+      const cap = hasCapacity ? parseCapacity(data.capacity) : null;
 
       reset({
         ...defaultValues,
         ...data,
-        capacity: cap.value,
-        capacityUnit: cap.unit ?? defaultValues.capacityUnit,
+        capacity: cap ? cap.value : defaultValues.capacity,
+        capacityUnit: cap?.unit ?? defaultValues.capacityUnit,
         isGateway: data.capacity === null,
       });
     }
-  }, [data, reset]);
+  }, [data, reset, resetMutation]);
 
-  const nodes = useMemo(() => getStatusNodes(cluster), [cluster]);
-
-  const zoneList = useMemo(
-    () =>
-      toOptions(nodes.map((node) => roleOf(layout, node.id, node.role).zone)),
-    [nodes, layout],
+  const rows = useMemo(
+    () => buildRows(getStatusNodes(cluster), layout),
+    [cluster, layout],
   );
-  const tagsList = useMemo(
-    () =>
-      toOptions(
-        nodes.flatMap((node) => roleOf(layout, node.id, node.role).tags ?? []),
-      ),
-    [nodes, layout],
-  );
+  const zoneList = useMemo(() => unique(rows.map((r) => r.zone)), [rows]);
+  const tagsList = useMemo(() => unique(rows.flatMap((r) => r.tags)), [rows]);
 
   const onSubmit = form.handleSubmit((values) => {
     assignNode.mutate({
       id: values.nodeId,
-      zone: values.zone,
+      zone: values.zone.trim(),
       capacity: !values.isGateway
         ? calculateCapacity(values.capacity, values.capacityUnit)
         : null,
@@ -118,19 +96,27 @@ const AssignNodeDialog = () => {
     });
   });
 
+  const close = () => {
+    if (!assignNode.isPending) assignNodeDialog.close();
+  };
+
   return (
     <Dialog
       open={isOpen}
-      onClose={assignNodeDialog.close}
+      onClose={close}
       title="Assign node"
-      className="max-w-xl"
+      description="Stages a role for this node. Nothing changes until the layout is applied."
+      size="lg"
+      dismissible={!assignNode.isPending}
       actions={
         <>
-          <Button onClick={assignNodeDialog.close}>Cancel</Button>
+          <Button onClick={close} disabled={assignNode.isPending}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             form="assign-node-form"
-            color="primary"
+            variant="primary"
             loading={assignNode.isPending}
           >
             Stage assignment
@@ -138,75 +124,89 @@ const AssignNodeDialog = () => {
         </>
       }
     >
-      <form id="assign-node-form" onSubmit={onSubmit} className="space-y-3">
-        <div className="form-control">
-          <label htmlFor="assign-node-id" className="label label-text">
-            Node id
-          </label>
-          <Input
-            id="assign-node-id"
-            className="mono w-full"
-            {...form.register("nodeId")}
-            readOnly
-          />
-        </div>
+      <form id="assign-node-form" onSubmit={onSubmit} className="grid gap-4">
+        <FormControl
+          form={form}
+          name="nodeId"
+          title="Node id"
+          render={(field, { id }) => (
+            <Input
+              id={id}
+              className="[overflow-wrap:anywhere]"
+              name={field.name}
+              ref={field.ref}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              readOnly
+              title={field.value}
+            />
+          )}
+        />
 
         <FormControl
           form={form}
           name="zone"
           title="Zone"
-          render={(field, { id }) => (
-            <Select2
-              creatable
-              inputId={id}
-              name={field.name}
-              onBlur={field.onBlur}
-              value={
-                field.value ? { label: field.value, value: field.value } : null
-              }
-              options={zoneList}
-              placeholder="e.g. dc1"
-              onChange={(option) =>
-                field.onChange((option as SelectOption | null)?.value ?? "")
-              }
-            />
+          hint="Pick an existing zone or type a new one."
+          render={(field, { id, describedBy, fieldState }) => (
+            <>
+              <Input
+                id={id}
+                list={zoneListId}
+                placeholder="e.g. dc1"
+                autoComplete="off"
+                spellCheck={false}
+                name={field.name}
+                ref={field.ref}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={fieldState.error ? true : undefined}
+                aria-describedby={describedBy}
+              />
+              <datalist id={zoneListId}>
+                {zoneList.map((zone) => (
+                  <option key={zone} value={zone} />
+                ))}
+              </datalist>
+            </>
           )}
         />
 
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="label label-text">Capacity</span>
-            <Controller
-              control={form.control}
-              name="isGateway"
-              render={({ field }) => (
-                <Checkbox
-                  label="Gateway only"
-                  name={field.name}
-                  checked={field.value}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                />
-              )}
-            />
-          </div>
+        <div className="grid gap-3">
+          <Controller
+            control={form.control}
+            name="isGateway"
+            render={({ field }) => (
+              <Toggle
+                label="Gateway only"
+                description="Gateway nodes route requests and store no data."
+                name={field.name}
+                checked={field.value}
+                onChange={(e) => field.onChange(e.target.checked)}
+              />
+            )}
+          />
 
           {!isGateway ? (
-            <div className="grid grid-cols-[1fr_auto] gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
               <FormControl
                 form={form}
                 name="capacity"
-                render={(field, { id }) => (
+                title="Capacity"
+                render={(field, { id, describedBy, fieldState }) => (
                   <Input
                     id={id}
                     type="number"
                     step="any"
                     min={0}
-                    aria-label="Capacity"
-                    className="w-full"
                     name={field.name}
                     ref={field.ref}
                     onBlur={field.onBlur}
                     value={field.value ?? ""}
+                    aria-invalid={fieldState.error ? true : undefined}
+                    aria-describedby={describedBy}
                     onChange={(e) =>
                       field.onChange(
                         e.target.value === "" ? null : e.target.valueAsNumber,
@@ -218,11 +218,11 @@ const AssignNodeDialog = () => {
               <FormControl
                 form={form}
                 name="capacityUnit"
+                title="Unit"
                 render={(field, { id }) => (
                   <select
                     id={id}
-                    aria-label="Capacity unit"
-                    className="select select-bordered"
+                    className={cn(inputClass, "w-auto min-w-[4.5rem]")}
                     name={field.name}
                     ref={field.ref}
                     onBlur={field.onBlur}
@@ -238,41 +238,29 @@ const AssignNodeDialog = () => {
                 )}
               />
             </div>
-          ) : (
-            <p className="muted text-sm">
-              Gateway nodes route requests and store no data.
-            </p>
-          )}
+          ) : null}
         </div>
 
         <FormControl
           form={form}
           name="tags"
-          title="Tags"
           render={(field, { id }) => (
-            <Select2
-              creatable
-              isMulti
-              inputId={id}
-              name={field.name}
-              onBlur={field.onBlur}
-              value={(field.value ?? []).map((value) => ({
-                label: value,
-                value,
-              }))}
-              options={tagsList}
-              placeholder="Add tags"
-              onChange={(values) =>
-                field.onChange(
-                  (values as readonly SelectOption[]).map(
-                    (value) => value.value,
-                  ),
-                )
-              }
+            <TagInput
+              id={id}
+              label="Tags"
+              value={field.value ?? []}
+              onChange={field.onChange}
+              suggestions={tagsList}
             />
           )}
         />
       </form>
+
+      {assignNode.error ? (
+        <p role="alert" className="mt-3 text-bad [overflow-wrap:anywhere]">
+          Not staged: {assignNode.error.message}
+        </p>
+      ) : null}
     </Dialog>
   );
 };

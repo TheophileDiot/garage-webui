@@ -1,80 +1,119 @@
 # Garage console design
 
-Private administration app, not a marketing site. Theatre is scaled down: no loader, no GL,
-no scroll hijack, no decorative metrics. Every number on screen comes from the Garage API.
+Private administration app, not a marketing site. No loader, no decorative metrics, no scroll
+hijack. Every number on screen comes from the Garage API; when the API does not say, the screen
+says so.
 
-## Concept card
+The console is an address space. The bar at the top always shows where you are as an S3-style
+address (`s3://media-assets/photos/`, `garage://cluster`), and the same addresses open the
+palette.
 
-```
-Idea:        The console opens on what the cluster can promise right now: quorum first, files second.
-Metaphor:    A workshop bay board: labelled bays, stamped numerals, hairline rules.
-Signature:   Quorum band on Overview: three-state partition bar (all replicas / quorum only / no quorum)
-             above a row of storage-node bays. The same status chip lives in the sidebar on every page.
-Emotion:     Calm, exact, in control within three seconds.
-Motion verb: "latch": 140 ms ease-out, transform and opacity only. Press sinks 1 px, bars fill once on mount.
-Screenshot:  Overview at 1440, dark: large quorum numeral over the segmented bar and the bay row.
-```
+## Tokens
 
-Idle state: the page stays still at rest on purpose. Live data refreshes every 30 s and the
-refresh time is shown; nothing decorative moves. Reduced motion removes all transitions.
+`src/app/tokens.css` holds every colour as a CSS variable; `tailwind.config.js` only maps names
+(`bg-lift`, `text-ink-3`, `border-rule`) to them. One olive-neutral hue, surfaces shift only in
+lightness, the logo yellow (`gold`) is the single accent.
 
-## Palette (daisyUI themes in `tailwind.config.js`)
+| Token                    | Role                                                            |
+| ------------------------ | --------------------------------------------------------------- |
+| `ground` / `lift`        | page / panel and dialog surfaces                                |
+| `sunk`                   | inset fields                                                    |
+| `rule` / `rule-strong`   | hairlines / control borders                                     |
+| `wash` / `fill`          | hover wash / pressed or hovered icon control                    |
+| `ink` to `ink-4`         | text. `ink-3` is the lowest text tone (4.5:1 or better on both) |
+| `gold`, `gold-ink`       | accent fill and the text on it                                  |
+| `gold-text`, `gold-wash` | accent as text or focus ring, and a faint accent wash           |
+| `ok` / `warn` / `bad`    | status                                                          |
 
-| Role            | Dark                              | Light                             |
-| --------------- | --------------------------------- | --------------------------------- |
-| ground          | `#191f25`                         | `#f3f5f6`                         |
-| surface         | `#20272e`                         | `#ffffff`                         |
-| line            | `#343e48`                         | `#e0e5e8`                         |
-| ink             | `#e9edf0`                         | `#1d2933`                         |
-| accent          | `#f3a858`                         | `#a94d0e`                         |
-| ok / warn / bad | `#8bd5ab` / `#e9c26b` / `#f29c99` | `#26734c` / `#946510` / `#b43a39` |
+Themes: `light` and `dark`, keyed on `data-theme` on `<html>`. The choice lives in the
+`appdata` store (`localStorage`); a first visit follows `prefers-color-scheme`. An inline script
+in `index.html` sets the attribute before first paint. A document with no `data-theme` falls back
+to the OS preference through a media query in `tokens.css`. `--ink-4` is decoration only
+(disabled and idle marks), never text.
 
-Status is never colour only: every dot has a text label.
+Status is never colour alone: each state has a shape (filled square ok, triangle degraded, hollow
+square bad, dash unknown) and a word.
 
 ## Type
 
-Manrope (self-hosted `src/assets/manrope.ttf`, SIL OFL, licence in
-`misc/licenses/Manrope-OFL.txt`), variable 200 to 800. System monospace only for ids and secrets.
+Self-hosted, SIL OFL, no CDN: JetBrains Mono (variable, 400 to 700) is the UI face, Bricolage
+Grotesque (600 only) is for headings (`font-display`). Licences are in `misc/licenses/`. Fonts
+are imported from `src/assets/fonts` through CSS, so Vite emits them under `assets/`, which the Go
+server serves under `BASE_PATH`. Figures are tabular and zeros are slashed.
 
-| Role    | Size                           | Weight | Tracking |
-| ------- | ------------------------------ | ------ | -------- |
-| display | clamp(2.25rem, 4.5vw, 3.5rem)  | 800    | -0.045em |
-| page h1 | clamp(1.5rem, 2.2vw, 1.875rem) | 800    | -0.03em  |
-| title   | 1.0625rem                      | 700    | -0.015em |
-| body    | 0.9375rem / 1.55               | 500    | 0        |
-| label   | 0.6875rem uppercase            | 700    | +0.08em  |
+| Class          | Size / line | Use                      |
+| -------------- | ----------- | ------------------------ |
+| `text-caption` | 13 / 18     | labels, meta, hints      |
+| `text-body`    | 13 / 20     | everything else          |
+| `text-h4`      | 14 / 20     | row titles on phone      |
+| `text-h3`      | 16 / 22     | panel and dialog titles  |
+| `text-h2`      | 20 / 26     | states and page headings |
 
-Numbers use tabular figures.
+The scale is replaced, not extended: Tailwind's defaults (`text-sm`, `rounded-xl`, …) do not exist.
+Radii are 2 px (`sm`), 3 px (default, `md`) and 6 px (`lg`, dialogs and the palette).
 
-## Grid, shape, rhythm
+## Shell
 
-- Content max 72rem, 24 px gutters on desktop, 16 px on phone. Sidebar 16rem, drawer under 768 px.
-- One radius rule: 0.5rem panels, 0.375rem controls, pill only for status.
-- Surfaces are flat with a 1 px line; no shadows except dialogs.
-- Rhythm varies: the Overview opens with one wide band, then an asymmetric 2:1 row, then a ledger.
-- Lists (buckets, keys, nodes, objects) are ledgers: real tables on desktop, labelled stacks under 768 px.
+`src/components/shell/`. A rail on desktop (nav with `g` then `o`/`b`/`k`/`c` shortcuts, live
+cluster status, display name, sign out) and a labelled tab bar on phone. The address bar at the
+top shows the current address and opens the palette. The palette (`Ctrl/Cmd+K` or `/`, cmdk)
+resolves a typed address, bucket aliases, key names and node hostnames to routes, and offers
+theme and sign-out. It returns focus to the control that opened it. On route change the main
+column fades in (180 ms) while the address types itself into the bar (34 ms per character, 420 ms
+at most). The rail status reads the same health and status queries the pages use.
 
-## Interaction
+URLs stay ID based (`/buckets/:id?tab=…&prefix=…`); names are labels, never identities.
 
-- Primary targets answer in the verb: buttons sink 1 px on press, rows get an inset accent bar on hover,
-  nav items slide an accent bar in. Utility links change colour and underline.
-- Focus: 2 px accent outline, 3 px offset, on every interactive element.
-- Dialogs are native `<dialog>` via `showModal()`: focus trap, Escape, labelled by title.
-- Destructive actions use the in-app confirm dialog, not `window.confirm`.
-- Loading uses skeleton rows, errors give a retry, empty states say what to do next.
+## Primitives
 
-## Composition
+All in `src/components/ui/`, named exports where there is more than one.
 
-```
-Overview            Buckets / Keys / Cluster
-+---------------------+     +-------------------------+
-| QUORUM BAND         |     | toolbar: search | action |
-| status | numerals   |     +-------------------------+
-| ███▓▓░ partitions   |     | ledger rows             |
-| ▮▮▮▮▯ bays          |     |  name  usage  meta  act |
-+----------+----------+     +-------------------------+
-| disk free| footprint|
-+----------+----------+
-| bucket ledger       |
-+---------------------+
-```
+- Actions: `Button`, `LinkButton`, `IconButton` (label required), `CopyButton` (says "Copied" only
+  after the clipboard write succeeded), `ActionSheet` (phone overflow menu).
+- Forms: `Input`/`TextField`/`InputField`, `Toggle` (`role="switch"`), `Checkbox`, `TagInput`,
+  `FormControl`. react-hook-form with zod stays the form model.
+- Overlays: `Dialog` (Radix, bottom sheet on phone, returns focus, not dismissible while pending)
+  and `confirmAction()` from `confirm-store.ts`. A confirm with an `action` stays open with a
+  pending state while it runs, and on failure shows the server's message and stays open.
+- Data: `Ledger` (a table on desktop, labelled stacks under 768 px), `Meter`, `Status`, `Perm`,
+  `Kbd`, `Chips`, `Code`, `Diff` (staged changes), `PageHeader`, `Panel`, `AddressText`.
+- States: `SkeletonRows`, `EmptyState`, `ErrorState` (code, server message, retry). A failed query
+  is an error state, never an empty list.
+- `PartitionPanel`, `StatusGlyph`, `StateGlyph`: the partition map.
+
+## Partition map honesty rule
+
+The health API gives counts: `partitions`, `partitionsQuorum`, `partitionsAllOk`. The map draws
+exactly that and nothing more: one cell per partition, in three states (all copies reachable,
+quorum only, no quorum), computed by `src/lib/partitions.ts`. It shows no zone placement, no
+replica count and no per-partition detail, because the API does not provide them. A state glyph is
+three slivers lit three, two or one, so state reads by shape as well as colour. Unknown health,
+an error, or `partitions: 0` render a designed unavailable state, never invented counts. The 16 by
+16 shell glyph scales any partition count to 256 cells and never hides a non-zero state.
+
+## Accessibility floor
+
+- Text 13 px or larger; secondary text 4.5:1 or better in both themes.
+- A visible focus ring (2 px `gold-text`, 2 px offset) on every stop.
+- Targets 24 by 24 px at least; 36 px on touch for default controls.
+- No colour-only hover on primary or icon controls: a block wipes in under the label, icon
+  controls take a fill.
+- No horizontal overflow at 390 px; long names wrap or truncate with the full value in `title`.
+- Dialogs trap focus, close on Escape and are labelled by their title.
+- An accessible name that starts with the visible text (the rail status link).
+- axe: 0 serious or critical issues on every route.
+
+## Motion
+
+120 ms ease-out (`cubic-bezier(0.23, 1, 0.32, 1)`), transform and opacity only: the hover wipe on
+buttons, the caret sliding in on rows, dialog open (opacity and 4 px), the route fade. Nothing
+moves at rest; live data refreshes on its own schedule and the updated time is shown. Under
+`prefers-reduced-motion: reduce` every transition and animation is off (`styles.css`) and the typed
+address appears at once.
+
+## Layout
+
+`<main>` is at most 1200 px wide with 16 px gutters (20 px from `md`); the document scrolls, not an
+inner area. Lists (buckets, keys, nodes, objects) are ledgers. Pages end with a summary built only
+from real data (totals, quota usage, per-zone capacity), and on phone the explanation of an
+unreachable node comes before the partition map.

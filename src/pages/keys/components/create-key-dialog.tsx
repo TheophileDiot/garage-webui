@@ -6,9 +6,8 @@ import { useForm, useWatch } from "react-hook-form";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { createKeySchema, CreateKeySchema } from "../schema";
 import { InputField } from "@/components/ui/input";
-import { CheckboxField } from "@/components/ui/checkbox";
+import { ToggleField } from "@/components/ui/toggle";
 import { useCreateKey } from "../hooks";
-import { useQueryClient } from "@tanstack/react-query";
 import { handleError } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -19,17 +18,25 @@ const CreateKeyDialog = () => {
     defaultValues: { name: "" },
   });
   const isImport = useWatch({ control: form.control, name: "isImport" });
-  const queryClient = useQueryClient();
+
+  const close = () => {
+    onClose();
+    form.reset({ name: "" });
+  };
 
   const createKey = useCreateKey({
     onSuccess: () => {
-      form.reset({ name: "" });
-      onClose();
-      queryClient.invalidateQueries({ queryKey: ["keys"] });
-      toast.success("Key created");
+      close();
+      toast.success(isImport ? "Key imported" : "Key created");
     },
     onError: handleError,
   });
+
+  const open = () => {
+    form.reset({ name: "" });
+    createKey.reset();
+    onOpen();
+  };
 
   const onSubmit = form.handleSubmit((values) => {
     createKey.mutate(values);
@@ -37,21 +44,25 @@ const CreateKeyDialog = () => {
 
   return (
     <>
-      <Button icon={Plus} color="primary" onClick={onOpen}>
+      <Button variant="primary" icon={Plus} onClick={open}>
         Create key
       </Button>
 
       <Dialog
         open={isOpen}
-        onClose={onClose}
-        title="Create access key"
+        onClose={close}
+        dismissible={!createKey.isPending}
+        title={isImport ? "Import access key" : "Create access key"}
+        description="A key starts with no access. Allow it on a bucket afterwards."
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={close} disabled={createKey.isPending}>
+              Cancel
+            </Button>
             <Button
               type="submit"
               form="create-key-form"
-              color="primary"
+              variant="primary"
               loading={createKey.isPending}
             >
               {isImport ? "Import key" : "Create key"}
@@ -59,19 +70,20 @@ const CreateKeyDialog = () => {
           </>
         }
       >
-        <form id="create-key-form" onSubmit={onSubmit} className="space-y-1">
+        <form id="create-key-form" onSubmit={onSubmit} className="grid gap-4">
           <InputField
             form={form}
             name="name"
             title="Key name"
+            hint="Letters, digits, - and _. The name is only a label."
             autoComplete="off"
-            className="w-full"
+            spellCheck={false}
           />
-          <CheckboxField
+          <ToggleField
             form={form}
             name="isImport"
             label="Import an existing key"
-            className="mt-2"
+            description="Bring a key pair from another Garage or S3 client."
           />
 
           {isImport && (
@@ -81,7 +93,7 @@ const CreateKeyDialog = () => {
                 name="accessKeyId"
                 title="Access key ID"
                 autoComplete="off"
-                className="w-full"
+                spellCheck={false}
               />
               <InputField
                 form={form}
@@ -89,7 +101,6 @@ const CreateKeyDialog = () => {
                 title="Secret access key"
                 type="password"
                 autoComplete="off"
-                className="w-full"
               />
             </>
           )}

@@ -11,6 +11,7 @@ import {
   useMutation,
   UseMutationOptions,
   useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
 
 type ConnectNodeResult = { success: boolean; error?: string | null };
@@ -55,65 +56,79 @@ export const useClusterLayout = () => {
   });
 };
 
-export const useConnectNode = (
-  options?: Partial<UseMutationOptions<ConnectNodeResult, Error, string>>,
+/**
+ * Every cluster mutation refreshes what the shell and the other pages read: status (nodes, address bar, palette),
+ * layout (staged changes) and health (map, status glyph). The caller's own `onSuccess` runs after.
+ */
+const useClusterMutation = <TData, TVars>(
+  mutationFn: (vars: TVars) => Promise<TData>,
+  options?: Partial<UseMutationOptions<TData, Error, TVars>>,
 ) => {
-  return useMutation<ConnectNodeResult, Error, string>({
-    mutationFn: async (nodeId) => {
-      const [res] = await api.post<ConnectNodeResult[]>(
-        "/v2/ConnectClusterNodes",
-        {
-          body: [nodeId],
-        },
-      );
-      if (!res.success) {
-        throw new Error(res.error || "Unknown error");
-      }
-      return res;
-    },
+  const queryClient = useQueryClient();
+  return useMutation<TData, Error, TVars>({
+    mutationFn,
     ...options,
+    onSuccess: async (...args) => {
+      await Promise.all(
+        ["status", "layout", "health"].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] }),
+        ),
+      );
+      return (
+        options?.onSuccess as ((...a: typeof args) => unknown) | undefined
+      )?.(...args);
+    },
   });
 };
+
+export const useConnectNode = (
+  options?: Partial<UseMutationOptions<ConnectNodeResult, Error, string>>,
+) =>
+  useClusterMutation<ConnectNodeResult, string>(async (nodeId) => {
+    const [res] = await api.post<ConnectNodeResult[]>(
+      "/v2/ConnectClusterNodes",
+      { body: [nodeId] },
+    );
+    if (!res?.success) {
+      throw new Error(res?.error || "Unknown error");
+    }
+    return res;
+  }, options);
 
 export const useAssignNode = (
   options?: Partial<UseMutationOptions<unknown, Error, AssignNodeBody>>,
-) => {
-  return useMutation<unknown, Error, AssignNodeBody>({
-    mutationFn: (data) =>
+) =>
+  useClusterMutation<unknown, AssignNodeBody>(
+    (data) =>
       api.post("/v2/UpdateClusterLayout", {
         body: { parameters: null, roles: [data] },
       }),
-    ...options,
-  });
-};
+    options,
+  );
 
 export const useUnassignNode = (
   options?: Partial<UseMutationOptions<unknown, Error, string>>,
-) => {
-  return useMutation<unknown, Error, string>({
-    mutationFn: (nodeId) =>
+) =>
+  useClusterMutation<unknown, string>(
+    (nodeId) =>
       api.post("/v2/UpdateClusterLayout", {
         body: { parameters: null, roles: [{ id: nodeId, remove: true }] },
       }),
-    ...options,
-  });
-};
+    options,
+  );
 
 export const useRevertChanges = (
   options?: Partial<UseMutationOptions<unknown, Error, number>>,
-) => {
-  return useMutation<unknown, Error, number>({
-    mutationFn: () => api.post("/v2/RevertClusterLayout"),
-    ...options,
-  });
-};
+) =>
+  useClusterMutation<unknown, number>(
+    () => api.post("/v2/RevertClusterLayout"),
+    options,
+  );
 
 export const useApplyChanges = (
   options?: Partial<UseMutationOptions<ApplyLayoutResult, Error, number>>,
-) => {
-  return useMutation<ApplyLayoutResult, Error, number>({
-    mutationFn: (version) =>
-      api.post("/v2/ApplyClusterLayout", { body: { version } }),
-    ...options,
-  });
-};
+) =>
+  useClusterMutation<ApplyLayoutResult, number>(
+    (version) => api.post("/v2/ApplyClusterLayout", { body: { version } }),
+    options,
+  );

@@ -8,12 +8,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ConnectNodeSchema, connectNodeSchema } from "../schema";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { handleError } from "@/lib/utils";
 import { Plug } from "lucide-react";
 
 const ConnectNodeDialog = () => {
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const form = useForm<ConnectNodeSchema>({
     resolver: zodResolver(connectNodeSchema),
@@ -25,35 +24,40 @@ const ConnectNodeDialog = () => {
       form.reset({ nodeId: "" });
       setOpen(false);
       toast.success("Node connected");
-      queryClient.invalidateQueries({ queryKey: ["status"] });
     },
-    onError(err) {
-      setOpen(false);
-      toast.error(err?.message || "Unknown error");
-    },
+    // The dialog stays open with the error so the id can be fixed and sent again.
+    onError: handleError,
   });
 
+  const close = () => {
+    setOpen(false);
+    connectNode.reset();
+  };
+
   const onSubmit = form.handleSubmit((values) => {
-    connectNode.mutate(values.nodeId);
+    connectNode.mutate(values.nodeId.trim());
   });
 
   return (
     <>
-      <Button color="primary" icon={Plug} onClick={() => setOpen(true)}>
+      <Button variant="primary" icon={Plug} onClick={() => setOpen(true)}>
         Connect node
       </Button>
 
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={close}
         title="Connect node"
+        dismissible={!connectNode.isPending}
         actions={
           <>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={close} disabled={connectNode.isPending}>
+              Cancel
+            </Button>
             <Button
               type="submit"
               form="connect-node-form"
-              color="primary"
+              variant="primary"
               loading={connectNode.isPending}
             >
               Connect
@@ -61,21 +65,27 @@ const ConnectNodeDialog = () => {
           </>
         }
       >
-        <p className="muted text-sm">
+        <p className="text-ink-2">
           Run this command on the target node to read its node id:
         </p>
         <Code className="mt-2">docker exec garage /garage node id</Code>
 
-        <form id="connect-node-form" onSubmit={onSubmit} className="mt-6">
+        <form id="connect-node-form" onSubmit={onSubmit} className="mt-5">
           <InputField
             form={form}
             name="nodeId"
             title="Node id"
             placeholder="<id>@<host>:3901"
             autoComplete="off"
-            className="w-full"
+            spellCheck={false}
           />
         </form>
+
+        {connectNode.error ? (
+          <p role="alert" className="mt-3 text-bad [overflow-wrap:anywhere]">
+            Not connected: {connectNode.error.message}
+          </p>
+        ) : null}
       </Dialog>
     </>
   );

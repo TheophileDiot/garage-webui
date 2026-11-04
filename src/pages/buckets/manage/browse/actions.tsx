@@ -1,10 +1,10 @@
 import { FolderPlus, UploadIcon } from "lucide-react";
+import { ChangeEvent, useRef, useState } from "react";
 import Button from "@/components/ui/button";
 import Dialog from "@/components/ui/dialog";
 import { usePutObject } from "./hooks";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils";
-import { useQueryClient } from "@tanstack/react-query";
 import { useBucketContext } from "../context";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { createFolderSchema, CreateFolderSchema } from "./schema";
@@ -12,56 +12,68 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField } from "@/components/ui/input";
 
+const MAX_FILES = 20;
+
 type Props = {
   prefix: string;
 };
 
 const Actions = ({ prefix }: Props) => {
-  const { bucketName } = useBucketContext();
-  const queryClient = useQueryClient();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const putObject = usePutObject();
 
-  const putObject = usePutObject(bucketName, {
-    onSuccess: () => {
-      toast.success("File uploaded");
-      queryClient.invalidateQueries({ queryKey: ["browse", bucketName] });
-    },
-    onError: handleError,
-  });
+  const onFiles = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
 
-  const onUploadFile = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.multiple = true;
+    if (files.length > MAX_FILES) {
+      toast.error(`You can only upload up to ${MAX_FILES} files at a time`);
+      return;
+    }
 
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (!files?.length) {
-        return;
+    setUploading(true);
+    const results = await Promise.allSettled(
+      files.map((file) =>
+        putObject.mutateAsync({ key: prefix + file.name, file }),
+      ),
+    );
+    setUploading(false);
+
+    const uploaded = results.filter((r) => r.status === "fulfilled").length;
+    if (uploaded) {
+      toast.success(
+        uploaded === 1 ? "File uploaded" : `${uploaded} files uploaded`,
+      );
+    }
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        toast.error(
+          `${files[i].name}: ${(r.reason as Error)?.message || "Upload failed"}`,
+        );
       }
-
-      if (files.length > 20) {
-        toast.error("You can only upload up to 20 files at a time");
-        return;
-      }
-
-      for (const file of files) {
-        const key = prefix + file.name;
-        putObject.mutate({ key, file });
-      }
-    };
-
-    input.click();
-    input.remove();
+    });
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-2">
       <CreateFolderAction prefix={prefix} />
+      <input
+        ref={fileInput}
+        type="file"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        data-testid="upload-input"
+        onChange={(e) => void onFiles(e)}
+      />
       <Button
-        size="sm"
+        variant="primary"
         icon={UploadIcon}
-        loading={putObject.isPending}
-        onClick={onUploadFile}
+        loading={uploading}
+        onClick={() => fileInput.current?.click()}
       >
         Upload
       </Button>
@@ -76,22 +88,24 @@ type CreateFolderActionProps = {
 const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { bucketName } = useBucketContext();
-  const queryClient = useQueryClient();
 
   const form = useForm<CreateFolderSchema>({
     resolver: zodResolver(createFolderSchema),
     defaultValues: { name: "" },
   });
 
-  const createFolder = usePutObject(bucketName, {
+  const createFolder = usePutObject({
     onSuccess: () => {
       toast.success("Folder created");
-      queryClient.invalidateQueries({ queryKey: ["browse", bucketName] });
-      onClose();
-      form.reset();
+      close();
     },
     onError: handleError,
   });
+
+  const close = () => {
+    onClose();
+    form.reset();
+  };
 
   const onSubmit = form.handleSubmit((values) => {
     createFolder.mutate({ key: `${prefix}${values.name}/`, file: null });
@@ -99,21 +113,25 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
 
   return (
     <>
-      <Button size="sm" icon={FolderPlus} onClick={onOpen}>
+      <Button icon={FolderPlus} onClick={onOpen}>
         New folder
       </Button>
 
       <Dialog
         open={isOpen}
-        onClose={onClose}
-        title="Create folder"
+        onClose={close}
+        title="New folder"
+        description="S3 has no real folders: this creates an empty key ending in a slash."
+        dismissible={!createFolder.isPending}
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={close} disabled={createFolder.isPending}>
+              Cancel
+            </Button>
             <Button
               type="submit"
               form="create-folder-form"
-              color="primary"
+              variant="primary"
               loading={createFolder.isPending}
             >
               Create folder
@@ -126,7 +144,16 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
             form={form}
             name="name"
             title="Folder name"
+            hint={
+              <>
+                Created under{" "}
+                <span className="[overflow-wrap:anywhere]">
+                  {bucketName}/{prefix}
+                </span>
+              </>
+            }
             autoComplete="off"
+            spellCheck={false}
             className="w-full"
           />
         </form>

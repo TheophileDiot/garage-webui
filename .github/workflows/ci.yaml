@@ -29,6 +29,7 @@ jobs:
           pnpm format:check
           pnpm lint
           pnpm typecheck
+          pnpm test
           pnpm build
           pnpm audit --audit-level high
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

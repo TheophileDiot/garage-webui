@@ -1,33 +1,38 @@
 import Page from "@/context/page-context";
 import { useBuckets } from "./hooks";
-import BucketCard from "./components/bucket-card";
+import BucketLedger, { BucketRow } from "./components/bucket-ledger";
+import BucketSummary from "./components/bucket-summary";
 import CreateBucketDialog from "./components/create-bucket-dialog";
 import { useMemo, useState } from "react";
-import { Archive, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import Button from "@/components/ui/button";
+import { PageHeader, Panel } from "@/components/ui/page-header";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
-import { bucketName } from "./utils";
+import { readableBytes } from "@/lib/utils";
+import { bucketName, bucketTotals, localAliasesOf } from "./utils";
 
 const BucketsPage = () => {
   const { data, isPending, error, refetch } = useBuckets();
   const [search, setSearch] = useState("");
 
-  const items = useMemo(() => {
+  const items = useMemo<BucketRow[]>(() => {
     const q = search.trim().toLowerCase();
     return (data || [])
       .map((bucket) => ({
         ...bucket,
+        name: bucketName(bucket),
         aliases: [
           ...(bucket.globalAliases || []),
-          ...(bucket.localAliases?.map((l) => l.alias) || []),
+          ...localAliasesOf(bucket).map((l) => l.alias),
         ],
       }))
       .filter(
         (bucket) =>
           !q ||
-          bucket.id.includes(q) ||
+          bucket.id.toLowerCase().includes(q) ||
           bucket.aliases.some((alias) => alias.toLowerCase().includes(q)),
       )
-      .sort((a, b) => bucketName(a).localeCompare(bucketName(b)));
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [data, search]);
 
   const largest = useMemo(
@@ -35,36 +40,38 @@ const BucketsPage = () => {
     [data],
   );
 
+  const { bytes: totalBytes, objects: totalObjects } = bucketTotals(data || []);
+
   return (
-    <div className="container">
+    <>
       <Page title="Buckets" />
+      <PageHeader
+        title="Buckets"
+        meta={
+          data
+            ? `${data.length} ${data.length === 1 ? "bucket" : "buckets"} · ${readableBytes(totalBytes)} · ${totalObjects.toLocaleString()} objects`
+            : undefined
+        }
+        actions={<CreateBucketDialog />}
+      />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="input input-bordered flex w-full items-center gap-2 sm:max-w-sm">
-          <Search
-            size={16}
-            aria-hidden
-            className="shrink-0 text-base-content/70"
-          />
-          <span className="sr-only">Search buckets</span>
-          <input
-            type="search"
-            className="grow bg-transparent outline-none"
-            placeholder="Search by name or id"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        <p className="num text-sm text-base-content/70" aria-live="polite">
-          {data
-            ? `${items.length} of ${data.length} ${data.length === 1 ? "bucket" : "buckets"}`
-            : null}
-        </p>
-        <div className="flex-1" />
-        <CreateBucketDialog />
-      </div>
-
-      <section className="panel mt-6 overflow-hidden" aria-label="Buckets">
+      <Panel id="buckets" flush>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-2">
+          <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-sm border border-rule-strong bg-sunk px-2.5 focus-within:border-gold-text md:h-8 md:max-w-sm">
+            <Search size={14} className="shrink-0 text-ink-3" aria-hidden />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter by alias or id"
+              aria-label="Search buckets by alias or id"
+              className="h-full min-w-0 flex-1 bg-transparent placeholder:text-ink-3 focus-visible:[outline-offset:-1px]"
+            />
+          </div>
+          <p className="text-ink-3" aria-live="polite">
+            {data ? `${items.length} of ${data.length}` : null}
+          </p>
+        </div>
         {isPending ? (
           <SkeletonRows label="Loading buckets" rows={5} />
         ) : error ? (
@@ -74,22 +81,23 @@ const BucketsPage = () => {
             onRetry={() => void refetch()}
           />
         ) : data.length === 0 ? (
-          <EmptyState icon={Archive} title="No buckets yet">
+          <EmptyState title="No buckets yet">
             Create your first bucket to start storing objects.
           </EmptyState>
         ) : items.length === 0 ? (
-          <EmptyState icon={Search} title="No bucket matches your search">
-            Try a different name or part of a bucket id.
+          <EmptyState
+            title="No bucket matches your search"
+            action={<Button onClick={() => setSearch("")}>Clear filter</Button>}
+          >
+            Try a different alias, or part of a bucket id.
           </EmptyState>
         ) : (
-          <ul className="divide-y divide-base-300">
-            {items.map((bucket) => (
-              <BucketCard key={bucket.id} data={bucket} largest={largest} />
-            ))}
-          </ul>
+          <BucketLedger rows={items} largest={largest} />
         )}
-      </section>
-    </div>
+      </Panel>
+
+      {data && data.length > 0 ? <BucketSummary buckets={data} /> : null}
+    </>
   );
 };
 

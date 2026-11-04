@@ -1,447 +1,510 @@
 import Page from "@/context/page-context";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { useNodesHealth } from "./hooks";
 import { useBuckets } from "../buckets/hooks";
-import { useClusterStatus, getStatusNodes } from "../cluster/hooks";
-import { cn, readableBytes } from "@/lib/utils";
-import { ArrowRight, Database, RefreshCw } from "lucide-react";
+import {
+  getStatusNodes,
+  useClusterLayout,
+  useClusterStatus,
+  useNodeInfo,
+} from "../cluster/hooks";
+import {
+  buildRows,
+  layoutVersionOf,
+  duration,
+  nodeName,
+  zonesOf,
+} from "../cluster/model";
+import ZoneMark from "../cluster/components/zone-mark";
+import { dec, readableBytes } from "@/lib/utils";
+import {
+  hasPartitionCounts,
+  ofCounts,
+  partitionStates,
+  safeRatio,
+} from "@/lib/partitions";
 import Button from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Meter, StatusPill } from "@/components/ui/status";
+import { Meter, Status } from "@/components/ui/status";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
-import { bucketName } from "../buckets/utils";
-import { GetHealthResult } from "./types";
+import { PageHeader, Panel } from "@/components/ui/page-header";
+import PartitionPanel from "@/components/ui/partition-map";
+import Diff from "@/components/ui/diff";
+import { bucketName, bucketTotals } from "../buckets/utils";
+import { diskTone, headline, watchItems } from "./model";
 
-const QUORUM_COPY: Record<string, { label: string; text: string }> = {
-  healthy: {
-    label: "Quorum healthy",
-    text: "Every partition has all of its replicas reachable.",
-  },
-  degraded: {
-    label: "Quorum degraded",
-    text: "Reads and writes still work, but some replicas are unreachable.",
-  },
-  unavailable: {
-    label: "Quorum lost",
-    text: "Some partitions cannot reach quorum. Writes to them will fail.",
-  },
-};
-
-const MAX_BAYS = 24;
-
-/** Count summary only; bays do not identify individual nodes. */
-const Bays = ({ health }: { health: GetHealthResult }) => {
-  const shown = Math.min(health.storageNodes, MAX_BAYS);
-  return (
-    <div>
-      <div
-        role="img"
-        className="flex flex-wrap gap-1.5"
-        aria-label={`Storage node count: ${health.storageNodesUp} of ${health.storageNodes} online`}
-      >
-        {Array.from({ length: shown }, (_, i) => {
-          const up = i < health.storageNodesUp;
-          return (
-            <span
-              aria-hidden="true"
-              key={i}
-              className={cn(
-                "h-9 w-5 rounded-[3px] border-2",
-                up
-                  ? "border-success bg-success/80"
-                  : "border-error bg-transparent",
-              )}
-            />
-          );
-        })}
-        {health.storageNodes > MAX_BAYS ? (
-          <span
-            aria-hidden="true"
-            className="self-center pl-1 text-sm text-base-content/70"
-          >
-            +{health.storageNodes - MAX_BAYS}
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-};
+const pct = (n: number, d: number) => Math.round(safeRatio(n, d) * 100);
 
 const HomePage = () => {
   const healthQuery = useNodesHealth();
   const bucketQuery = useBuckets();
   const statusQuery = useClusterStatus();
+  const layoutQuery = useClusterLayout();
+  const { data: info } = useNodeInfo();
   const health = healthQuery.data;
   const buckets = bucketQuery.data;
 
-  const totalUsage =
-    buckets?.reduce((sum, bucket) => sum + bucket.bytes, 0) ?? 0;
-  const totalObjects =
-    buckets?.reduce((sum, bucket) => sum + bucket.objects, 0) ?? 0;
-  const largest = [...(buckets || [])]
-    .sort((left, right) => right.bytes - left.bytes)
-    .slice(0, 5);
-
-  const disks = getStatusNodes(statusQuery.data).filter(
-    (node) => node.dataPartition && node.dataPartition.total > 0,
+  const rows = useMemo(
+    () => buildRows(getStatusNodes(statusQuery.data), layoutQuery.data),
+    [statusQuery.data, layoutQuery.data],
   );
-  const diskTotal = disks.reduce(
-    (sum, node) => sum + (node.dataPartition?.total ?? 0),
+  const zones = useMemo(() => zonesOf(rows), [rows]);
+  const version = layoutVersionOf(statusQuery.data, layoutQuery.data);
+
+  // Disks: data partitions that report. A node without a report is not necessarily down.
+  const storage = rows.filter((r) => r.capacity !== null);
+  const reporting = storage.filter(
+    (r) => (r.node.dataPartition?.total ?? 0) > 0,
+  );
+  const diskTotal = reporting.reduce(
+    (s, r) => s + (r.node.dataPartition?.total ?? 0),
     0,
   );
-  const diskFree = disks.reduce(
-    (sum, node) => sum + (node.dataPartition?.available ?? 0),
+  const diskFree = reporting.reduce(
+    (s, r) => s + (r.node.dataPartition?.available ?? 0),
     0,
   );
 
-  const quorum = health
-    ? (QUORUM_COPY[health.status] ?? {
-        label: "Quorum unknown",
-        text: "Garage reported a status this console does not know.",
-      })
-    : null;
-  const tone = healthQuery.isError
-    ? "bad"
-    : !health
-      ? "idle"
-      : health.status === "healthy"
-        ? "ok"
-        : health.status === "degraded"
-          ? "warn"
-          : "bad";
-  const quorumOnly = health
-    ? health.partitionsQuorum - health.partitionsAllOk
-    : 0;
-  const noQuorum = health ? health.partitions - health.partitionsQuorum : 0;
+  const { bytes: storedBytes, objects: storedObjects } = bucketTotals(
+    buckets ?? [],
+  );
+  const largest = useMemo(
+    () => [...(buckets ?? [])].sort((a, b) => b.bytes - a.bytes).slice(0, 5),
+    [buckets],
+  );
+
+  const states =
+    health && hasPartitionCounts(health) ? partitionStates(health) : null;
+  const stagedCount = layoutQuery.data?.stagedRoleChanges?.length ?? 0;
+
+  const watch = useMemo(
+    () =>
+      watchItems({
+        rows,
+        quorumOnly: states?.quorumOnly ?? 0,
+        layout: layoutQuery.data,
+        buckets: buckets ?? [],
+        name: bucketName,
+        bytes: readableBytes,
+        dec,
+      }),
+    [rows, states, layoutQuery.data, buckets],
+  );
+
+  const failedChecks = [
+    statusQuery.isError ? "node status" : null,
+    layoutQuery.isError ? "staged layout" : null,
+    bucketQuery.isError ? "bucket quotas and uploads" : null,
+  ].filter(Boolean);
 
   const refresh = () => {
     void healthQuery.refetch();
     void bucketQuery.refetch();
     void statusQuery.refetch();
+    void layoutQuery.refetch();
   };
   const updated = healthQuery.dataUpdatedAt
     ? new Date(healthQuery.dataUpdatedAt).toLocaleTimeString()
     : null;
+  const { title, text } = headline(health, healthQuery.isError);
+  const meta = [
+    text,
+    info?.garageVersion ? `Garage ${info.garageVersion}` : null,
+    info?.dbEngine ?? null,
+    version != null ? `layout v${version}` : null,
+  ].filter(Boolean);
 
   return (
-    <div className="container space-y-6">
-      <Page
-        title="Overview"
+    <>
+      <Page title="Overview" />
+      <PageHeader
+        title={title}
+        meta={meta.join(" · ")}
         actions={
-          <div className="flex items-center gap-3">
+          <>
             {updated ? (
-              <p className="num hidden text-xs text-base-content/70 sm:block">
+              <span className="text-ink-3" role="status">
                 Updated {updated}
-              </p>
+              </span>
             ) : null}
             <Button
               icon={RefreshCw}
               aria-label="Refresh overview"
-              loading={healthQuery.isFetching || bucketQuery.isFetching}
+              loading={
+                healthQuery.isFetching ||
+                bucketQuery.isFetching ||
+                statusQuery.isFetching
+              }
               onClick={refresh}
-            />
-          </div>
+            >
+              Refresh
+            </Button>
+            <Button href="/cluster" icon={ArrowUpRight}>
+              Open cluster
+            </Button>
+          </>
         }
       />
 
-      <section
-        className="panel overflow-hidden"
-        aria-labelledby="quorum-heading"
-      >
-        <div className="grid lg:grid-cols-[1.5fr_1fr]">
-          <div className="panel-pad lg:p-8">
-            <h2 id="quorum-heading" className="sr-only">
-              Cluster quorum
-            </h2>
-            {healthQuery.isError ? (
-              <ErrorState
-                title="Cluster health unavailable"
-                error={healthQuery.error}
-                onRetry={() => void healthQuery.refetch()}
-                className="items-start px-0 py-0 text-left"
-              />
-            ) : !health || !quorum ? (
-              <div role="status" aria-label="Checking cluster">
-                <div className="skeleton-line h-5 w-40" />
-                <div className="skeleton-line mt-5 h-14 w-2/3" />
-                <div className="skeleton-line mt-8 h-2.5 w-full rounded-full" />
-                <span className="sr-only">Checking cluster…</span>
-              </div>
-            ) : (
-              <>
-                <StatusPill tone={tone}>{quorum.label}</StatusPill>
-                <p className="display num mt-5">
-                  {health.partitionsQuorum}
-                  <span className="text-base-content/50">
-                    {" "}
-                    / {health.partitions}
-                  </span>
-                </p>
-                <p className="mt-3 text-base font-bold">
-                  partitions have quorum
-                </p>
-                <p className="muted mt-1 max-w-md text-sm">{quorum.text}</p>
-                <Meter
-                  className="mt-8"
-                  max={health.partitions}
-                  label={`${health.partitionsAllOk} partitions fully replicated, ${quorumOnly} with quorum only, ${noQuorum} without quorum`}
-                  segments={[
-                    { value: health.partitionsAllOk, className: "bg-success" },
-                    { value: quorumOnly, className: "bg-warning" },
-                    { value: noQuorum, className: "bg-error" },
-                  ]}
-                />
-                <dl className="num mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-base-content/80">
-                  <div className="flex items-center gap-2">
-                    <dt className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="h-2 w-2 rounded-full bg-success"
-                      />
-                      All replicas
-                    </dt>
-                    <dd className="font-bold">{health.partitionsAllOk}</dd>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <dt className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="h-2 w-2 rounded-full bg-warning"
-                      />
-                      Quorum only
-                    </dt>
-                    <dd className="font-bold">{quorumOnly}</dd>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <dt className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="h-2 w-2 rounded-full bg-error"
-                      />
-                      No quorum
-                    </dt>
-                    <dd className="font-bold">{noQuorum}</dd>
-                  </div>
-                </dl>
-              </>
-            )}
-          </div>
-          <div className="border-t border-base-300 bg-base-200/40 panel-pad lg:border-l lg:border-t-0 lg:p-8">
-            {health ? (
-              <div className="space-y-6">
-                <div>
-                  <p className="label-caps">Storage nodes online</p>
-                  <p className="num mt-2 text-3xl font-extrabold tracking-tight">
-                    {health.storageNodesUp}
-                    <span className="text-xl text-base-content/50">
-                      {" "}
-                      / {health.storageNodes}
-                    </span>
+      <div className="grid gap-4 pb-6 lg:grid-cols-12">
+        <Panel
+          id="watch"
+          title="Worth a look"
+          aside={
+            statusQuery.isPending || bucketQuery.isPending
+              ? "checking…"
+              : `${watch.length} ${watch.length === 1 ? "item" : "items"}`
+          }
+          flush
+          className="max-lg:order-1 lg:order-3 lg:col-span-7"
+        >
+          {statusQuery.isPending && bucketQuery.isPending ? (
+            <SkeletonRows rows={3} label="Checking nodes and buckets" />
+          ) : (
+            <ul className="grid">
+              {failedChecks.length ? (
+                <li className="border-b border-rule px-3 py-2.5" role="alert">
+                  <Status tone="bad" className="!whitespace-normal">
+                    Could not check {failedChecks.join(", ")}
+                  </Status>
+                  <p className="pl-[15px] text-ink-3">
+                    Those items are not listed until the requests succeed.
                   </p>
-                  <div className="mt-3">
-                    <Bays health={health} />
-                  </div>
-                </div>
-                <div>
-                  <p className="label-caps">Nodes connected</p>
-                  <p className="num mt-2 text-3xl font-extrabold tracking-tight">
-                    {health.connectedNodes}
-                    <span className="text-xl text-base-content/50">
-                      {" "}
-                      / {health.knownNodes}
-                    </span>
-                  </p>
-                </div>
-                <Link
-                  to="/cluster"
-                  className="link-latch inline-flex items-center gap-2 font-bold text-primary"
-                >
-                  Inspect cluster <ArrowRight size={16} aria-hidden />
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-6" aria-hidden>
-                <div className="skeleton-line h-16 w-1/2" />
-                <div className="skeleton-line h-16 w-1/2" />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+                </li>
+              ) : null}
+              {watch.map((w) => {
+                const body = (
+                  <>
+                    <Status
+                      tone={w.tone}
+                      className="!items-baseline !whitespace-normal"
+                    >
+                      {w.label}
+                    </Status>
+                    {w.diff ? (
+                      <Diff
+                        lines={w.diff}
+                        label="Staged layout changes"
+                        className="pl-[15px]"
+                      />
+                    ) : (
+                      <span className="pl-[15px] text-ink-3">{w.detail}</span>
+                    )}
+                  </>
+                );
+                return (
+                  <li
+                    key={w.id}
+                    className="border-b border-rule last:border-b-0"
+                  >
+                    {w.to ? (
+                      <Link
+                        to={w.to}
+                        className="caret-row grid gap-0.5 px-3 py-2.5"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div className="grid gap-0.5 px-3 py-2.5">{body}</div>
+                    )}
+                  </li>
+                );
+              })}
+              {watch.length === 0 && failedChecks.length === 0 ? (
+                <li className="px-3 py-2.5 text-ink-2">
+                  Nothing needs attention: every node answers, no layout change
+                  is waiting, no bucket is near its quota and no upload is left
+                  unfinished.
+                </li>
+              ) : null}
+            </ul>
+          )}
+        </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <section className="panel panel-pad" aria-labelledby="disk-heading">
-          <h2 id="disk-heading" className="title">
-            Disk space on data partitions
-          </h2>
+        <Panel
+          id="partitions"
+          title="Partitions"
+          aside={
+            health && health.partitions > 0
+              ? `${health.partitions.toLocaleString()} partitions`
+              : undefined
+          }
+          className="max-lg:order-2 lg:order-1 lg:col-span-12"
+        >
+          <PartitionPanel
+            health={health}
+            isLoading={healthQuery.isPending}
+            error={healthQuery.error}
+            onRetry={() => void healthQuery.refetch()}
+          />
+        </Panel>
+
+        <Panel
+          id="nodes"
+          title="Nodes"
+          aside={
+            health && ofCounts(health.connectedNodes, health.knownNodes)
+              ? `${ofCounts(health.connectedNodes, health.knownNodes)} connected`
+              : undefined
+          }
+          flush
+          className="max-lg:order-3 lg:order-2 lg:col-span-5"
+        >
+          {statusQuery.isPending ? (
+            <SkeletonRows rows={4} label="Loading nodes" />
+          ) : statusQuery.isError ? (
+            <ErrorState
+              title="Nodes unavailable"
+              error={statusQuery.error}
+              onRetry={() => void statusQuery.refetch()}
+              className="py-6"
+            />
+          ) : (
+            <>
+              <ul>
+                {rows.map((r) => (
+                  <li key={r.node.id}>
+                    <Link
+                      to={`/cluster?q=${encodeURIComponent(r.node.hostname || r.node.id)}`}
+                      className="caret-row grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-b border-rule px-3 py-1.5"
+                    >
+                      <span className="min-w-0">
+                        <span className="font-medium [overflow-wrap:anywhere]">
+                          {nodeName(r.node)}
+                        </span>{" "}
+                        <span className="text-ink-3">
+                          {r.zone ?? "no role"}
+                        </span>
+                        {!r.node.isUp ? (
+                          <span className="block text-caption text-bad">
+                            {r.node.lastSeenSecsAgo == null
+                              ? "no last-seen time"
+                              : `last seen ${duration(r.node.lastSeenSecsAgo)} ago`}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <ZoneMark
+                          zone={r.zone}
+                          zones={zones}
+                          up={r.node.isUp}
+                        />
+                        <Status
+                          tone={
+                            r.node.draining
+                              ? "warn"
+                              : r.node.isUp
+                                ? "ok"
+                                : "bad"
+                          }
+                        >
+                          {r.node.draining
+                            ? "draining"
+                            : r.node.isUp
+                              ? "up"
+                              : "down"}
+                        </Status>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {health &&
+              ofCounts(health.storageNodesUp, health.storageNodes) ? (
+                <p className="px-3 py-2 text-ink-3">
+                  {health.storageNodes} storage nodes, {health.storageNodesUp}{" "}
+                  up
+                  {health.knownNodes >= health.storageNodes
+                    ? ` · ${health.knownNodes - health.storageNodes} other`
+                    : ""}
+                </p>
+              ) : null}
+              <p className="border-t border-rule px-3 py-2 text-ink-3">
+                {version != null ? `layout v${version} · ` : ""}
+                {layoutQuery.isError
+                  ? "staged changes unavailable"
+                  : layoutQuery.data
+                    ? `${stagedCount} ${stagedCount === 1 ? "change" : "changes"} staged`
+                    : "checking staged changes…"}
+              </p>
+            </>
+          )}
+        </Panel>
+
+        <Panel
+          id="disk"
+          title="Disk"
+          aside={
+            statusQuery.data
+              ? `${reporting.length} of ${storage.length} storage nodes report`
+              : undefined
+          }
+          className="max-lg:order-4 lg:order-4 lg:col-span-5"
+        >
           {statusQuery.isError ? (
             <ErrorState
               title="Disk usage unavailable"
               error={statusQuery.error}
               onRetry={() => void statusQuery.refetch()}
-              className="items-start px-0 py-6 text-left"
+              className="items-start px-0 py-2 text-left"
             />
           ) : statusQuery.isPending ? (
             <div
-              className="skeleton-line mt-5 h-16 w-full"
               role="status"
               aria-label="Loading disk usage"
-            />
-          ) : disks.length === 0 ? (
-            <p className="muted mt-3 text-sm">
-              No node reports a data partition yet.
-            </p>
+              className="grid gap-2"
+            >
+              <div className="h-6 w-2/3 bg-rule" />
+              <div className="h-2 w-full bg-rule" />
+            </div>
+          ) : reporting.length === 0 ? (
+            <p className="text-ink-2">No node reports a data partition yet.</p>
           ) : (
             <>
-              <p className="num mt-4 text-3xl font-extrabold tracking-tight">
-                {readableBytes(diskFree)}
-                <span className="ml-1.5 text-base font-semibold text-base-content/70">
+              <p className="text-[26px] font-bold leading-none">
+                {readableBytes(diskFree)}{" "}
+                <span className="text-body font-normal text-ink-3">
                   free of {readableBytes(diskTotal)}
                 </span>
               </p>
               <Meter
-                className="mt-4"
+                className="mt-3"
+                value={diskTotal - diskFree}
                 max={diskTotal}
                 label={`${readableBytes(diskTotal - diskFree)} used of ${readableBytes(diskTotal)}`}
-                segments={[
-                  {
-                    value: diskTotal - diskFree,
-                    className:
-                      diskFree / diskTotal < 0.1
-                        ? "bg-error"
-                        : diskFree / diskTotal < 0.25
-                          ? "bg-warning"
-                          : "bg-primary",
-                  },
-                ]}
+                tone="ink"
               />
-              <p className="muted mt-3 text-xs">
-                Reported by {disks.length}{" "}
-                {disks.length === 1 ? "node" : "nodes"}. Replicas count once per
-                node.
+              <p className="mt-1.5 text-ink-3">
+                {pct(diskTotal - diskFree, diskTotal)}% used · replicas count
+                once per node
               </p>
+              <ul className="mt-4 grid gap-2.5">
+                {storage.map((r) => {
+                  const d = r.node.dataPartition;
+                  const ok = !!d && d.total > 0;
+                  return (
+                    <li
+                      key={r.node.id}
+                      className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] items-center gap-3"
+                    >
+                      <span className="truncate" title={nodeName(r.node)}>
+                        {nodeName(r.node)}
+                      </span>
+                      {ok ? (
+                        <>
+                          <Meter
+                            value={d.total - d.available}
+                            max={d.total}
+                            label={`${nodeName(r.node)} disk used`}
+                            tone={diskTone(d.available, d.total)}
+                          />
+                          <span className="text-right text-ink-2">
+                            {readableBytes(d.available)} free
+                          </span>
+                        </>
+                      ) : (
+                        <span className="col-span-2 text-bad">
+                          {r.node.isUp
+                            ? "no report"
+                            : "no report, node is down"}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </>
           )}
-        </section>
+        </Panel>
 
-        <section
-          className="panel panel-pad"
-          aria-labelledby="footprint-heading"
+        <Panel
+          id="stored"
+          title="Stored data"
+          aside={
+            <Link
+              to="/buckets"
+              className="xlink inline-flex items-center gap-2"
+            >
+              {buckets ? `all ${buckets.length} buckets` : "all buckets"}
+            </Link>
+          }
+          className="max-lg:order-5 lg:order-5 lg:col-span-7"
         >
-          <h2 id="footprint-heading" className="title">
-            Stored data
-          </h2>
-          {bucketQuery.isError ? (
-            <p className="muted mt-3 text-sm">Bucket totals unavailable.</p>
+          {bucketQuery.isPending ? (
+            <SkeletonRows label="Loading buckets" rows={3} />
+          ) : bucketQuery.isError ? (
+            <ErrorState
+              title="Buckets unavailable"
+              error={bucketQuery.error}
+              onRetry={() => void bucketQuery.refetch()}
+              className="items-start px-0 py-2 text-left"
+            />
+          ) : largest.length === 0 ? (
+            <EmptyState
+              title="No buckets yet"
+              className="px-0 py-4"
+              action={
+                <Button href="/buckets" variant="primary">
+                  Create a bucket
+                </Button>
+              }
+            >
+              Buckets hold your objects. Create one to start storing data.
+            </EmptyState>
           ) : (
-            <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div className="col-span-2">
-                <dt className="sr-only">Total size</dt>
-                <dd className="num text-3xl font-extrabold tracking-tight">
-                  {buckets ? readableBytes(totalUsage) : "…"}
-                </dd>
-              </div>
-              <div>
-                <dt className="label-caps">Buckets</dt>
-                <dd className="num mt-1 text-lg font-bold">
-                  {buckets ? buckets.length : "…"}
-                </dd>
-              </div>
-              <div>
-                <dt className="label-caps">Objects</dt>
-                <dd className="num mt-1 text-lg font-bold">
-                  {buckets ? totalObjects.toLocaleString() : "…"}
-                </dd>
-              </div>
-            </dl>
-          )}
-        </section>
-      </div>
-
-      <section
-        className="panel overflow-hidden"
-        aria-labelledby="bucket-footprint"
-      >
-        <div className="flex items-center justify-between gap-4 p-5 pb-3">
-          <h2 id="bucket-footprint" className="title">
-            Largest buckets
-          </h2>
-          <Link
-            to="/buckets"
-            className="link-latch text-sm font-bold text-primary"
-          >
-            All buckets
-          </Link>
-        </div>
-        {bucketQuery.isPending ? (
-          <SkeletonRows label="Loading buckets" rows={3} />
-        ) : bucketQuery.isError ? (
-          <ErrorState
-            title="Buckets unavailable"
-            error={bucketQuery.error}
-            onRetry={() => void bucketQuery.refetch()}
-          />
-        ) : largest.length === 0 ? (
-          <EmptyState
-            icon={Database}
-            title="No buckets yet"
-            action={
-              <Button href="/buckets" color="primary">
-                Create a bucket
-              </Button>
-            }
-          >
-            Buckets hold your objects. Create one to start storing data.
-          </EmptyState>
-        ) : (
-          <table className="table table-stack">
-            <thead>
-              <tr>
-                <th scope="col">Bucket</th>
-                <th scope="col" className="md:w-1/3">
-                  Share of stored data
-                </th>
-                <th scope="col" className="md:text-right">
-                  Objects
-                </th>
-                <th scope="col" className="md:text-right">
-                  Stored
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {largest.map((bucket) => (
-                <tr key={bucket.id} className="row-hover">
-                  <td data-primary>
-                    <Link
-                      to={`/buckets/${bucket.id}`}
-                      className="link-latch block max-w-[18rem] truncate font-bold"
+            <>
+              <p className="text-[26px] font-bold leading-none">
+                {readableBytes(storedBytes)}{" "}
+                <span className="text-body font-normal text-ink-3">
+                  in {storedObjects.toLocaleString()} objects across{" "}
+                  {buckets?.length}{" "}
+                  {buckets?.length === 1 ? "bucket" : "buckets"}
+                </span>
+              </p>
+              <ul className="mt-4 grid gap-2.5">
+                {largest.map((b) => {
+                  const name = bucketName(b);
+                  return (
+                    <li
+                      key={b.id}
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto]"
                     >
-                      {bucketName(bucket)}
-                    </Link>
-                  </td>
-                  <td data-label="Share" className="md:w-1/3">
-                    <Meter
-                      className="h-2 w-full md:max-w-xs"
-                      max={totalUsage}
-                      label={`${totalUsage ? Math.round((bucket.bytes / totalUsage) * 100) : 0}% of stored data`}
-                      segments={[
-                        { value: bucket.bytes, className: "bg-primary" },
-                      ]}
-                    />
-                  </td>
-                  <td data-label="Objects" className="md:text-right">
-                    {bucket.objects.toLocaleString()}
-                  </td>
-                  <td data-label="Stored" className="md:text-right font-bold">
-                    {readableBytes(bucket.bytes)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-    </div>
+                      <Link
+                        to={`/buckets/${b.id}`}
+                        className="xlink min-w-0 truncate"
+                        title={name}
+                      >
+                        <span className="text-ink-3">s3://</span>
+                        {name}
+                      </Link>
+                      <span className="text-right sm:order-3 sm:w-48">
+                        {readableBytes(b.bytes)}{" "}
+                        <span className="text-ink-3">
+                          {pct(b.bytes, storedBytes)}%
+                        </span>
+                        <span className="block text-caption text-ink-3">
+                          {b.objects.toLocaleString()}{" "}
+                          {b.objects === 1 ? "object" : "objects"}
+                        </span>
+                      </span>
+                      <Meter
+                        className="col-span-2 sm:order-2 sm:col-span-1"
+                        value={b.bytes}
+                        max={storedBytes}
+                        tone="gold"
+                        label={`${name} share of stored data`}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </Panel>
+      </div>
+    </>
   );
 };
+
 export default HomePage;

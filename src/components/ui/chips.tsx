@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { PropsWithChildren } from "react";
+import IconButton from "./icon-button";
 
 type Props = PropsWithChildren<{
   className?: string;
@@ -8,6 +9,7 @@ type Props = PropsWithChildren<{
   removeLabel?: string;
 }>;
 
+/** A tag or an alias. Removable when `onRemove` is given; long values wrap instead of widening the page. */
 const Chips = ({
   className,
   children,
@@ -16,21 +18,21 @@ const Chips = ({
 }: Props) => (
   <span
     className={cn(
-      "inline-flex h-9 items-center gap-1 rounded-full border border-base-300 bg-base-200 pl-3 text-sm font-semibold",
-      onRemove ? "pr-1" : "pr-3",
+      "inline-flex min-h-7 max-w-full items-center gap-1 rounded-sm border border-rule-strong bg-sunk pl-2 [overflow-wrap:anywhere]",
+      onRemove ? "pr-0.5" : "pr-2",
       className,
     )}
   >
-    {children}
+    <span className="min-w-0">{children}</span>
     {onRemove ? (
-      <button
-        type="button"
+      <IconButton
+        label={removeLabel}
+        icon={X}
+        size="sm"
+        iconSize={13}
+        variant="ghost-danger"
         onClick={onRemove}
-        aria-label={removeLabel}
-        className="grid h-7 w-7 place-items-center rounded-full text-base-content/70 transition-colors hover:bg-error/15 hover:text-error"
-      >
-        <X size={16} aria-hidden />
-      </button>
+      />
     ) : null}
   </span>
 );

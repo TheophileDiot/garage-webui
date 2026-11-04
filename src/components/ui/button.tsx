@@ -1,33 +1,112 @@
-import { LucideIcon } from "lucide-react";
-import { ComponentPropsWithoutRef, forwardRef } from "react";
-import { Button as BaseButton } from "react-daisyui";
+import { cn } from "@/lib/utils";
+import { Loader2, LucideIcon } from "lucide-react";
+import { ButtonHTMLAttributes, forwardRef, ReactNode } from "react";
 import { Link } from "react-router-dom";
+import {
+  ButtonSize,
+  buttonBase,
+  ButtonVariant,
+  buttonSizes,
+  buttonVariants,
+} from "./button-styles";
 
-type ButtonProps = ComponentPropsWithoutRef<typeof BaseButton> & {
-  type?: HTMLButtonElement["type"];
-  form?: string;
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** A lucide icon. With no children the button becomes a square icon button. */
+  icon?: LucideIcon;
+  /** Router path: renders a link that looks like the button. */
   href?: string;
   target?: "_blank" | "_self" | "_parent" | "_top";
-  icon?: LucideIcon;
+  form?: string;
+  /** Pending: shows a spinner, disables the control and sets aria-busy. */
+  loading?: boolean;
+  className?: string;
+  children?: ReactNode;
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ href, children, icon: Icon, shape, type = "button", ...props }, ref) => {
-    return (
-      <BaseButton
-        ref={ref}
-        tag={href ? Link : undefined}
-        shape={Icon && !children ? "square" : shape}
-        {...(href ? { to: href } : { type })}
-        {...props}
-      >
-        {Icon ? (
-          <Icon size={18} aria-hidden className={children ? "-ml-1" : ""} />
+  (
+    {
+      variant,
+      size,
+      icon: Icon,
+      href,
+      target,
+      loading,
+      type = "button",
+      className,
+      children,
+      disabled,
+      onClick,
+      ...props
+    },
+    ref,
+  ) => {
+    const iconOnly = Boolean(Icon) && !children;
+    const sizing = buttonSizes[size === "sm" ? "sm" : "md"];
+    const classes = cn(
+      buttonBase,
+      iconOnly ? sizing.icon : sizing.text,
+      buttonVariants[variant ?? "secondary"],
+      className,
+    );
+    const inner = (
+      <>
+        {loading ? (
+          <Loader2 size={14} aria-hidden className="animate-spin" />
+        ) : Icon ? (
+          <Icon size={14} aria-hidden />
         ) : null}
         {children}
-      </BaseButton>
+      </>
+    );
+
+    if (href) {
+      const off = Boolean(disabled || loading);
+      return (
+        <Link
+          to={href}
+          target={target}
+          rel={target === "_blank" ? "noopener noreferrer" : undefined}
+          className={classes}
+          aria-disabled={off || undefined}
+          aria-busy={loading || undefined}
+          tabIndex={off ? -1 : undefined}
+          onClick={(e) => {
+            if (off) e.preventDefault();
+            else
+              (onClick as unknown as ((e: unknown) => void) | undefined)?.(e);
+          }}
+          {...(props as object)}
+        >
+          {inner}
+        </Link>
+      );
+    }
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={classes}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        onClick={onClick}
+        {...props}
+      >
+        {inner}
+      </button>
     );
   },
 );
+Button.displayName = "Button";
+
+/** A link that looks like a button. Same as `<Button href=…>`. */
+export const LinkButton = forwardRef<
+  HTMLButtonElement,
+  ButtonProps & { href: string }
+>((props, ref) => <Button ref={ref} {...props} />);
+LinkButton.displayName = "LinkButton";
 
 export default Button;

@@ -1,29 +1,25 @@
-import { cn, copyToClipboard } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import React from "react";
-import Button from "./button";
-import { Copy } from "lucide-react";
+import CopyButton from "./copy-button";
 
 type Props = Omit<React.ComponentPropsWithoutRef<"div">, "children"> & {
   children?: string;
 };
 
+/** A command with a copy control. Scrolls sideways inside its own box rather than widening the page. */
 const Code = ({ className, children, ...props }: Props) => {
   return (
     <div
       className={cn(
-        "relative flex items-center justify-between gap-2 rounded-lg border border-base-300 bg-base-200 py-1 pl-4 pr-1",
+        "flex min-w-0 items-center justify-between gap-2 rounded-sm border border-rule-strong bg-sunk py-1 pl-3 pr-1",
         className,
       )}
       {...props}
     >
-      <code className="overflow-x-auto whitespace-nowrap py-2">{children}</code>
-      <Button
-        size="sm"
-        icon={Copy}
-        color="ghost"
-        aria-label="Copy command"
-        onClick={() => copyToClipboard(children || "")}
-      />
+      <code className="min-w-0 overflow-x-auto whitespace-nowrap py-1">
+        {children}
+      </code>
+      <CopyButton value={children || ""} label="Copy command" />
     </div>
   );
 };
