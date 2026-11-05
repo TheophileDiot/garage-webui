@@ -54,6 +54,24 @@ Every state-changing request (any method other than GET, HEAD and OPTIONS on `/a
 - `target` holds the IDs taken from the URL path or query (`id`, `search`, `globalAlias`, `node`, `bucket`, `key`). Request and response bodies, cookies, tokens and secrets are never logged, so an operation whose IDs travel in the body (for example `AllowBucketKey`) logs none.
 - Garage still sees one admin token; this log is the only record of which person acted. Ship stdout to your log collector and protect it like any security log. Reads are not logged, and neither are anonymous requests refused with 401.
 
+### Security headers
+
+The application sets these itself; a signed-in session is a full Garage administrator, so script injection is the case they are built for.
+
+| Response                               | Header                                                         | Value                                                                                                                                                                                                                                 |
+| -------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| All                                    | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` | `nosniff`, `DENY`, `same-origin`                                                                                                                                                                                                      |
+| All                                    | `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`   | `same-origin`                                                                                                                                                                                                                         |
+| All                                    | `Permissions-Policy`                                           | camera, microphone, geolocation, payment, usb, display-capture, accelerometer, gyroscope and magnetometer denied                                                                                                                      |
+| All, only when `PUBLIC_URL` is `https` | `Strict-Transport-Security`                                    | `max-age=31536000` (no `includeSubDomains`, no `preload`)                                                                                                                                                                             |
+| API JSON, errors, redirects, assets    | `Content-Security-Policy`                                      | `default-src 'none'; frame-ancestors 'none'`                                                                                                                                                                                          |
+| Console HTML                           | `Content-Security-Policy`                                      | `default-src 'self'; script-src 'self' 'sha256-…'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'` |
+| Stored objects                         | `Content-Security-Policy`                                      | `sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'none'`, plus `Cache-Control: no-store` (thumbnails too)                                                                                      |
+
+The `sha256-…` entries are computed at startup from the inline scripts of the `index.html` actually served (after the `BASE_PATH` rewrite), so they follow the build. Scripts never get `'unsafe-inline'` or `'unsafe-eval'`. `style-src` keeps `'unsafe-inline'` because two dependencies append a `<style>` element at runtime (sonner for toasts, react-style-singleton for the dialog scroll lock) and neither accepts a nonce. Object downloads send `Content-Disposition` with an ASCII `filename` and an RFC 5987 `filename*`, so keys with spaces, quotes, `;`, backslashes or non-ASCII text download under a safe name.
+
+Behind a reverse proxy or WAF (for example BunkerWeb): when the proxy also sends a `Content-Security-Policy`, the browser enforces both, so a proxy policy stricter than the one above breaks the console (blocked scripts or styles, a blank page). Let the application own the CSP and turn the proxy's off or leave it unset for this service. Set HSTS at the layer that terminates TLS: the application only sends it when `PUBLIC_URL` is `https`, so do not send it twice with different values.
+
 ## Container deployment
 
 `compose.yaml` builds this fork locally. `ghcr.io/theophilediot/garage-webui:local` is a local image tag, **not a published release**. No registry publication or production deployment happens automatically. Once an image is published, pin its release tag and global manifest digest in the infrastructure repository.
@@ -62,7 +80,7 @@ Copy `.env.example` to a local `.env`, fill the Garage admin key, public origin 
 
 The supplied stack publishes on loopback by default. Attach your reverse proxy to the private network, or explicitly choose a private listening address. Configure TLS at that proxy and use the same browser origin in `PUBLIC_URL`. Cross-origin write requests are rejected. Programmatic same-origin clients without an `Origin` header must send `X-Requested-With: garage-webui` as well as their authenticated session cookie.
 
-The image runs as UID/GID 65532 with a read-only root filesystem, no Linux capabilities and a 64 MiB temporary filesystem. Multipart uploads above 32 MiB spill the whole file to `/tmp`; large or concurrent uploads can exhaust that space. Increase the Compose `/tmp` capacity or use a direct S3 client for larger objects. The supplied network and `Europe/Paris` timezone defaults follow this fork's deployment conventions. It includes its own healthcheck and CA certificates. No Garage config mount is required when API settings are supplied through environment variables; if you mount a config, mount its containing directory read-only and make it readable by UID 65532.
+The image runs as UID/GID 65532 with a read-only root filesystem, no Linux capabilities and a 64 MiB temporary filesystem. Multipart uploads above 32 MiB spill the whole file to `/tmp`; large or concurrent uploads can exhaust that space. `UPLOAD_MAX_BYTES` caps the size of one upload request (multipart overhead included) and answers a larger one with `413` and a plain-text message; it does not size `/tmp`. Increase the Compose `/tmp` capacity or use a direct S3 client for larger objects. The supplied network and `Europe/Paris` timezone defaults follow this fork's deployment conventions. It includes its own healthcheck and CA certificates. No Garage config mount is required when API settings are supplied through environment variables; if you mount a config, mount its containing directory read-only and make it readable by UID 65532.
 
 ### Configuration
 
@@ -81,6 +99,7 @@ The image runs as UID/GID 65532 with a read-only root filesystem, no Linux capab
 | `S3_REGION`           | Garage region, default `garage`.                                   |
 | `CONFIG_PATH`         | Optional Garage TOML path, default `/etc/garage.toml`.             |
 | `HOST` / `PORT`       | App listener, defaults `0.0.0.0:3909`.                             |
+| `UPLOAD_MAX_BYTES`    | Upload cap in bytes, default `5368709120` (5 GiB); over it: 413.   |
 | `TZ`                  | Timezone; Compose sets `Europe/Paris`.                             |
 | `LISTEN_IP`           | Compose host binding, default `127.0.0.1`.                         |
 | `GARAGE_NETWORK`      | Existing Compose network, default `garage-net`.                    |
