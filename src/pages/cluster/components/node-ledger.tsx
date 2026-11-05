@@ -1,6 +1,7 @@
 import { Ledger, LedgerColumn } from "@/components/ui/ledger";
 import { Meter, Status } from "@/components/ui/status";
 import Diff from "@/components/ui/diff";
+import Button from "@/components/ui/button";
 import IconButton from "@/components/ui/icon-button";
 import { dec, readableBytes } from "@/lib/utils";
 import { Network, RouteIcon, Trash2 } from "lucide-react";
@@ -8,11 +9,11 @@ import {
   capacityLabel,
   diskReading,
   diskTone,
-  duration,
   NodeRow,
   nodeName,
   shortId,
 } from "../model";
+import { nodeMeta, nodeSeen, nodeStatus } from "../phone";
 import ZoneMark from "./zone-mark";
 
 type Props = {
@@ -24,7 +25,10 @@ type Props = {
   onUnassign: (row: NodeRow) => void;
 };
 
-/** One zone's nodes as a ledger: a table on desktop, labelled stacks on a phone. */
+/**
+ * One zone's nodes as a ledger: a table on desktop, a compact row on a phone (name, one status, one line of role
+ * and disk, Assign as the trailing target). Remove is a labelled button on a line of its own, away from Assign.
+ */
 const NodeLedger = ({
   zone,
   rows,
@@ -50,7 +54,7 @@ const NodeLedger = ({
               {r.node.hostname || "unnamed node"}
             </span>{" "}
             <span
-              className="block font-mono text-caption text-ink-3"
+              className="block font-mono text-caption text-ink-3 max-md:hidden"
               title={r.node.id}
             >
               {shortId(r.node.id)}
@@ -67,25 +71,25 @@ const NodeLedger = ({
     {
       key: "status",
       header: "Status",
+      mobile: "meta",
       width: "13%",
-      cell: (r) => (
-        <span className="grid">
-          <Status tone={r.node.draining ? "warn" : r.node.isUp ? "ok" : "bad"}>
-            {r.node.draining ? "draining" : r.node.isUp ? "active" : "offline"}
-          </Status>
-          {!r.node.isUp ? (
-            <span className="text-caption text-bad">
-              {r.node.lastSeenSecsAgo == null
-                ? "no last-seen time"
-                : `seen ${duration(r.node.lastSeenSecsAgo)} ago`}
-            </span>
-          ) : null}
-        </span>
-      ),
+      cell: (r) => {
+        const status = nodeStatus(r.node);
+        const seen = nodeSeen(r.node);
+        return (
+          <span className="grid">
+            <Status tone={status.tone}>{status.word}</Status>
+            {seen ? (
+              <span className="text-caption text-bad">{seen}</span>
+            ) : null}
+          </span>
+        );
+      },
     },
     {
       key: "addr",
       header: "Address",
+      mobile: "hide",
       width: "13%",
       cell: (r) =>
         r.node.addr ? (
@@ -102,6 +106,7 @@ const NodeLedger = ({
     {
       key: "tags",
       header: "Tags",
+      mobile: "hide",
       width: "9%",
       cell: (r) =>
         r.tags.length ? (
@@ -115,6 +120,7 @@ const NodeLedger = ({
     {
       key: "capacity",
       header: "Capacity",
+      mobile: "hide",
       width: "12%",
       cell: (r) => {
         if (r.removing)
@@ -156,6 +162,7 @@ const NodeLedger = ({
     {
       key: "data",
       header: "Data disk",
+      mobile: "hide",
       width: "16%",
       cell: (r) => {
         if (r.capacity === null) return <span className="text-ink-3">n/a</span>;
@@ -180,6 +187,7 @@ const NodeLedger = ({
       key: "meta",
       header: "Metadata free",
       align: "right",
+      mobile: "hide",
       width: "9%",
       mobileLabel: "Metadata free",
       cell: (r) =>
@@ -190,13 +198,47 @@ const NodeLedger = ({
         ),
     },
     {
+      key: "summary",
+      header: <span className="sr-only">Role and disk</span>,
+      mobile: "meta",
+      phoneOnly: true,
+      cell: (r) => {
+        const m = nodeMeta(r, dec, readableBytes);
+        return (
+          <span className="text-ink-2">
+            {m.role}
+            {m.disk ? ` · ${m.disk}` : ""}
+          </span>
+        );
+      },
+    },
+    {
+      key: "remove",
+      header: <span className="sr-only">Remove from layout</span>,
+      mobile: "meta",
+      phoneOnly: true,
+      className: "max-md:mt-2 max-md:w-full",
+      cell: (r) =>
+        (r.current || r.staged) && !r.removing ? (
+          <Button
+            size="sm"
+            variant="danger"
+            icon={Trash2}
+            aria-label={`Remove ${nodeName(r.node)} from layout`}
+            onClick={() => onUnassign(r)}
+          >
+            Remove from layout
+          </Button>
+        ) : null,
+    },
+    {
       key: "actions",
       header: <span className="sr-only">Actions</span>,
-      mobile: "actions",
+      mobile: "trail",
       align: "right",
       width: "6.5rem",
       cell: (r) => (
-        <span className="row-actions inline-flex gap-1 max-md:[&_button]:min-h-9 max-md:[&_button]:min-w-9">
+        <span className="row-actions inline-flex gap-1">
           <IconButton
             variant="secondary"
             icon={RouteIcon}
@@ -209,6 +251,7 @@ const NodeLedger = ({
               icon={Trash2}
               label={`Remove ${nodeName(r.node)} from layout`}
               onClick={() => onUnassign(r)}
+              className="max-md:hidden"
             />
           ) : null}
         </span>
@@ -219,6 +262,7 @@ const NodeLedger = ({
   return (
     <Ledger
       caption={zone ? `Nodes in zone ${zone}` : "Nodes without a role"}
+      compact
       columns={columns}
       rows={rows}
       rowKey={(r) => r.node.id}

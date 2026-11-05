@@ -124,7 +124,7 @@ const AssignNodeDialog = () => {
           render={(field, { id }) => (
             <Input
               id={id}
-              className="font-mono text-caption [overflow-wrap:anywhere]"
+              className="font-mono text-[16px] [overflow-wrap:anywhere] desk:text-caption"
               name={field.name}
               ref={field.ref}
               value={field.value}
@@ -238,7 +238,7 @@ const AssignNodeDialog = () => {
           name="tags"
           render={(field, { id }) => (
             <TagInput
-              className="max-md:[&_button]:min-h-9 max-md:[&_button]:min-w-9 max-md:[&_input]:min-h-9"
+              className="touch:[&_button]:min-h-9 touch:[&_button]:min-w-9 touch:[&_input]:min-h-9"
               id={id}
               label="Tags"
               value={field.value ?? []}

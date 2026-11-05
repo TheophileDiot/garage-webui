@@ -62,7 +62,7 @@ const ShareDialog = () => {
           {domains.map((item) => (
             <label
               key={item}
-              className="flex min-h-6 cursor-pointer items-center gap-2"
+              className="flex min-h-11 cursor-pointer items-center gap-2 desk:min-h-6"
             >
               <input
                 type="radio"
@@ -83,14 +83,14 @@ const ShareDialog = () => {
             label="Link"
             readOnly
             value={url}
-            className="font-mono text-[12.5px]"
+            className="font-mono"
             onFocus={(e) => e.target.select()}
           />
           <div>
             <CopyButton
               value={url}
               label="Copy link"
-              className="h-9 md:h-[34px]"
+              className="h-9 desk:h-[34px]"
             />
           </div>
         </div>

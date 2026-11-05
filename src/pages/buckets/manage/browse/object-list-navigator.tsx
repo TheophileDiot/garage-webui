@@ -18,7 +18,7 @@ type Props = {
 };
 
 const part =
-  "inline-flex min-h-9 min-w-0 items-center md:min-h-6 rounded-sm px-1 [overflow-wrap:anywhere]";
+  "inline-flex min-h-9 min-w-0 items-center desk:min-h-6 rounded-sm px-1 [overflow-wrap:anywhere]";
 
 /** The toolbar: back and forward through visited folders, the path inside the bucket (each folder a link), the filter box and the actions. */
 const ObjectListNavigator = ({

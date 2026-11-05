@@ -9,11 +9,14 @@ import { SearchField } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page-header";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
 import { readableBytes } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { bucketName, bucketTotals, localAliasesOf } from "./utils";
 
 const BucketsPage = () => {
   const { data, isPending, error, refetch } = useBuckets();
   const [search, setSearch] = useState("");
+  // On phone Create bucket sits on the title row; from `md` it stays right of the search.
+  const phone = useMediaQuery("(max-width: 767px)");
 
   const items = useMemo<BucketRow[]>(() => {
     const q = search.trim().toLowerCase();
@@ -48,6 +51,7 @@ const BucketsPage = () => {
             ? `${data.length} ${data.length === 1 ? "bucket" : "buckets"} · ${readableBytes(totalBytes)} · ${totalObjects.toLocaleString()} objects · ${websites} ${websites === 1 ? "website" : "websites"}`
             : undefined
         }
+        actions={phone ? <CreateBucketDialog /> : undefined}
       />
 
       <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -60,9 +64,11 @@ const BucketsPage = () => {
         <p className="text-ink-3" aria-live="polite">
           {data ? `${items.length} of ${data.length}` : null}
         </p>
-        <div className="ml-auto">
-          <CreateBucketDialog />
-        </div>
+        {phone ? null : (
+          <div className="ml-auto">
+            <CreateBucketDialog />
+          </div>
+        )}
       </div>
 
       <Panel id="buckets" flush>

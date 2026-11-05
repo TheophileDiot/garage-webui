@@ -7,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CSSProperties,
+  FocusEvent,
   KeyboardEvent,
   PointerEvent,
   useMemo,
@@ -79,6 +80,19 @@ const PartitionMap = ({
     const i = Number((e.target as HTMLElement).dataset.i);
     if (Number.isFinite(i)) onActive?.(i);
   };
+  // A press (a tap, a click) selects the cell under it; one in the 2 px gap between cells takes the nearest cell.
+  const press = (e: PointerEvent<HTMLDivElement>) => {
+    if (Number.isFinite(Number((e.target as HTMLElement).dataset.i)))
+      return move(e);
+    const r = e.currentTarget.getBoundingClientRect();
+    const step = r.width / 16;
+    const col = Math.min(
+      15,
+      Math.max(0, Math.floor((e.clientX - r.left) / step)),
+    );
+    const row = Math.max(0, Math.floor((e.clientY - r.top) / step));
+    onActive?.(Math.min(total - 1, row * 16 + col));
+  };
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
     const at = active ?? 0;
     const step: Record<string, number> = {
@@ -105,9 +119,16 @@ const PartitionMap = ({
             role: "group",
             tabIndex: 0,
             "aria-label": `Partition map, ${total} cells grouped by state. Arrow keys move between cells.`,
+            onPointerDown: press,
             onPointerMove: move,
-            onPointerLeave: () => onActive?.(null),
-            onFocus: () => active === null && onActive?.(0),
+            // A finger that lifts leaves its cell selected: the readout is what the tap was for.
+            onPointerLeave: (e: PointerEvent<HTMLDivElement>) =>
+              e.pointerType !== "touch" && onActive?.(null),
+            // Focus by keyboard starts at cell 0; focus by a tap or a click must not move the selection off the cell hit.
+            onFocus: (e: FocusEvent<HTMLDivElement>) =>
+              active === null &&
+              e.currentTarget.matches(":focus-visible") &&
+              onActive?.(0),
             onBlur: () => onActive?.(null),
             onKeyDown: key,
           }
@@ -146,8 +167,18 @@ const IdleMap = () => (
   </div>
 );
 
-const READ_IDLE =
-  "Point at a cell, or focus the map and use the arrow keys, to read its state.";
+/** The idle readout: pointing for a mouse, tapping for a touch screen; the arrow keys for both. */
+const READ_IDLE = (
+  <>
+    <span className="[@media(hover:none)]:hidden">
+      Point at a cell, or focus the map and use the arrow keys, to read its
+      state.
+    </span>
+    <span className="hidden [@media(hover:none)]:inline">
+      Tap a cell, or focus the map and use the arrow keys, to read its state.
+    </span>
+  </>
+);
 
 /**
  * Map, legend and readout as one unit. The legend row highlights the cells it describes (hover, focus or click to

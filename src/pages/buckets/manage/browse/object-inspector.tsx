@@ -11,21 +11,29 @@ import { Object } from "./types";
 const ObjectInspector = ({
   files,
   prefix,
+  sheet,
 }: {
   files: Object[];
   /** The listing prefix the file keys are relative to. */
   prefix: string;
+  /** Inside a sheet (which has its own title and padding): no panel head, border or inner padding. */
+  sheet?: boolean;
 }) => {
   const { globalAlias } = useBucketContext();
+  const frame = sheet
+    ? { title: null, className: "border-0 bg-transparent [&>div]:p-0" }
+    : {};
 
   if (files.length === 0) {
-    return <Inspector emptyText="Select an object to see its details." />;
+    return (
+      <Inspector {...frame} emptyText="Select an object to see its details." />
+    );
   }
 
   if (files.length > 1) {
     const total = files.reduce((sum, f) => sum + f.size, 0);
     return (
-      <Inspector>
+      <Inspector {...frame}>
         <div className="fig">
           {files.length}
           <small>objects selected</small>
@@ -43,7 +51,7 @@ const ObjectInspector = ({
   const modified = dayjs(object.lastModified);
 
   return (
-    <Inspector>
+    <Inspector {...frame}>
       <InspectorName icon={iconFor(ext)}>{object.objectKey}</InspectorName>
       <PropList
         items={[

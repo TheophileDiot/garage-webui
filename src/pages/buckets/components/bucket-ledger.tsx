@@ -6,7 +6,7 @@ import {
   Settings,
   TriangleAlert,
 } from "lucide-react";
-import { Ledger, LedgerColumn } from "@/components/ui/ledger";
+import { Ledger, LedgerChevron, LedgerColumn } from "@/components/ui/ledger";
 import CopyButton from "@/components/ui/copy-button";
 import IconButton from "@/components/ui/icon-button";
 import { Meter, Status } from "@/components/ui/status";
@@ -98,12 +98,12 @@ const BucketLedger = ({
             <Link
               to={bucketPath(b.id)}
               title={b.name}
-              className="block min-h-6 truncate font-medium leading-6 text-ink hover:underline hover:underline-offset-2 max-md:flex max-md:min-h-9 max-md:items-center max-md:whitespace-normal max-md:leading-snug max-md:[overflow-wrap:anywhere]"
+              className="block min-h-6 truncate font-medium leading-6 text-ink hover:underline hover:underline-offset-2 max-md:flex touch:min-h-9 max-md:items-center max-md:whitespace-normal max-md:leading-snug max-md:[overflow-wrap:anywhere]"
             >
               {b.name}
             </Link>
             <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-caption text-ink-3">
-              <span className="font-mono" title={b.id}>
+              <span className="font-mono font-normal" title={b.id}>
                 {b.id.slice(0, 8)}
               </span>
               {extra.length > 0 ? (
@@ -133,8 +133,14 @@ const BucketLedger = ({
       header: "Objects",
       align: "right",
       width: "9%",
+      mobile: "meta",
       cell: (b) => (
-        <span className="tabular-nums">{b.objects.toLocaleString()}</span>
+        <span className="tabular-nums">
+          {b.objects.toLocaleString()}
+          <span className="md:hidden">
+            {b.objects === 1 ? " object" : " objects"}
+          </span>
+        </span>
       ),
     },
     {
@@ -142,6 +148,7 @@ const BucketLedger = ({
       header: "Size",
       align: "right",
       width: "9%",
+      mobile: "meta",
       cell: (b) => (
         <span className="tabular-nums">{readableBytes(b.bytes)}</span>
       ),
@@ -150,6 +157,7 @@ const BucketLedger = ({
       key: "quota",
       header: "Quota",
       width: "23%",
+      mobile: "meta",
       cell: (b) => {
         const uses = quotaUses(b);
         return uses.length ? (
@@ -159,7 +167,7 @@ const BucketLedger = ({
             ))}
           </span>
         ) : (
-          <span className="text-ink-3">No quota</span>
+          <span className="text-ink-3 max-md:hidden">No quota</span>
         );
       },
     },
@@ -167,6 +175,7 @@ const BucketLedger = ({
       key: "website",
       header: "Website",
       width: "11%",
+      mobile: "meta",
       cell: (b) =>
         b.websiteAccess ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-caption font-medium text-link">
@@ -174,12 +183,12 @@ const BucketLedger = ({
             Website
           </span>
         ) : (
-          <>
+          <span className="max-md:hidden">
             <span aria-hidden className="text-ink-3">
               —
             </span>
             <span className="sr-only">Not served as a website</span>
-          </>
+          </span>
         ),
     },
     {
@@ -205,7 +214,6 @@ const BucketLedger = ({
     {
       key: "actions",
       header: <span className="sr-only">Actions</span>,
-      mobile: "actions",
       width: "9.5rem",
       cell: (b) => (
         <div className="row-actions">
@@ -223,9 +231,18 @@ const BucketLedger = ({
             value={s3Uri(b)}
             label={`Copy S3 address of ${b.name}`}
             iconOnly
-            className="max-md:h-9 max-md:w-9 md:h-[34px] md:w-[34px]"
+            className="touch:h-9 touch:w-9 desk:h-[34px] desk:w-[34px]"
           />
         </div>
+      ),
+    },
+    {
+      key: "open",
+      header: <span className="sr-only">Open</span>,
+      mobile: "trail",
+      phoneOnly: true,
+      cell: (b) => (
+        <LedgerChevron to={bucketPath(b.id)} label={`Open ${b.name}`} />
       ),
     },
   ];
@@ -233,6 +250,7 @@ const BucketLedger = ({
   return (
     <Ledger
       caption="Buckets"
+      compact
       columns={columns}
       rows={rows}
       rowKey={(b) => b.id}
@@ -241,7 +259,15 @@ const BucketLedger = ({
           rows.length === total
             ? `Total · ${total} ${total === 1 ? "bucket" : "buckets"}`
             : `Total · ${rows.length} of ${total} buckets`,
-        objects: objects.toLocaleString(),
+        // One element, so the phone row's flex layout cannot drop the space before the word ("26objects").
+        objects: (
+          <span>
+            {objects.toLocaleString()}
+            <span className="md:hidden">
+              {objects === 1 ? " object" : " objects"}
+            </span>
+          </span>
+        ),
         size: readableBytes(bytes),
         website: `${websites} ${websites === 1 ? "site" : "sites"}`,
       }}

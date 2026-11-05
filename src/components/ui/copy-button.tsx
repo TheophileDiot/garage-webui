@@ -38,9 +38,9 @@ const CopyButton = ({
       aria-label={label}
       title={iconOnly ? label : undefined}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-transparent text-ink-3 transition-colors duration-100 md:h-[30px]",
+        "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-transparent text-ink-3 transition-colors duration-100 desk:h-[30px]",
         "hover:border-line hover:bg-surface-2 hover:text-ink",
-        iconOnly ? "w-9 md:w-[30px]" : "px-2",
+        iconOnly ? "w-9 desk:w-[30px]" : "px-2",
         className,
       )}
     >

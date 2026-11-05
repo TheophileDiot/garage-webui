@@ -61,7 +61,7 @@ const ConnectNodeDialog = () => {
         <p className="text-ink-2">
           Run this command on the target node to read its node id:
         </p>
-        <Code className="mt-2 max-md:[&_button]:min-h-9 max-md:[&_button]:min-w-9">
+        <Code className="mt-2 touch:[&_button]:min-h-9 touch:[&_button]:min-w-9">
           docker exec garage /garage node id
         </Code>
 
@@ -73,7 +73,7 @@ const ConnectNodeDialog = () => {
             placeholder="<id>@<host>:3901"
             autoComplete="off"
             spellCheck={false}
-            inputClassName="font-mono text-caption"
+            inputClassName="font-mono text-[16px] desk:text-caption"
           />
         </form>
 

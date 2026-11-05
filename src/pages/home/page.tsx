@@ -37,12 +37,13 @@ import Button from "@/components/ui/button";
 import { Meter, Status } from "@/components/ui/status";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
 import { PageHeader, Panel } from "@/components/ui/page-header";
-import { Ledger } from "@/components/ui/ledger";
+import { Ledger, LedgerChevron } from "@/components/ui/ledger";
 import { Notice } from "@/components/ui/notice";
 import PartitionPanel from "@/components/ui/partition-map";
 import Diff from "@/components/ui/diff";
 import { bucketName, bucketTotals } from "../buckets/utils";
 import { headline, watchItems } from "./model";
+import { phoneOrderClass, stagedLine } from "./phone";
 
 const pct = (n: number, d: number) => Math.round(safeRatio(n, d) * 100);
 
@@ -109,7 +110,10 @@ const HomePage = () => {
         actions={
           <>
             {updated ? (
-              <span className="text-caption text-ink-3" role="status">
+              <span
+                className="text-caption text-ink-3 max-nav:hidden"
+                role="status"
+              >
                 Updated {updated}
               </span>
             ) : null}
@@ -126,7 +130,9 @@ const HomePage = () => {
             >
               Refresh
             </Button>
-            <Button href="/cluster">Open cluster</Button>
+            <Button href="/cluster" className="max-nav:hidden">
+              Open cluster
+            </Button>
           </>
         }
       />
@@ -134,7 +140,7 @@ const HomePage = () => {
       <div className="grid min-w-0 gap-4 pb-6">
         <section
           aria-label="Cluster health"
-          className="flex flex-wrap items-center justify-between gap-5 rounded-lg border border-line bg-surface px-5 py-4 lg:flex-nowrap"
+          className={`flex flex-wrap items-center justify-between gap-5 rounded-lg border border-line bg-surface px-5 py-4 lg:flex-nowrap ${phoneOrderClass("health")}`}
         >
           <div className="min-w-0 flex-[1_1_24rem]">
             <h2 className="font-cond text-title font-semibold">
@@ -172,8 +178,16 @@ const HomePage = () => {
                 Try again
               </Button>
             ) : null}
+            {updated ? (
+              <p
+                className="mt-1 text-caption text-ink-3 nav:hidden"
+                role="status"
+              >
+                Updated {updated}
+              </p>
+            ) : null}
           </div>
-          <dl className="grid w-full grid-cols-2 gap-x-5 gap-y-3 md:grid-cols-[0.8fr_0.9fr_1.1fr_1.8fr] lg:w-[500px] lg:shrink-0">
+          <dl className="grid w-full grid-cols-3 gap-x-5 gap-y-3 md:grid-cols-[0.8fr_0.9fr_1.1fr_1.8fr] lg:w-[500px] lg:shrink-0">
             {[
               ["Garage", info?.garageVersion ?? "Not reported"],
               [
@@ -185,7 +199,7 @@ const HomePage = () => {
             ].map(([label, value]) => (
               <div
                 key={label}
-                className="min-w-0 md:border-l md:border-line md:pl-5"
+                className={`min-w-0 md:border-l md:border-line md:pl-5 ${label === "Replication" ? "max-md:hidden" : ""}`}
               >
                 <dt className="lbl">{label}</dt>
                 <dd className="mt-1 font-medium [overflow-wrap:anywhere]">
@@ -198,18 +212,26 @@ const HomePage = () => {
 
         {staged ? (
           <Notice
+            // Phone: the sentence and the link share one line (the text no longer claims a 240 px basis).
+            className={`${phoneOrderClass("staged")} max-nav:[&>div:nth-child(2)]:basis-0 max-nav:[&>div:nth-child(3)]:ml-0`}
             action={
               <Link
                 className="inline-flex min-h-9 items-center text-link underline underline-offset-2"
                 to="/cluster"
               >
-                Review in Cluster →
+                <span>
+                  Review
+                  <span className="max-nav:hidden"> in Cluster</span> →
+                </span>
               </Link>
             }
           >
-            <p className="font-semibold">{staged.label}</p>
+            <p className="font-semibold">
+              <span className="max-nav:hidden">{staged.label}</span>
+              <span className="nav:hidden">{stagedLine(stagedCount)}</span>
+            </p>
             <Diff
-              className="mt-1"
+              className="mt-1 max-nav:hidden"
               lines={staged.diff ?? []}
               label="Staged layout changes"
             />
@@ -225,6 +247,7 @@ const HomePage = () => {
               : undefined
           }
           flush
+          className={phoneOrderClass("nodes")}
         >
           {statusQuery.isPending ? (
             <SkeletonRows rows={4} label="Loading nodes" />
@@ -238,6 +261,7 @@ const HomePage = () => {
             <>
               <Ledger
                 caption="Cluster nodes"
+                compact
                 rows={rows}
                 rowKey={(r) => r.node.id}
                 empty={
@@ -269,13 +293,13 @@ const HomePage = () => {
                           <span className="truncate">{nodeName(r.node)}</span>
                         </Link>
                         <span
-                          className="block font-mono text-caption text-ink-3"
+                          className="block font-mono text-caption text-ink-3 max-md:hidden"
                           title={r.node.id}
                         >
                           {shortId(r.node.id)}
                         </span>
                         <span
-                          className="block font-mono text-caption text-ink-3"
+                          className="block font-mono text-caption text-ink-3 max-md:hidden"
                           title={r.node.addr ?? undefined}
                         >
                           {r.node.addr ?? "Not connected"}
@@ -286,6 +310,7 @@ const HomePage = () => {
                   {
                     key: "zone",
                     header: "Zone",
+                    mobile: "meta",
                     width: "12%",
                     cell: (r) => (
                       <span title={r.zone ?? undefined}>
@@ -296,6 +321,7 @@ const HomePage = () => {
                   {
                     key: "status",
                     header: "Status",
+                    mobile: "meta",
                     width: "17%",
                     cell: (r) => (
                       <>
@@ -315,7 +341,7 @@ const HomePage = () => {
                               : "Offline"}
                         </Status>
                         {!r.node.isUp ? (
-                          <span className="block text-caption text-bad">
+                          <span className="block text-caption text-bad max-md:ml-2">
                             {r.node.lastSeenSecsAgo == null
                               ? "No last-seen time"
                               : `Last seen ${duration(r.node.lastSeenSecsAgo)} ago`}
@@ -327,16 +353,18 @@ const HomePage = () => {
                   {
                     key: "disk",
                     header: "Disk usage",
+                    mobile: "meta",
                     width: "25%",
                     cell: (r) => {
                       const d = diskReading(r.node);
                       return d ? (
-                        <div className="grid gap-1.5">
+                        <div className="grid gap-1.5 max-md:flex max-md:items-center max-md:gap-2">
                           <Meter
                             value={d.used}
                             max={d.total}
                             tone={diskTone(d.free, d.total)}
                             label={`${nodeName(r.node)} disk used`}
+                            className="max-md:w-14 max-md:flex-none"
                           />
                           <span className="text-caption text-ink-2">
                             {readableBytes(d.used)} of {readableBytes(d.total)}
@@ -354,6 +382,7 @@ const HomePage = () => {
                   {
                     key: "capacity",
                     header: "Layout capacity",
+                    mobile: "hide",
                     cell: (r) => (
                       <>
                         {r.staged ? (
@@ -380,6 +409,18 @@ const HomePage = () => {
                       </>
                     ),
                   },
+                  {
+                    key: "open",
+                    header: <span className="sr-only">Open</span>,
+                    mobile: "trail",
+                    phoneOnly: true,
+                    cell: (r) => (
+                      <LedgerChevron
+                        to={searchPath("cluster", r.node.hostname || r.node.id)}
+                        label={`Open ${nodeName(r.node)} in Cluster`}
+                      />
+                    ),
+                  },
                 ]}
               />
               <p className="border-t border-line px-4 py-2 text-caption text-ink-3">
@@ -394,8 +435,9 @@ const HomePage = () => {
           )}
         </Panel>
 
-        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <div className="grid min-w-0 gap-4">
+        {/* Phone: both wrappers dissolve, so the panels sit in the page grid and take their `PHONE_ORDER` place. */}
+        <div className="grid min-w-0 items-start gap-4 max-nav:contents lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <div className="grid min-w-0 gap-4 max-nav:contents">
             <Panel
               id="stored"
               title="Stored data"
@@ -410,6 +452,7 @@ const HomePage = () => {
                 </Link>
               }
               flush
+              className={phoneOrderClass("stored")}
             >
               {bucketQuery.isPending ? (
                 <SkeletonRows label="Loading buckets" rows={3} />
@@ -519,6 +562,7 @@ const HomePage = () => {
                   : `${otherWatch.length} ${otherWatch.length === 1 ? "item" : "items"}`
               }
               flush
+              className={phoneOrderClass("watch")}
             >
               {statusQuery.isPending && bucketQuery.isPending ? (
                 <SkeletonRows rows={3} label="Checking nodes and buckets" />
@@ -570,7 +614,7 @@ const HomePage = () => {
               )}
             </Panel>
           </div>
-          <div className="grid min-w-0 gap-4">
+          <div className="grid min-w-0 gap-4 max-nav:contents">
             <Panel
               id="disk"
               title="Disk usage"
@@ -579,6 +623,7 @@ const HomePage = () => {
                   ? `${reporting} of ${storage.length} storage nodes report`
                   : undefined
               }
+              className={phoneOrderClass("disk")}
             >
               {statusQuery.isError ? (
                 <ErrorState
@@ -660,6 +705,7 @@ const HomePage = () => {
                   ? `${health.partitions.toLocaleString()} total`
                   : undefined
               }
+              className={phoneOrderClass("partitions")}
             >
               <PartitionPanel
                 health={healthQuery.data}

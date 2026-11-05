@@ -1,4 +1,5 @@
 import Button from "@/components/ui/button";
+import { hit44 } from "@/components/ui/button-styles";
 import CopyButton from "@/components/ui/copy-button";
 import Chips from "@/components/ui/chips";
 import IconButton from "@/components/ui/icon-button";
@@ -11,7 +12,7 @@ import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
 import { Meter } from "@/components/ui/status";
 import { confirmAction } from "@/components/ui/confirm-store";
 import Page from "@/context/page-context";
-import { dayjs, handleError } from "@/lib/utils";
+import { cn, dayjs, handleError } from "@/lib/utils";
 import { useBuckets } from "@/pages/buckets/hooks";
 import { bucketPath, searchPath } from "@/lib/routes";
 import { Eye, EyeOff, KeyRound, Trash } from "lucide-react";
@@ -20,8 +21,12 @@ import { Link, useSearchParams } from "react-router-dom";
 import CreateKeyDialog from "./components/create-key-dialog";
 import { fetchSecretKey, useKeys, useRemoveKey } from "./hooks";
 import { Key } from "./types";
+import { grantSummary } from "./phone";
 import { grantsByKey, keyLabel, keysPerBucket, type Grant } from "./utils";
 import { toast } from "sonner";
+
+// The copy buttons keep a transparent 1 px border: their 44 px touch box starts 1 px further out than `hit44`'s.
+const copyHit = cn(hit44, "max-md:after:-inset-[5px]");
 
 const BucketAccess = ({
   grants,
@@ -33,20 +38,21 @@ const BucketAccess = ({
   const [expanded, setExpanded] = useState(false);
   const id = useId();
   const visible = expanded ? grants : grants.slice(0, 3);
-  if (!grants.length) return <span className="text-ink-3">No bucket yet</span>;
+  if (!grants.length)
+    return <span className="text-ink-3">{grantSummary(0)}</span>;
   return (
     <div className="w-full min-w-0 py-1">
       <ul
         id={id}
         aria-label={`Bucket access for ${keyName}`}
-        className="grid gap-1"
+        className="grid gap-1 max-md:flex max-md:flex-wrap max-md:gap-2"
       >
         {visible.map((g) => (
-          <li key={g.bucketId} className="min-w-0">
-            <Chips className="w-full p-0 [&>span]:w-full">
+          <li key={g.bucketId} className="min-w-0 max-md:max-w-full">
+            <Chips className="w-full p-0 max-md:w-auto [&>span]:w-full max-md:[&>span]:w-auto">
               <Link
                 to={bucketPath(g.bucketId, "access")}
-                className="flex h-9 min-w-0 items-center gap-2 px-2 text-link hover:underline md:h-7"
+                className={`flex h-9 min-w-0 items-center gap-2 px-2 text-link hover:underline desk:h-7 ${hit44}`}
               >
                 <span className="min-w-0 flex-1 truncate" title={g.name}>
                   {g.name}
@@ -187,6 +193,7 @@ const KeysPage = () => {
     {
       key: "id",
       header: "Access key ID",
+      mobile: "meta",
       width: "25%",
       cell: (k) => (
         <span className="inline-flex min-w-0 max-w-full items-center gap-x-1">
@@ -199,6 +206,7 @@ const KeysPage = () => {
           <CopyButton
             value={k.id}
             label={`Copy access key id of ${keyLabel(k)}`}
+            className={copyHit}
             iconOnly
           />
         </span>
@@ -209,6 +217,7 @@ const KeysPage = () => {
           {
             key: "created",
             header: "Created",
+            mobile: "meta",
             width: "7.5rem",
             cell: (k: Key) =>
               k.created ? (
@@ -228,6 +237,8 @@ const KeysPage = () => {
     {
       key: "buckets",
       header: "Bucket access",
+      mobile: "meta",
+      className: "max-md:w-full",
       cell: (k) => {
         if (buckets.isPending) return <span className="text-ink-3">…</span>;
         if (buckets.error)
@@ -240,12 +251,14 @@ const KeysPage = () => {
     {
       key: "secret",
       header: "Secret key",
+      mobile: "meta",
+      className: "max-md:w-full",
       width: "20%",
       cell: (k) =>
         secretKeys[k.id] ? (
-          <span className="inline-flex min-w-0 max-w-full items-center gap-x-1">
+          <span className="inline-flex min-w-0 max-w-full items-center gap-x-1 max-md:items-start">
             <span
-              className="min-w-0 truncate font-mono text-caption text-ink-2"
+              className="min-w-0 truncate font-mono text-caption text-ink-2 max-md:self-center max-md:whitespace-normal max-md:break-all"
               title={secretKeys[k.id]}
             >
               {secretKeys[k.id]}
@@ -253,6 +266,7 @@ const KeysPage = () => {
             <CopyButton
               value={secretKeys[k.id]}
               label={`Copy secret key of ${keyLabel(k)}`}
+              className={copyHit}
               iconOnly
             />
             <IconButton
@@ -277,7 +291,8 @@ const KeysPage = () => {
     {
       key: "actions",
       header: <span className="sr-only">Actions</span>,
-      mobile: "actions",
+      mobile: "trail",
+      trailTop: true,
       align: "right",
       width: "4.5rem",
       cell: (k) => (
@@ -375,6 +390,7 @@ const KeysPage = () => {
         ) : (
           <Ledger
             caption="Access keys"
+            compact
             columns={columns}
             rows={items}
             rowKey={(k) => k.id}
@@ -397,7 +413,7 @@ const KeysPage = () => {
                     <Link
                       to={searchPath("keys", k.id)}
                       title={k.id}
-                      className="inline-flex min-h-9 items-center rounded px-1 text-link [overflow-wrap:anywhere] hover:bg-surface-2 hover:underline md:min-h-6"
+                      className="inline-flex min-h-9 items-center rounded px-1 text-link [overflow-wrap:anywhere] hover:bg-surface-2 hover:underline desk:min-h-6"
                     >
                       {keyLabel(k)}
                     </Link>
@@ -429,7 +445,7 @@ const KeysPage = () => {
                     <Link
                       to={bucketPath(b.id, "access")}
                       title={b.name}
-                      className="inline-flex min-h-9 min-w-0 items-center rounded px-1 text-link [overflow-wrap:anywhere] hover:bg-surface-2 hover:underline md:min-h-6"
+                      className="inline-flex min-h-9 min-w-0 items-center rounded px-1 text-link [overflow-wrap:anywhere] hover:bg-surface-2 hover:underline desk:min-h-6"
                     >
                       {b.name}
                     </Link>

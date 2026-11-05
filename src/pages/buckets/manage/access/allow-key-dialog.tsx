@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AllowKeysSchema, allowKeysSchema } from "../schema";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import Checkbox, { CheckboxField } from "@/components/ui/checkbox";
@@ -18,6 +18,8 @@ import { handleError } from "@/lib/utils";
 import { useBucketContext } from "../context";
 import { keyLabel } from "@/pages/keys/utils";
 import { textLink } from "../../styles";
+import PermissionToggle from "./permission-toggle";
+import { afterSheetsClosed } from "@/components/ui/use-sheet-back";
 
 type Props = {
   currentKeys?: string[];
@@ -30,6 +32,7 @@ const FORM_ID = "allow-key-form";
 
 const AllowKeyDialog = ({ currentKeys }: Props) => {
   const { bucket } = useBucketContext();
+  const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { data: keys, isPending, error, refetch } = useKeys();
   const queryClient = useQueryClient();
@@ -150,6 +153,7 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
       key: "aliases",
       header: "Local aliases",
       width: "26%",
+      mobile: "hide",
       cell: (field) => {
         const curKey = bucket.keys.find((k) => k.accessKeyId === field.keyId);
         return curKey?.bucketLocalAliases?.join(", ") || "None";
@@ -159,6 +163,7 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
       key: perm,
       header: perm[0].toUpperCase() + perm.slice(1),
       width: "13%",
+      mobile: "hide",
       cell: (field) => {
         const label = keyLabel({ name: field.name, accessKeyId: field.keyId });
         return (
@@ -171,6 +176,34 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
         );
       },
     })),
+    {
+      // Phone: the three permissions as one segmented control under the key, instead of three checkbox rows.
+      key: "perms",
+      header: <span className="sr-only">Permissions</span>,
+      phoneOnly: true,
+      cell: (field) => {
+        const label = keyLabel({ name: field.name, accessKeyId: field.keyId });
+        const now = watched?.[field.index];
+        return (
+          <div className="w-full">
+            <PermissionToggle
+              label={label}
+              values={{
+                read: !!now?.read,
+                write: !!now?.write,
+                owner: !!now?.owner,
+              }}
+              onChange={(perm, on) => {
+                setValue(`keys.${field.index}.${perm}`, on);
+                // Granting something to a key means picking it.
+                if (on) setValue(`keys.${field.index}.checked`, true);
+                if (on) setSelectionError(null);
+              }}
+            />
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -209,7 +242,25 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
           ) : keyFields.length === 0 ? (
             <EmptyState title="No other key available" className="px-0 py-4">
               Every key already has access, or none exists yet.{" "}
-              <Link to="/keys" className={textLink} onClick={close}>
+              <Link
+                to="/keys"
+                className={textLink}
+                onClick={(e) => {
+                  close();
+                  // A modified click is the browser's own (new tab). Otherwise the sheet's history entry goes first,
+                  // or Back from /keys would land on it.
+                  if (
+                    e.metaKey ||
+                    e.ctrlKey ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.button !== 0
+                  )
+                    return;
+                  e.preventDefault();
+                  afterSheetsClosed(() => navigate("/keys"));
+                }}
+              >
                 Create a key
               </Link>
               .
@@ -242,7 +293,7 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
                   onChange={(e) => onToggleAll(e.target.checked, "owner")}
                 />
               </fieldset>
-              <div className="-mx-3 max-h-[50vh] overflow-y-auto">
+              <div className="-mx-3">
                 <Ledger
                   caption="Keys that can be allowed"
                   columns={columns}

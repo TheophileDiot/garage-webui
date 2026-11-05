@@ -11,7 +11,7 @@ const Kbd = ({
 }) => (
   <kbd
     className={cn(
-      "hint-kbd inline-flex items-center justify-center rounded-sm border border-line bg-surface-2 px-[5px] py-[3px] font-cond text-[11.5px] font-medium leading-none tracking-[0.03em] text-ink-2",
+      "hint-kbd inline-flex items-center [@media(hover:none)]:hidden justify-center rounded-sm border border-line bg-surface-2 px-[5px] py-[3px] font-cond text-[11.5px] font-medium leading-none tracking-[0.03em] text-ink-2",
       className,
     )}
   >

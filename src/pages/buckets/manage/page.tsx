@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Globe } from "lucide-react";
 import { useBucket } from "./hooks";
 import Page from "@/context/page-context";
@@ -6,6 +6,8 @@ import TabView, { Tab } from "@/components/containers/tab-view";
 import SettingsTab from "./settings/settings-tab";
 import AccessTab from "./access/access-tab";
 import BrowseTab from "./browse/browse-tab";
+import Actions from "./browse/actions";
+import { canBrowse } from "./browse/model";
 import BucketIdentity from "./components/bucket-identity";
 import BucketFacts from "./components/bucket-facts";
 import { BucketContext } from "./context";
@@ -15,8 +17,9 @@ import Button, { LinkButton } from "@/components/ui/button";
 import { bucketTab } from "@/lib/bucket-tabs";
 import { PLACES } from "@/lib/routes";
 import { bucketName } from "../utils";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
-/** The summary strip sits under the tabs and stays on all three, as in the design. */
+/** The summary strip sits under the tabs and stays on all three; on phone it is one line (Size · Objects · Quota). */
 const withFacts = (Content: () => JSX.Element | null) => () => (
   <>
     <BucketFacts />
@@ -38,6 +41,23 @@ const ManageBucketPage = () => {
   const name = data?.globalAliases[0];
   const title = data ? bucketName(data) : "Bucket";
 
+  // On phone Upload and New folder move from the list's toolbar to the title row (the browse tab drops its own).
+  const phone = useMediaQuery("(max-width: 767px)");
+  const [searchParams] = useSearchParams();
+  const context = data
+    ? { bucket: data, refetch, globalAlias: name || "" }
+    : null;
+  const headerActions =
+    phone &&
+    data &&
+    context &&
+    bucketTab(searchParams.get("tab")) === "objects" &&
+    canBrowse(data.keys, context.globalAlias) ? (
+      <BucketContext.Provider key={data.id} value={context}>
+        <Actions prefix={searchParams.get("prefix") || ""} compact />
+      </BucketContext.Provider>
+    ) : undefined;
+
   return (
     <>
       <Page title={title} />
@@ -54,6 +74,7 @@ const ManageBucketPage = () => {
             ) : null}
           </span>
         }
+        actions={headerActions}
       />
 
       {isLoading && (
@@ -79,11 +100,16 @@ const ManageBucketPage = () => {
       )}
 
       {data && (
-        <BucketContext.Provider
-          value={{ bucket: data, refetch, globalAlias: name || "" }}
-        >
+        // The route keeps this page mounted when only :id changes, so the key resets every per-bucket state below
+        // (selection, filter, folder history, Details sheet, autosave) in one place.
+        <BucketContext.Provider key={data.id} value={context!}>
           <BucketIdentity bucket={data} />
-          <TabView tabs={tabs} label="Bucket sections" normalize={bucketTab} />
+          <TabView
+            tabs={tabs}
+            label="Bucket sections"
+            normalize={bucketTab}
+            sticky
+          />
         </BucketContext.Provider>
       )}
     </>

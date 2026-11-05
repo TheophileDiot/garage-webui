@@ -1,3 +1,4 @@
+import { autoFocusField } from "@/components/ui/use-sheet-keyboard";
 import Button from "@/components/ui/button";
 import Dialog, { FormActions } from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,7 +42,12 @@ const CreateBucketDialog = () => {
 
   return (
     <>
-      <Button icon={Plus} variant="primary" onClick={onOpen}>
+      <Button
+        icon={Plus}
+        variant="primary"
+        className="touch:h-11"
+        onClick={onOpen}
+      >
         Create bucket
       </Button>
 
@@ -68,7 +74,7 @@ const CreateBucketDialog = () => {
             hint="3 to 63 characters: lower-case letters, digits, dots and hyphens. Garage checks the name."
             autoComplete="off"
             spellCheck={false}
-            autoFocus
+            autoFocus={autoFocusField()}
             className="w-full"
           />
         </form>

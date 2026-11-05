@@ -32,6 +32,7 @@ func testFS() fstest.MapFS {
 		"assets/index-abc.js":  {Data: []byte(`import("assets/chunk.js")`)},
 		"assets/index-abc.css": {Data: []byte(`body{background:url(assets/x.png)}`)},
 		"favicon-32x32.png":    {Data: []byte("png")},
+		"site.webmanifest":     {Data: []byte(`{"name":"Garage console","start_url":"./"}`)},
 	}
 }
 
@@ -180,6 +181,19 @@ func TestUnknownPathsKeepSPAFallback(t *testing.T) {
 			if !strings.Contains(rec.Header().Get("Content-Security-Policy"), "script-src 'self'") {
 				t.Errorf("%s: no application CSP", target)
 			}
+		}
+	}
+}
+
+// The scratch image has no mime database, so Go would sniff the JSON manifest as text/plain.
+func TestWebManifestContentType(t *testing.T) {
+	for _, base := range []string{"", "/garage"} {
+		rec := get(newHandler(testFS(), base), base+"/site.webmanifest")
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d", base, rec.Code)
+		}
+		if got := rec.Header().Get("Content-Type"); got != "application/manifest+json" {
+			t.Errorf("%s: Content-Type %q, want application/manifest+json", base, got)
 		}
 	}
 }

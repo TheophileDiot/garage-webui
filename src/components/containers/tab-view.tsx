@@ -22,6 +22,11 @@ type Props = {
   normalize?: (raw: string | null) => string;
   className?: string;
   contentClassName?: string;
+  /**
+   * On phone (below 961 px) the tab list sticks under the top bar, full bleed over the page gutters, so switching
+   * tab never means scrolling back up. Desktop is unchanged. No ancestor may clip or scroll (`overflow-hidden`).
+   */
+  sticky?: boolean;
 };
 
 const TabView = ({
@@ -31,6 +36,7 @@ const TabView = ({
   normalize,
   className,
   contentClassName,
+  sticky,
 }: Props) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const raw = searchParams.get(name);
@@ -96,6 +102,8 @@ const TabView = ({
         aria-label={label}
         className={cn(
           "mb-4 flex gap-1 overflow-x-auto border-b border-line-strong",
+          sticky &&
+            "max-nav:sticky max-nav:top-[calc(52px+env(safe-area-inset-top,0px))] max-nav:z-20 max-nav:-mx-4 max-nav:bg-bg max-nav:px-4",
           className,
         )}
       >

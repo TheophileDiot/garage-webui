@@ -55,7 +55,7 @@ const ThemeChoice = ({ className }: { className?: string }) => {
             onClick={() => appStore.setTheme(t)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
-              "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-md border px-1 py-2 text-caption transition-colors duration-100 md:min-h-[58px]",
+              "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-md border px-1 py-2 text-caption transition-colors duration-100 desk:min-h-[58px]",
               on
                 ? "border-ink bg-surface-2 font-semibold text-ink"
                 : "border-line bg-surface font-medium text-ink-2 hover:bg-surface-2 hover:text-ink",

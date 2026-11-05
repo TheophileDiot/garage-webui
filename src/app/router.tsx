@@ -18,6 +18,12 @@ const router = createBrowserRouter(
     {
       path: "/auth",
       Component: AuthLayout,
+      // A login chunk that fails to load (stale tab) gets the same Reload screen as the shell, not the router default.
+      errorElement: (
+        <main className="mx-auto max-w-3xl p-4 md:p-8">
+          <RouteError />
+        </main>
+      ),
       children: [
         {
           path: "login",

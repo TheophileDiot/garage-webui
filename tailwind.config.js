@@ -111,5 +111,18 @@ export default {
       boxShadow: { pop: "var(--pop-shadow)" },
     },
   },
-  plugins: [],
+  plugins: [
+    ({ addVariant }) => {
+      // Touch rules (44 px hit areas, 36 px controls, 16 px fields) follow the pointer, not only the width: a phone in
+      // landscape is 800+ px wide and still a thumb. `desk:` is the desktop value, `touch:` its complement.
+      // Layout switches (table or compact rows at 768 px, shell at 961 px) keep their `md:` and `nav:`.
+      addVariant("touch", "@media (max-width: 767px), (pointer: coarse)");
+      // Not "(not (pointer: coarse))": Safari before 16.4 drops a query that uses `not` inside `and`. A screen with no pointer
+      // at all (a kiosk, a headless browser) is not a touch screen either.
+      addVariant(
+        "desk",
+        "@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none)",
+      );
+    },
+  ],
 };

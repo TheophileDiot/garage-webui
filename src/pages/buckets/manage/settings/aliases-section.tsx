@@ -1,3 +1,4 @@
+import { autoFocusField } from "@/components/ui/use-sheet-keyboard";
 import { Plus, X } from "lucide-react";
 import Dialog, { FormActions } from "@/components/ui/dialog";
 import { useDisclosure } from "@/hooks/useDisclosure";
@@ -161,7 +162,7 @@ const AddAliasDialog = ({ id }: { id?: string }) => {
             title="Alias name"
             autoComplete="off"
             spellCheck={false}
-            autoFocus
+            autoFocus={autoFocusField()}
             className="w-full"
           />
         </form>

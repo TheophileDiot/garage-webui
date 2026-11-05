@@ -1,7 +1,10 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
-/** One page header: the title in the condensed face, a meta line, actions on the right. */
+/**
+ * One page header: the title in the condensed face, a meta line, actions on the right. Below `md` the actions sit
+ * on the title row and the meta line runs full width under both (the title block dissolves into the header grid).
+ */
 export const PageHeader = ({
   title,
   meta,
@@ -11,17 +14,21 @@ export const PageHeader = ({
   meta?: ReactNode;
   actions?: ReactNode;
 }) => (
-  <header className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-    <div className="min-w-0">
-      <h1 className="font-cond text-[26px] font-semibold leading-[1.15] tracking-[-0.005em] [overflow-wrap:anywhere] md:text-title">
+  <header className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3 max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-y-1">
+    <div className="min-w-0 max-md:contents">
+      <h1 className="font-cond text-[26px] font-semibold leading-[1.15] tracking-[-0.005em] [overflow-wrap:anywhere] max-md:col-start-1 max-md:row-start-1 md:text-title">
         {title}
       </h1>
       {meta ? (
-        <p className="mt-1 text-ink-3 [text-wrap:pretty]">{meta}</p>
+        <p className="mt-1 text-ink-3 [text-wrap:pretty] max-md:col-span-2 max-md:row-start-2">
+          {meta}
+        </p>
       ) : null}
     </div>
     {actions ? (
-      <div className="flex flex-wrap items-center gap-3">{actions}</div>
+      <div className="flex flex-wrap items-center gap-3 max-md:col-start-2 max-md:row-start-1 max-md:self-center">
+        {actions}
+      </div>
     ) : null}
   </header>
 );
@@ -59,7 +66,8 @@ export const Panel = ({
       aria-labelledby={title ? hid : undefined}
       className={cn(
         "min-w-0 rounded-lg border border-line bg-surface",
-        flush && "overflow-hidden",
+        // `clip`, not `hidden`: it rounds the corners the same but is no scroll container, so a `sticky` child sticks.
+        flush && "overflow-clip",
         className,
       )}
     >

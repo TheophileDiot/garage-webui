@@ -66,6 +66,7 @@ const AccessTab = () => {
       key: "id",
       header: "Access key ID",
       width: "32%",
+      mobile: "meta",
       cell: (key) => (
         <span className="flex min-w-0 items-center gap-0.5">
           <span
@@ -86,12 +87,14 @@ const AccessTab = () => {
       key: "grant",
       header: "Grant",
       width: "13%",
+      mobile: "meta",
       cell: (key) => <Perm {...key.permissions} />,
     },
     {
       key: "aliases",
       header: "Local aliases",
       width: "19%",
+      mobile: "meta",
       cell: (key) => {
         const text = key.bucketLocalAliases?.join(", ");
         return text ? (
@@ -99,7 +102,7 @@ const AccessTab = () => {
             {text}
           </span>
         ) : (
-          <span className="text-ink-3">None</span>
+          <span className="text-ink-3 max-md:hidden">None</span>
         );
       },
     },
@@ -107,7 +110,7 @@ const AccessTab = () => {
       key: "remove",
       header: <span className="sr-only">Remove access</span>,
       align: "right",
-      mobile: "actions",
+      mobile: "trail",
       width: "5rem",
       cell: (key) => (
         <div className="row-actions">
@@ -143,6 +146,7 @@ const AccessTab = () => {
         columns={columns}
         rows={keys}
         rowKey={(key) => key.accessKeyId}
+        compact
         empty={
           <EmptyState title="No key can use this bucket">
             Allow a key with read and write access to browse and fill this

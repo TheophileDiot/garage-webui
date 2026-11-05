@@ -42,7 +42,7 @@ export const Notice = ({
     <div
       role={alert ? "alert" : "status"}
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-4 py-3 text-ink",
+        "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-4 py-3 text-ink max-md:items-start",
         t.box,
         className,
       )}
@@ -51,7 +51,10 @@ export const Notice = ({
       <div className="min-w-0 flex-1 basis-60 [overflow-wrap:anywhere]">
         {children}
       </div>
-      {action ? <div className="shrink-0 font-semibold">{action}</div> : null}
+      {action ? (
+        // Under the text on phone, lined up with it (icon 20 px + gap 12 px).
+        <div className="shrink-0 font-semibold max-md:ml-8">{action}</div>
+      ) : null}
     </div>
   );
 };

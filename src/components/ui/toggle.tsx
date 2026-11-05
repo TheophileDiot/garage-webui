@@ -40,7 +40,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
         <span
           aria-hidden
           className={cn(
-            "inline-flex h-9 min-w-[3.75rem] shrink-0 items-center justify-center rounded border border-line-strong bg-surface px-2.5 font-medium text-ink-2 transition-colors duration-100 md:h-[34px]",
+            "inline-flex h-9 min-w-[3.75rem] shrink-0 items-center justify-center rounded border border-line-strong bg-surface px-2.5 font-medium text-ink-2 transition-colors duration-100 desk:h-[34px]",
             "hover:border-ink-3 hover:bg-surface-2",
             "after:content-['Off'] peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-ink peer-checked:after:content-['On'] peer-checked:hover:border-primary-hover peer-checked:hover:bg-primary-hover",
             "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus",

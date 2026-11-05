@@ -3,4 +3,4 @@
  * 36 px on a phone.
  */
 export const textLink =
-  "inline-flex min-h-6 items-center rounded-sm text-link underline underline-offset-2 hover:bg-primary-soft focus-visible:bg-primary-soft max-md:min-h-9";
+  "inline-flex min-h-6 items-center rounded-sm text-link underline underline-offset-2 hover:bg-primary-soft focus-visible:bg-primary-soft touch:min-h-9";

@@ -58,7 +58,7 @@ const TagInput = ({
       <label htmlFor={fid} className="text-caption font-medium text-ink-2">
         {label}
       </label>
-      <div className="flex min-h-9 flex-wrap items-center gap-1 rounded border border-line-strong bg-surface p-1 transition-colors duration-100 focus-within:border-focus hover:border-ink-3 md:min-h-[34px]">
+      <div className="flex min-h-9 flex-wrap items-center gap-1 rounded border border-line-strong bg-surface p-1 transition-colors duration-100 focus-within:border-focus hover:border-ink-3 desk:min-h-[34px]">
         {value.map((tag) => (
           <Chips
             key={tag}
@@ -78,7 +78,7 @@ const TagInput = ({
           aria-describedby={hint}
           autoComplete="off"
           spellCheck={false}
-          className="h-7 min-w-24 flex-1 bg-transparent px-1.5 text-ink placeholder:text-ink-3 focus-visible:[outline-offset:1px]"
+          className="h-7 min-w-24 flex-1 bg-transparent px-1.5 text-[16px] text-ink placeholder:text-ink-3 focus-visible:[outline-offset:1px] desk:text-body"
         />
       </div>
       <p id={hint} className="text-caption text-ink-3">
@@ -92,7 +92,7 @@ const TagInput = ({
                 type="button"
                 disabled={disabled}
                 onClick={() => add(s)}
-                className="inline-flex h-8 items-center rounded border border-line px-2 text-caption text-ink-2 transition-colors duration-100 hover:bg-surface-2 hover:text-ink md:h-[26px]"
+                className="inline-flex h-8 items-center rounded border border-line px-2 text-caption text-ink-2 transition-colors duration-100 hover:bg-surface-2 hover:text-ink desk:h-[26px]"
               >
                 + {s}
               </button>

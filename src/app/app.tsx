@@ -20,7 +20,8 @@ const toastStyle = {
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
   const theme = useStore(appStore, (state) => state.theme);
-  const phone = useMediaQuery("(max-width: 767px)");
+  // Top centre under 961 px: the phone shell's bottom bar and a sheet's footer stay uncovered. Desktop: bottom right.
+  const phone = useMediaQuery("(max-width: 960px)");
 
   return (
     <>

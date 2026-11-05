@@ -1,14 +1,18 @@
-import { useEffect, useRef } from "react";
-import { Folder } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Folder, MoreHorizontal } from "lucide-react";
 import { dayjs, readableBytes } from "@/lib/utils";
 import GotoTopButton from "@/components/ui/goto-top-btn";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
 import { Ledger, LedgerColumn } from "@/components/ui/ledger";
-import { Object } from "./types";
+import IconButton from "@/components/ui/icon-button";
+import { hit44 } from "@/components/ui/button-styles";
+import { metaLine } from "../../phone";
+import { Object, ObjectTarget } from "./types";
 import ObjectActions from "./object-actions";
+import RowMenuSheet from "./row-menu-sheet";
 import FilePreview from "./file-icon";
 import { mimeOf } from "./file-types";
-import { extOf, folderLabel, splitName, typeLabel } from "./model";
+import { extOf, folderLabel, splitName, targetName, typeLabel } from "./model";
 import { ObjectOps } from "./use-object-ops";
 
 type Row =
@@ -37,10 +41,12 @@ type Props = {
 };
 
 const checkLabel =
-  "inline-grid size-9 shrink-0 cursor-pointer place-items-center md:size-6";
+  "inline-grid size-9 shrink-0 cursor-pointer place-items-center desk:size-6";
+/** The phone row's checkbox: a 44 px target (the row is 44 px tall at least, so nothing grows for it). */
+const phoneCheck =
+  "inline-grid size-11 shrink-0 cursor-pointer place-items-center md:hidden";
 /** `relative` keeps the screen-reader span inside the clip box, so a clipped long name never widens the page. */
-const nameButton =
-  "relative flex min-h-9 min-w-0 items-center text-left hover:text-link hover:underline md:min-h-6";
+const nameButton = `relative flex min-h-6 min-w-0 items-center text-left hover:text-link hover:underline touch:min-h-9 ${hit44}`;
 const nameText =
   "min-w-0 [overflow-wrap:anywhere] md:truncate md:[overflow-wrap:normal]";
 
@@ -99,6 +105,8 @@ const ObjectList = ({
   onInspect,
   ops,
 }: Props) => {
+  const [menu, setMenu] = useState<ObjectTarget | null>(null);
+  const menuButton = useRef<HTMLElement | null>(null);
   if (isLoading) return <SkeletonRows label="Loading objects" rows={6} />;
   if (error)
     return (
@@ -165,6 +173,8 @@ const ObjectList = ({
         if (row.kind === "folder") {
           return (
             <div className="flex min-w-0 items-center gap-2.5">
+              {/* Keeps the folder icon under the files' icons on phone, where files lead with a checkbox. */}
+              <span aria-hidden className="h-6 w-11 shrink-0 md:hidden" />
               <Folder size={16} aria-hidden className="shrink-0 text-folder" />
               <button
                 type="button"
@@ -182,7 +192,7 @@ const ObjectList = ({
         const { stem, ext } = splitName(object.objectKey);
         return (
           <div className="flex min-w-0 items-center gap-2.5">
-            <label className={`${checkLabel} md:hidden`}>
+            <label className={phoneCheck}>
               <input
                 type="checkbox"
                 className="cbx"
@@ -192,16 +202,25 @@ const ObjectList = ({
               />
             </label>
             <FilePreview ext={ext.substring(1)} object={object} />
-            <button
-              type="button"
-              className={`${nameButton} font-medium`}
-              title={listingPrefix + object.objectKey}
-              aria-label={`${object.objectKey} (show details)`}
-              onClick={() => onInspect(object.objectKey)}
-            >
-              <span className={nameText}>{stem}</span>
-              {ext && <span className="shrink-0 text-ink-3">{ext}</span>}
-            </button>
+            {/* On phone the size and date sit under the name; from `md` the wrapper does not exist (its own columns show them). */}
+            <div className="min-w-0 max-md:flex-1 md:contents">
+              <button
+                type="button"
+                className={`${nameButton} font-medium`}
+                title={listingPrefix + object.objectKey}
+                aria-label={`${object.objectKey} (show details)`}
+                onClick={() => onInspect(object.objectKey)}
+              >
+                <span className={nameText}>{stem}</span>
+                {ext && <span className="shrink-0 text-ink-3">{ext}</span>}
+              </button>
+              <span className="-mt-1.5 block text-caption font-normal text-ink-2 md:hidden">
+                {metaLine([
+                  readableBytes(object.size),
+                  dayjs(object.lastModified).fromNow(),
+                ])}
+              </span>
+            </div>
           </div>
         );
       },
@@ -279,6 +298,32 @@ const ObjectList = ({
           />
         ),
     },
+    {
+      key: "menu",
+      header: <span className="sr-only">Row menu</span>,
+      mobile: "trail",
+      phoneOnly: true,
+      cell: (row) => {
+        const target: ObjectTarget =
+          row.kind === "folder"
+            ? { objectKey: row.folder, prefix: "", url: "" }
+            : {
+                objectKey: row.object.objectKey,
+                prefix: listingPrefix,
+                url: row.object.url,
+              };
+        return (
+          <IconButton
+            label={`Actions for ${targetName(target)}`}
+            icon={MoreHorizontal}
+            onClick={(e) => {
+              menuButton.current = e.currentTarget;
+              setMenu(target);
+            }}
+          />
+        );
+      },
+    },
   ];
 
   return (
@@ -303,6 +348,13 @@ const ObjectList = ({
             : `f:${row.object.objectKey}`
         }
         selectedKeys={selected.map((key) => `f:${key}`)}
+        compact
+      />
+      <RowMenuSheet
+        target={menu}
+        ops={ops}
+        onClose={() => setMenu(null)}
+        returnFocus={() => menuButton.current?.focus()}
       />
       <GotoTopButton />
     </>

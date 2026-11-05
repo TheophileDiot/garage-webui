@@ -1,4 +1,6 @@
 import { crumbsForRoute } from "@/lib/crumbs";
+import { hit44 } from "@/components/ui/button-styles";
+import { cn } from "@/lib/utils";
 import { useBuckets } from "@/pages/buckets/hooks";
 import { bucketName } from "@/pages/buckets/utils";
 import { ChevronRight } from "lucide-react";
@@ -38,7 +40,10 @@ const Breadcrumbs = () => {
           {c.to ? (
             <Link
               to={c.to}
-              className="inline-flex min-h-9 flex-none items-center rounded-sm text-ink-2 hover:text-ink hover:underline md:min-h-6"
+              className={cn(
+                hit44,
+                "inline-flex min-h-9 flex-none items-center rounded-sm text-ink-2 hover:text-ink hover:underline desk:min-h-6",
+              )}
             >
               {c.label}
             </Link>

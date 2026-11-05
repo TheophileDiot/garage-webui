@@ -4,11 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"io/fs"
+	"mime"
 	"net/http"
 	"path"
 	"regexp"
 	"strings"
 )
+
+// Go has no built-in type for .webmanifest and the scratch image ships no mime database.
+func init() { mime.AddExtensionType(".webmanifest", "application/manifest+json") }
 
 // inlineScript matches a <script> element without a src attribute, which only runs if its text is allowed by hash.
 var inlineScript = regexp.MustCompile(`(?is)<script(?:\s[^>]*)?>(.*?)</script>`)

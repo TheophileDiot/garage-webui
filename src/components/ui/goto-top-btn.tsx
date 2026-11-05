@@ -3,7 +3,10 @@ import Button from "./button";
 import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Appears after 300 px of page scroll, at the bottom right. */
+/**
+ * Appears after 300 px of page scroll, at the bottom right. On phone it rides above the bottom bar: the shell sets
+ * `--bar-h` (the bar's height, safe area included); without a bar the fallback is the safe-area inset alone.
+ */
 const GotoTopButton = () => {
   const [show, setShow] = useState(false);
 
@@ -29,7 +32,7 @@ const GotoTopButton = () => {
       tabIndex={show ? 0 : -1}
       aria-hidden={!show}
       className={cn(
-        "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-20 shadow-pop transition-opacity",
+        "fixed bottom-[calc(1rem+var(--bar-h,env(safe-area-inset-bottom,0px)))] right-[max(1rem,env(safe-area-inset-right,0px))] z-20 shadow-pop transition-opacity",
         show ? "visible opacity-100" : "invisible opacity-0",
       )}
       onClick={onClick}

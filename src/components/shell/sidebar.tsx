@@ -21,10 +21,9 @@ const healthIcon = {
 } as const;
 
 /** Brand tile and name. The tile keeps the Garage yellow in both themes. */
-const Brand = ({ onNavigate }: { onNavigate?: () => void }) => (
+const Brand = () => (
   <Link
     to="/"
-    onClick={onNavigate}
     aria-label="Garage console, overview"
     className="flex items-center gap-2.5 px-4 pb-3.5 pt-4 text-sb-ink"
   >
@@ -49,14 +48,13 @@ const Brand = ({ onNavigate }: { onNavigate?: () => void }) => (
  * The cluster health block: status word with its icon, the 16 x 16 glyph, node and layout counts. When the health
  * reading is unavailable (a failed refresh included) it says why and offers a retry instead of any count.
  */
-const HealthBlock = ({ onNavigate }: { onNavigate?: () => void }) => {
+const HealthBlock = () => {
   const cluster = useClusterSummary();
   const { Icon, cls } = healthIcon[cluster.tone];
   return (
     <div className="rounded-lg border border-sb-line">
       <Link
         to="/cluster"
-        onClick={onNavigate}
         aria-label={cluster.sidebarLabel}
         className="block rounded-lg px-3 py-2.5 text-sb-ink hover:bg-sb-hover"
       >
@@ -91,14 +89,12 @@ const HealthBlock = ({ onNavigate }: { onNavigate?: () => void }) => {
 
 /**
  * The dark Dock sidebar: brand, grouped navigation (Storage, Operate with the staged-changes tag), the cluster
- * health block and the account menu. The same content fills the fixed column on desktop and the drawer on phone.
+ * health block and the account menu. It fills the fixed column from 961 px up; the phone has a bottom bar instead.
  */
 const SidebarContent = ({
-  onNavigate,
   onSignOut,
   signingOut,
 }: {
-  onNavigate?: () => void;
   onSignOut: () => void;
   signingOut: boolean;
 }) => {
@@ -111,7 +107,7 @@ const SidebarContent = ({
       data-sidebar
       className="flex h-full min-h-0 flex-col bg-sb-bg text-sb-ink"
     >
-      <Brand onNavigate={onNavigate} />
+      <Brand />
       <nav
         aria-label="Primary"
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-1.5"
@@ -131,7 +127,6 @@ const SidebarContent = ({
                 key={n.to}
                 to={n.to}
                 end={n.end}
-                onClick={onNavigate}
                 className={cn(
                   "group relative flex h-9 items-center gap-2.5 rounded-md px-2.5 font-medium text-sb-ink hover:bg-sb-hover",
                   "aria-[current=page]:bg-sb-active aria-[current=page]:text-sb-strong",
@@ -158,7 +153,7 @@ const SidebarContent = ({
         ))}
       </nav>
       <div className="flex flex-col gap-2 border-t border-sb-line p-2.5">
-        <HealthBlock onNavigate={onNavigate} />
+        <HealthBlock />
         <UserMenu name={who} onSignOut={onSignOut} signingOut={signingOut} />
       </div>
     </div>

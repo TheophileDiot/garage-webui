@@ -49,6 +49,7 @@ const BucketFacts = () => {
     <SummaryStrip
       label="Bucket summary"
       className="mb-4"
+      phone="line"
       items={[
         {
           label: "Size",

@@ -20,6 +20,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Kbd from "../ui/kbd";
+import { afterSheetsClosed, useSheetBack } from "../ui/use-sheet-back";
 import { NAV } from "./nav";
 
 type Props = {
@@ -29,7 +30,7 @@ type Props = {
 };
 
 const item =
-  "flex min-h-10 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-ink outline-none md:min-h-9 " +
+  "flex min-h-10 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-ink outline-none desk:min-h-9 " +
   "[&_svg]:flex-none [&_svg]:text-ink-3 data-[selected=true]:bg-primary-soft data-[selected=true]:[&_svg]:text-ink-2";
 const group =
   "[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:font-cond [&_[cmdk-group-heading]]:text-label [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.07em] [&_[cmdk-group-heading]]:text-ink-3";
@@ -47,6 +48,11 @@ const Note = ({ children }: { children: string }) => (
  */
 const Palette = ({ open, onOpenChange, onSignOut }: Props) => {
   const navigate = useNavigate();
+  // Android Back closes the search instead of leaving the page.
+  useSheetBack(open, () => {
+    onOpenChange(false);
+    return true;
+  });
   const [value, setValue] = useState("");
   const buckets = useBuckets();
   const keys = useKeys();
@@ -78,7 +84,7 @@ const Palette = ({ open, onOpenChange, onSignOut }: Props) => {
 
   const go = (to: string) => {
     onOpenChange(false);
-    navigate(to);
+    afterSheetsClosed(() => navigate(to));
   };
   const setTheme = (t: "light" | "dark" | "system") => {
     appStore.setTheme(t);
@@ -99,7 +105,7 @@ const Palette = ({ open, onOpenChange, onSignOut }: Props) => {
           value={value}
           onValueChange={setValue}
           placeholder="Search, or type an address like my-bucket/photos/"
-          className="h-[50px] min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3"
+          className="h-[50px] min-w-0 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-ink-3 desk:text-[15px]"
         />
       </div>
       <Command.List className="max-h-[min(24rem,60dvh)] overflow-auto p-1.5">
@@ -240,7 +246,7 @@ const Palette = ({ open, onOpenChange, onSignOut }: Props) => {
           </Command.Item>
         </Command.Group>
       </Command.List>
-      <div className="hint-kbd flex items-center gap-3.5 border-t border-line bg-surface-2 px-3.5 py-2 text-caption text-ink-3">
+      <div className="hint-kbd flex items-center gap-3.5 [@media(hover:none)]:hidden border-t border-line bg-surface-2 px-3.5 py-2 text-caption text-ink-3">
         <span className="flex items-center gap-1.5">
           <Kbd>↑</Kbd>
           <Kbd>↓</Kbd> move

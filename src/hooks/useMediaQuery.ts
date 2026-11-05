@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-/** Tracks a media query. The sidebar uses it to decide between the fixed column and the phone drawer. */
+/** Tracks a media query. The shell uses it to decide between the sidebar and the phone shell (bottom bar). */
 export const useMediaQuery = (query: string) =>
   useSyncExternalStore(
     (notify) => {

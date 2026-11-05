@@ -4,11 +4,14 @@ import React, { forwardRef, ReactNode, useId } from "react";
 import FormControl from "./form-control";
 import { FieldValues } from "react-hook-form";
 
-/** Fields are 34 px tall on desktop and 36 px on touch, on the surface colour with a strong rule. */
+/**
+ * Fields are 34 px tall on desktop and 36 px on touch, on the surface colour with a strong rule. Text is 16 px
+ * below `md`: iOS Safari zooms the page on focus into any field under 16 px.
+ */
 export const inputClass =
-  "h-9 w-full min-w-0 rounded border border-line-strong bg-surface px-2.5 text-ink transition-colors duration-100 " +
+  "h-9 w-full min-w-0 rounded border border-line-strong bg-surface px-2.5 text-[16px] text-ink transition-colors duration-100 desk:text-body " +
   "placeholder:text-ink-3 hover:border-ink-3 focus-visible:border-focus focus-visible:[outline-offset:0] " +
-  "aria-[invalid=true]:border-bad read-only:bg-surface-2 read-only:text-ink-2 disabled:opacity-50 md:h-[34px]";
+  "aria-[invalid=true]:border-bad read-only:bg-surface-2 read-only:text-ink-2 disabled:opacity-50 desk:h-[34px]";
 
 type InputProps = Omit<React.ComponentPropsWithoutRef<"input">, "form">;
 
@@ -40,7 +43,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
         </label>
         <div
           className={cn(
-            "flex h-9 items-center rounded border bg-surface transition-colors duration-100 focus-within:border-focus md:h-[34px]",
+            "flex h-9 items-center rounded border bg-surface transition-colors duration-100 focus-within:border-focus desk:h-[34px]",
             error ? "border-bad" : "border-line-strong hover:border-ink-3",
           )}
         >
@@ -55,7 +58,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             aria-describedby={hint || error ? hid : undefined}
             aria-invalid={error ? true : undefined}
             className={cn(
-              "h-full min-w-0 flex-1 rounded bg-transparent px-2.5 text-ink placeholder:text-ink-3 focus-visible:[outline-offset:-1px]",
+              "h-full min-w-0 flex-1 rounded bg-transparent px-2.5 text-[16px] text-ink placeholder:text-ink-3 focus-visible:[outline-offset:-1px] desk:text-body",
               prefix && "pl-1",
               className,
             )}

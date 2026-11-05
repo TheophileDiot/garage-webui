@@ -16,9 +16,11 @@ const MAX_FILES = 20;
 
 type Props = {
   prefix: string;
+  /** On the phone's title row: 44 px controls, New folder as an icon. */
+  compact?: boolean;
 };
 
-const Actions = ({ prefix }: Props) => {
+const Actions = ({ prefix, compact }: Props) => {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const putObject = usePutObject();
@@ -58,7 +60,7 @@ const Actions = ({ prefix }: Props) => {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <CreateFolderAction prefix={prefix} />
+      <CreateFolderAction prefix={prefix} compact={compact} />
       <input
         ref={fileInput}
         type="file"
@@ -73,6 +75,7 @@ const Actions = ({ prefix }: Props) => {
         variant="primary"
         icon={UploadIcon}
         loading={uploading}
+        className={compact ? "h-11" : undefined}
         onClick={() => fileInput.current?.click()}
       >
         Upload
@@ -83,9 +86,10 @@ const Actions = ({ prefix }: Props) => {
 
 type CreateFolderActionProps = {
   prefix: string;
+  compact?: boolean;
 };
 
-const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
+const CreateFolderAction = ({ prefix, compact }: CreateFolderActionProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { globalAlias } = useBucketContext();
 
@@ -113,9 +117,19 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
 
   return (
     <>
-      <Button icon={FolderPlus} onClick={onOpen}>
-        New folder
-      </Button>
+      {compact ? (
+        <Button
+          icon={FolderPlus}
+          aria-label="New folder"
+          title="New folder"
+          className="h-11 w-11"
+          onClick={onOpen}
+        />
+      ) : (
+        <Button icon={FolderPlus} onClick={onOpen}>
+          New folder
+        </Button>
+      )}
 
       <Dialog
         open={isOpen}

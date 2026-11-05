@@ -64,3 +64,11 @@ export const isFolder = (t: ObjectTarget) => t.objectKey.endsWith("/");
 /** The last part of the key, for labels and messages. */
 export const targetName = (t: ObjectTarget) =>
   t.objectKey.replace(/\/$/, "").split("/").pop() || t.objectKey;
+
+/** Objects can be listed with a key that reads and writes, through the bucket's global alias. */
+export const canBrowse = (
+  keys: { permissions: { read: boolean; write: boolean } }[],
+  globalAlias: string,
+) =>
+  Boolean(globalAlias) &&
+  keys.some((k) => k.permissions.read && k.permissions.write);

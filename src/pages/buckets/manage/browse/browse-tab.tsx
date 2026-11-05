@@ -1,16 +1,21 @@
 import { useSearchParams } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FolderOpen, KeyRound } from "lucide-react";
 import ObjectList from "./object-list";
 import ObjectListNavigator from "./object-list-navigator";
 import ObjectInspector from "./object-inspector";
-import SelectionBar from "./selection-bar";
+import SelectionBar, { PhoneSelectionBar } from "./selection-bar";
 import Actions from "./actions";
 import { useBucketContext } from "../context";
 import ShareDialog from "./share-dialog";
 import { EmptyState } from "@/components/ui/state";
 import { LinkButton } from "@/components/ui/button";
+import Dialog from "@/components/ui/dialog";
 import { Panel } from "@/components/ui/page-header";
+import { BottomBarSlot } from "@/components/shell/bottom-bar";
+import { useBottomBarAvailable } from "@/components/shell/bottom-bar-context";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { selectionBarPlace } from "../../phone";
 import { readableBytes } from "@/lib/utils";
 import { bucketPath } from "@/lib/routes";
 import { useBrowseObjects } from "./hooks";
@@ -117,6 +122,10 @@ const Browser = () => {
   });
   const ops = useObjectOps();
   const section = useRef<HTMLElement>(null);
+  // Phone: the selection bar takes the shell's bottom bar, Details is a sheet, and Upload sits on the title row.
+  const phoneBar = useBottomBarAvailable();
+  const phone = useMediaQuery("(max-width: 767px)");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const [filter, setFilter] = useScoped(prefix, "");
   const [picked, setPicked] = useScoped<string[]>(prefix, []);
@@ -136,7 +145,14 @@ const Browser = () => {
   const total = files.reduce((sum, o) => sum + o.size, 0);
   const listingPrefix = data?.prefix ?? prefix;
 
+  const place = selectionBarPlace(selectedFiles.length, phoneBar);
+  // A sheet left open by a selection that went away (a filter, a refetch) must not reopen with the next one.
+  useEffect(() => {
+    if (selectedFiles.length === 0) setDetailsOpen(false);
+  }, [selectedFiles.length]);
+
   const clearSelection = () => {
+    setDetailsOpen(false);
     setPicked([]);
     // The control that held focus is gone: keep keyboard users in the browser.
     section.current?.focus();
@@ -157,10 +173,10 @@ const Browser = () => {
           prefix={prefix}
           filter={filter}
           onFilter={setFilter}
-          actions={<Actions prefix={prefix} />}
+          actions={phone ? null : <Actions prefix={prefix} />}
         />
 
-        {selectedFiles.length > 0 ? (
+        {place === "inline" ? (
           <SelectionBar
             files={selectedFiles}
             prefix={listingPrefix}
@@ -201,17 +217,39 @@ const Browser = () => {
         ) : null}
       </Panel>
 
-      {/* Beside the list on wide screens; under it, and only while something is selected, on narrow ones. */}
-      <aside
-        aria-label="Object details"
-        className={
-          selectedFiles.length
-            ? "min-w-0 min-[1180px]:sticky min-[1180px]:top-4"
-            : "hidden min-w-0 min-[1180px]:sticky min-[1180px]:top-4 min-[1180px]:block"
-        }
-      >
-        <ObjectInspector files={selectedFiles} prefix={listingPrefix} />
-      </aside>
+      {place === "bottom" ? (
+        <BottomBarSlot>
+          <PhoneSelectionBar
+            files={selectedFiles}
+            prefix={listingPrefix}
+            ops={ops}
+            onClear={clearSelection}
+            onDetails={() => setDetailsOpen(true)}
+          />
+        </BottomBarSlot>
+      ) : null}
+
+      {/* Beside the list on wide screens; under it, and only while something is selected, on narrow ones. On a phone it is a sheet. */}
+      {phoneBar ? (
+        <Dialog
+          open={detailsOpen && selectedFiles.length > 0}
+          onClose={() => setDetailsOpen(false)}
+          title="Details"
+        >
+          <ObjectInspector sheet files={selectedFiles} prefix={listingPrefix} />
+        </Dialog>
+      ) : (
+        <aside
+          aria-label="Object details"
+          className={
+            selectedFiles.length
+              ? "min-w-0 min-[1180px]:sticky min-[1180px]:top-4"
+              : "hidden min-w-0 min-[1180px]:sticky min-[1180px]:top-4 min-[1180px]:block"
+          }
+        >
+          <ObjectInspector files={selectedFiles} prefix={listingPrefix} />
+        </aside>
+      )}
 
       <ShareDialog />
     </section>
