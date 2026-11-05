@@ -7,6 +7,7 @@ import (
 	"io"
 	"khairul169/garage-webui/schema"
 	"khairul169/garage-webui/utils"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
@@ -30,6 +31,32 @@ const defaultMaxUploadBytes = 5 << 30
 // maxUploadBytes caps the request body of an upload; LoadUploadLimit sets it at startup.
 var maxUploadBytes int64 = defaultMaxUploadBytes
 
+// uploadBudget admits uploads against maxUploadBytes of in-flight request bytes, so that however many
+// clients upload at once, the bytes held in RAM and spilled to /tmp together stay within one cap.
+// Each request is charged its Content-Length (the whole cap when it has none) from before its body
+// is read until its temporary files are removed. A budget smaller than the cap would never admit a
+// cap-sized upload, so the cap is the budget and there is no setting of its own.
+var uploadBudget = newByteBudget(defaultMaxUploadBytes)
+
+const (
+	// uploadMemoryBytes is how much of a multipart upload is kept in RAM; a file above it goes whole
+	// to /tmp. Go's default of 32 MiB would let a few concurrent uploads fill a 128 MiB container.
+	uploadMemoryBytes = 1 << 20
+
+	uploadRetryAfterSeconds = "30"
+)
+
+// uploadWaitLimit is how long an upload waits for budget before it gets 503. Waiting is normal when
+// several files are sent at once, and the queue drains at the speed of the client's link, so the
+// limit is generous; it bounds a queue behind a stalled upload and a waiter whose client is gone
+// (the server only notices a disconnect once it reads the body).
+var uploadWaitLimit = 10 * time.Minute
+
+func setUploadLimit(limit int64) {
+	maxUploadBytes = limit
+	uploadBudget = newByteBudget(limit)
+}
+
 // parseUploadLimit reads UPLOAD_MAX_BYTES: empty means the default, anything else must be a positive integer.
 func parseUploadLimit(raw string) (int64, error) {
 	if raw == "" {
@@ -48,7 +75,7 @@ func LoadUploadLimit() error {
 	if err != nil {
 		return err
 	}
-	maxUploadBytes = limit
+	setUploadLimit(limit)
 	return nil
 }
 
@@ -257,11 +284,47 @@ func (b *Browse) PutObject(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 	isDirectory := strings.HasSuffix(key, "/")
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
-	file, headers, err := r.FormFile("file")
+	limit := maxUploadBytes
+	tooLargeMessage := fmt.Errorf("upload too large: the limit is %d bytes (UPLOAD_MAX_BYTES)", limit)
+	if r.ContentLength > limit {
+		utils.ResponseErrorStatus(w, tooLargeMessage, http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	charge := r.ContentLength
+	if charge < 0 {
+		charge = limit
+	}
+	waitCtx, cancelWait := context.WithTimeout(r.Context(), uploadWaitLimit)
+	release, err := uploadBudget.acquire(waitCtx, charge)
+	cancelWait()
+	if err != nil {
+		if r.Context().Err() != nil {
+			return // the client is gone
+		}
+		w.Header().Set("Retry-After", uploadRetryAfterSeconds)
+		utils.ResponseErrorStatus(w, errors.New("too many uploads in progress, try again shortly"), http.StatusServiceUnavailable)
+		return
+	}
+	defer release()
+
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	// Remove the temporary files before the charge is released: net/http would only do it after the handler returns.
+	defer func() {
+		if r.MultipartForm != nil {
+			r.MultipartForm.RemoveAll()
+		}
+	}()
+
+	var file multipart.File
+	var headers *multipart.FileHeader
+	err = r.ParseMultipartForm(uploadMemoryBytes)
+	if err == nil {
+		file, headers, err = r.FormFile("file")
+	}
 	var tooLarge *http.MaxBytesError
 	if errors.As(err, &tooLarge) {
-		utils.ResponseErrorStatus(w, fmt.Errorf("upload too large: the limit is %d bytes (UPLOAD_MAX_BYTES)", tooLarge.Limit), http.StatusRequestEntityTooLarge)
+		utils.ResponseErrorStatus(w, tooLargeMessage, http.StatusRequestEntityTooLarge)
 		return
 	}
 	if err != nil && !isDirectory {
