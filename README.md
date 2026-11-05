@@ -23,13 +23,36 @@ Create a confidential OAuth2/OpenID provider and application in Authentik:
 5. Include a `groups` string-array claim in the **ID token**. Bind an appropriate scope mapping to the requested `profile` scope; a claim only returned by UserInfo is insufficient. Example claim: `"groups": ["garage-admins"]`.
 6. Set `OIDC_ALLOWED_GROUPS=garage-admins`, or a comma-separated list. Membership in at least one listed group is required. Missing, empty or malformed group claims deny access.
 
-The app requests `openid profile`, verifies the ID token's signature, issuer, audience, expiry and nonce, and keeps tokens away from the browser. Discovery/token requests use the server's trusted CA certificates. Do not disable TLS verification for an internal identity provider. Authorization, token and JWKS endpoints must also use HTTPS outside loopback development. Discovery has a 10-second timeout at startup; an unavailable or invalid provider stops the app, and Compose retries through its restart policy. Start the identity provider before this console.
+The app requests `openid profile offline_access`, verifies the ID token's signature, issuer, audience, expiry and nonce, and keeps tokens away from the browser. Add the `offline_access` scope mapping to the Authentik provider so it issues a refresh token. Discovery/token requests use the server's trusted CA certificates. Do not disable TLS verification for an internal identity provider. Authorization, token, JWKS and revocation endpoints must also use HTTPS outside loopback development (an insecure `revocation_endpoint` is ignored, with a startup log line). Discovery has a 10-second timeout at startup; an unavailable or invalid provider stops the app, and Compose retries through its restart policy. Start the identity provider before this console.
 
-Sessions live in server memory, expire after at most eight hours (or the ID token's earlier expiry), and idle out after 30 minutes. Restarting the app logs everyone out. Sign-out destroys the application session; it does not sign out of Authentik. Group changes take effect on the next login or session expiry, not continuously during a session.
+Sessions live in server memory, expire after at most eight hours, and idle out after 30 minutes. Restarting the app logs everyone out. When the identity provider returns a refresh token, the session does not end with the ID token: once the ID token expires (or is within 30 seconds of expiring) the server silently refreshes it and re-checks the subject and the `groups` claim. The `groups` claim must therefore also be present in ID tokens issued on refresh. Removing someone from the allowed group takes effect within one ID token lifetime; a failed refresh ends the session and the browser returns to the sign-in page. Refresh tokens stay in server memory and never reach the browser or the logs. The refresh token of a session that idled out is dropped from memory at the next sign-in sweep and expires at the identity provider on its own. If the provider issues no refresh token, the app logs one line at sign-in and the session ends at the ID token's expiry. Sign-out destroys the application session and revokes the refresh token at the identity provider when it advertises a `revocation_endpoint`; it does not sign out of Authentik itself.
 
 ### Local login
 
 Set `AUTH_USER_PASS` to `username:bcrypt_hash`. Generate the hash with a trusted bcrypt/htpasswd tool. Keep it in the local `.env` or secret manager; never in a `VITE_` variable. Single-quote a bcrypt value in a Compose `.env` file so its `$` characters remain literal. Local login is intended for a private deployment without OIDC, not as an SSO bypass. Keep it private and apply login rate limiting at the reverse proxy; the application has no account lockout or brute-force limiter.
+
+### Admin API allow-list and audit log
+
+The console forwards to the Garage admin API (v2.5) only the operations its screens call, listed by name, method and path in `backend/router/admin_ops.json`. Anything else, such as `CreateAdminToken`, `PurgeBlocks`, `LaunchRepairOperation` or `/metrics`, gets HTTP 403 with a JSON error and never reaches Garage. Matching is exact: the method as sent, the decoded path, no trailing slash, and no percent-encoded variant (`%2e%2e`, `%2F`). A new feature that needs another operation must add it to that file; a backend test scans `src/` and fails when a UI call is missing from the list or an entry is no longer used.
+
+Every state-changing request (any method other than GET, HEAD and OPTIONS on `/api`, including the object browser's upload and delete, password sign-in and sign-out), every OIDC callback, success or failure, although it is a GET (`target.outcome` names the result: `success`, `state_invalid`, `provider_error`, `exchange_failed`, `token_invalid`, `claims_invalid`, `group_denied` or `session_failed`; the actor is the verified OIDC subject when the ID token got that far, `anonymous` before; the code, state, tokens and the provider's error text are never logged) and every secret reveal (`GetKeyInfo` with `showSecretKey`) writes one JSON line to **stdout**; the application log stays on stderr. Example:
+
+```json
+{
+  "time": "2026-11-04T12:00:00Z",
+  "event": "mutation",
+  "actor": { "kind": "oidc", "sub": "4f3a…", "name": "Garage Operator" },
+  "method": "POST",
+  "operation": "DeleteKey",
+  "target": { "id": "GK1234" },
+  "status": 200
+}
+```
+
+- `event` is `mutation` or `secret_reveal`. `actor.kind` is `oidc` (`sub` is the OIDC subject), `local` (`sub` is the username) or `anonymous` (failed sign-in).
+- `operation` is the Garage operation name, the route (`PUT /browse/{bucket}/{key...}`), or `unlisted` for a refused admin request, which also carries its `path`.
+- `target` holds the IDs taken from the URL path or query (`id`, `search`, `globalAlias`, `node`, `bucket`, `key`). Request and response bodies, cookies, tokens and secrets are never logged, so an operation whose IDs travel in the body (for example `AllowBucketKey`) logs none.
+- Garage still sees one admin token; this log is the only record of which person acted. Ship stdout to your log collector and protect it like any security log. Reads are not logged, and neither are anonymous requests refused with 401.
 
 ## Container deployment
 

@@ -1,0 +1,26 @@
+{
+  "garage": "v2.5",
+  "operations": [
+    { "name": "GetClusterHealth", "method": "GET", "path": "/v2/GetClusterHealth" },
+    { "name": "GetClusterStatus", "method": "GET", "path": "/v2/GetClusterStatus" },
+    { "name": "GetClusterLayout", "method": "GET", "path": "/v2/GetClusterLayout" },
+    { "name": "GetNodeInfo", "method": "GET", "path": "/v2/GetNodeInfo" },
+    { "name": "ConnectClusterNodes", "method": "POST", "path": "/v2/ConnectClusterNodes" },
+    { "name": "UpdateClusterLayout", "method": "POST", "path": "/v2/UpdateClusterLayout" },
+    { "name": "ApplyClusterLayout", "method": "POST", "path": "/v2/ApplyClusterLayout" },
+    { "name": "RevertClusterLayout", "method": "POST", "path": "/v2/RevertClusterLayout" },
+    { "name": "CreateBucket", "method": "POST", "path": "/v2/CreateBucket" },
+    { "name": "GetBucketInfo", "method": "GET", "path": "/v2/GetBucketInfo" },
+    { "name": "UpdateBucket", "method": "POST", "path": "/v2/UpdateBucket" },
+    { "name": "DeleteBucket", "method": "POST", "path": "/v2/DeleteBucket" },
+    { "name": "AddBucketAlias", "method": "POST", "path": "/v2/AddBucketAlias" },
+    { "name": "RemoveBucketAlias", "method": "POST", "path": "/v2/RemoveBucketAlias" },
+    { "name": "AllowBucketKey", "method": "POST", "path": "/v2/AllowBucketKey" },
+    { "name": "DenyBucketKey", "method": "POST", "path": "/v2/DenyBucketKey" },
+    { "name": "ListKeys", "method": "GET", "path": "/v2/ListKeys" },
+    { "name": "GetKeyInfo", "method": "GET", "path": "/v2/GetKeyInfo" },
+    { "name": "CreateKey", "method": "POST", "path": "/v2/CreateKey" },
+    { "name": "ImportKey", "method": "POST", "path": "/v2/ImportKey" },
+    { "name": "DeleteKey", "method": "POST", "path": "/v2/DeleteKey" }
+  ]
+}

@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/alexedwards/scs/v2"
 )
 
 func TestRevokedSessionCannotBeRestoredByInflightRequest(t *testing.T) {
@@ -59,7 +61,7 @@ func TestLateRequestDoesNotOverwriteLoginCookie(t *testing.T) {
 		case "/seed":
 			Session.Set(r, "seed", true)
 		case "/login":
-			if err := Session.Authenticate(r, "operator", time.Now().Add(time.Hour)); err != nil {
+			if err := Session.Authenticate(r, Actor{Kind: "local", Subject: "operator", Name: "operator"}, time.Now().Add(time.Hour)); err != nil {
 				t.Error(err)
 			}
 		}
@@ -98,4 +100,31 @@ func TestLateRequestDoesNotOverwriteLoginCookie(t *testing.T) {
 			t.Fatal("fresh login is no longer authenticated")
 		}
 	})).ServeHTTP(status, statusReq)
+}
+
+type recordingStore struct {
+	scs.Store
+	expiry map[string]time.Time
+}
+
+func (s *recordingStore) Commit(token string, data []byte, expiry time.Time) error {
+	s.expiry[token] = expiry
+	return s.Store.Commit(token, data, expiry)
+}
+
+// The revocation tombstone must be dated by the session clock, so a moved clock cannot make it
+// outlive or undershoot the sessions it guards.
+func TestRevocationTombstoneUsesTheSessionClock(t *testing.T) {
+	mgr := InitSessionManager()
+	rs := mgr.Store.(*revocationStore)
+	rec := &recordingStore{Store: rs.Store, expiry: map[string]time.Time{}}
+	rs.Store = rec
+	at := time.Date(2031, 1, 2, 3, 4, 5, 0, time.UTC)
+	Session.Now = func() time.Time { return at }
+	if err := rs.Delete("token"); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := rec.expiry["revoked:token"], at.Add(SessionLifetime); !got.Equal(want) {
+		t.Fatalf("tombstone expires at %v, want %v", got, want)
+	}
 }

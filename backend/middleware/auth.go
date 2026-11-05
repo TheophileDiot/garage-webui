@@ -6,9 +6,10 @@ import (
 	"net/http"
 )
 
-func AuthMiddleware(next http.Handler) http.Handler {
+// authenticated may refresh the session, so it takes the request rather than reading the cookie alone.
+func AuthMiddleware(authenticated func(*http.Request) bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !utils.Session.Authenticated(r) {
+		if !authenticated(r) {
 			utils.ResponseErrorStatus(w, errors.New("unauthorized"), http.StatusUnauthorized)
 			return
 		}

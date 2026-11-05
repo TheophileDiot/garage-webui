@@ -10,7 +10,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -23,53 +26,160 @@ import (
 type oidcFixture struct {
 	handler          http.Handler
 	issuer           *httptest.Server
+	auth             *Auth
 	claims           map[string]interface{}
 	nonce, challenge string
+	prefix           string
+	revocation       string
+	key              *rsa.PrivateKey
+	offset           atomic.Int64
+	refreshCalls     atomic.Int32
+	idTTL            time.Duration
+
+	mu           sync.Mutex
+	refresh      string
+	refreshSeq   int
+	rotate       bool
+	noRefresh    bool
+	refreshMode  string
+	refreshClaim map[string]interface{}
+	refreshDelay time.Duration
+	seen         []string
+	revoked      []url.Values
+	revokeStatus int
+	revokeBody   bool // accepts client credentials only in the form body
+}
+
+// now is the application clock shared by the fake IdP, the verifier and the session.
+func (f *oidcFixture) now() time.Time          { return time.Now().Add(time.Duration(f.offset.Load())) }
+func (f *oidcFixture) advance(d time.Duration) { f.offset.Add(int64(d)) }
+
+func (f *oidcFixture) sign(claims map[string]interface{}) (string, error) {
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: f.key}, (&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", "test"))
+	if err != nil {
+		return "", err
+	}
+	return jwt.Signed(signer).Claims(claims).Serialize()
+}
+
+func (f *oidcFixture) idClaims(extra map[string]interface{}) map[string]interface{} {
+	claims := map[string]interface{}{"iss": f.issuer.URL, "aud": "garage-webui", "sub": "operator-1", "iat": f.now().Unix(), "exp": f.now().Add(f.idTTL).Unix(), "nonce": f.nonce, "name": "Garage Operator", "groups": []string{"garage-admins"}}
+	for k, v := range extra {
+		claims[k] = v
+	}
+	return claims
+}
+
+func (f *oidcFixture) serveRefresh(t *testing.T, w http.ResponseWriter, r *http.Request) {
+	f.refreshCalls.Add(1)
+	f.mu.Lock()
+	delay := f.refreshDelay
+	f.mu.Unlock()
+	time.Sleep(delay)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	presented := r.Form.Get("refresh_token")
+	f.seen = append(f.seen, presented)
+	if f.refreshMode == "invalid_grant" || f.refresh == "" || presented != f.refresh {
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid_grant"})
+		return
+	}
+	resp := map[string]interface{}{"access_token": "not-for-browser", "token_type": "Bearer"}
+	if f.rotate {
+		f.refreshSeq++
+		f.refresh = "refresh-" + strconv.Itoa(f.refreshSeq+1)
+		resp["refresh_token"] = f.refresh
+	}
+	if f.refreshMode != "no_id_token" {
+		token, err := f.sign(f.idClaims(f.refreshClaim))
+		if err != nil {
+			t.Error(err)
+			http.Error(w, "signing failed", 500)
+			return
+		}
+		resp["id_token"] = token
+	}
+	json.NewEncoder(w).Encode(resp)
 }
 
 func newOIDCFixture(t *testing.T, prefix string) *oidcFixture {
+	return newOIDCFixtureWith(t, prefix, nil)
+}
+
+func newOIDCFixtureWith(t *testing.T, prefix string, setup func(*oidcFixture)) *oidcFixture {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := &oidcFixture{claims: map[string]interface{}{}}
+	f := &oidcFixture{claims: map[string]interface{}{}, key: key, prefix: prefix, idTTL: time.Hour, refresh: "refresh-1"}
+	if setup != nil {
+		setup(f)
+	}
 	f.issuer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/.well-known/openid-configuration":
+			revocation := f.issuer.URL + "/revoke"
+			if f.revocation != "" {
+				revocation = f.revocation
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"issuer": f.issuer.URL, "authorization_endpoint": f.issuer.URL + "/authorize",
 				"token_endpoint": f.issuer.URL + "/token", "jwks_uri": f.issuer.URL + "/keys",
+				"revocation_endpoint":                   revocation,
 				"id_token_signing_alg_values_supported": []string{"RS256"},
 			})
 		case "/keys":
 			json.NewEncoder(w).Encode(jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &key.PublicKey, Algorithm: "RS256", Use: "sig", KeyID: "test"}}})
+		case "/revoke":
+			r.ParseForm()
+			user, pass, ok := r.BasicAuth()
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			if f.revokeBody {
+				ok = !ok && r.PostForm.Get("client_id") == "garage-webui" && r.PostForm.Get("client_secret") == "test-secret"
+			} else {
+				ok = ok && user == "garage-webui" && pass == "test-secret"
+			}
+			if !ok {
+				http.Error(w, "invalid client", 401)
+				return
+			}
+			f.revoked = append(f.revoked, r.PostForm)
+			if f.revokeStatus != 0 {
+				http.Error(w, "revocation failed", f.revokeStatus)
+			}
 		case "/token":
 			r.ParseForm()
-			digest := sha256.Sum256([]byte(r.Form.Get("code_verifier")))
 			user, pass, ok := r.BasicAuth()
-			if !ok || user != "garage-webui" || pass != "test-secret" || base64.RawURLEncoding.EncodeToString(digest[:]) != f.challenge {
+			if !ok || user != "garage-webui" || pass != "test-secret" {
 				http.Error(w, "invalid token request", 400)
 				return
 			}
-			claims := map[string]interface{}{"iss": f.issuer.URL, "aud": "garage-webui", "sub": "operator-1", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix(), "nonce": f.nonce, "name": "Garage Operator", "groups": []string{"garage-admins"}}
-			for k, v := range f.claims {
-				claims[k] = v
+			if r.Form.Get("grant_type") == "refresh_token" {
+				f.serveRefresh(t, w, r)
+				return
 			}
-			signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: key}, (&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", "test"))
+			digest := sha256.Sum256([]byte(r.Form.Get("code_verifier")))
+			if base64.RawURLEncoding.EncodeToString(digest[:]) != f.challenge {
+				http.Error(w, "invalid token request", 400)
+				return
+			}
+			token, err := f.sign(f.idClaims(f.claims))
 			if err != nil {
 				t.Error(err)
 				http.Error(w, "signing failed", 500)
 				return
 			}
-			token, err := jwt.Signed(signer).Claims(claims).Serialize()
-			if err != nil {
-				t.Error(err)
-				http.Error(w, "signing failed", 500)
-				return
+			resp := map[string]interface{}{"access_token": "not-for-browser", "token_type": "Bearer", "id_token": token}
+			f.mu.Lock()
+			if !f.noRefresh {
+				resp["refresh_token"] = f.refresh
 			}
-			json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "not-for-browser", "token_type": "Bearer", "id_token": token})
+			f.mu.Unlock()
+			json.NewEncoder(w).Encode(resp)
 		default:
 			http.NotFound(w, r)
 		}
@@ -86,7 +196,10 @@ func newOIDCFixture(t *testing.T, prefix string) *oidcFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
+	f.auth = auth
+	auth.oidc.now = f.now
 	mgr := utils.InitSessionManager()
+	utils.Session.Now = f.now
 	f.handler = mgr.LoadAndSave(HandleApiRouter(auth))
 	return f
 }
@@ -265,7 +378,7 @@ func TestAuthConfigurationFailsClosed(t *testing.T) {
 		t.Fatal("empty groups accepted")
 	}
 	for _, raw := range []string{"http://public.example", "https://user:pass@garage.example", "https://garage.example/path", "https://garage.example?query=1", "https://garage.example#fragment"} {
-		if _, err := validateURL(raw, true); err == nil {
+		if _, err := validateOrigin(raw); err == nil {
 			t.Errorf("unsafe public URL accepted: %s", raw)
 		}
 	}
@@ -327,7 +440,7 @@ func TestOriginProtectsEveryMutationAndProxyDropsCookie(t *testing.T) {
 
 func TestRejectsNonCanonicalPublicOrigins(t *testing.T) {
 	for _, raw := range []string{"https://GARAGE.example", "https://garage.example:443", "http://localhost:80"} {
-		if _, err := validateURL(raw, true); err == nil {
+		if _, err := validateOrigin(raw); err == nil {
 			t.Errorf("non-canonical browser origin accepted: %s", raw)
 		}
 	}

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/crypto/bcrypt"
 	"khairul169/garage-webui/middleware"
 	"khairul169/garage-webui/schema"
 	"khairul169/garage-webui/utils"
@@ -16,7 +15,7 @@ import (
 func TestMissingAuthDeniesAPI(t *testing.T) {
 	t.Setenv("AUTH_USER_PASS", "")
 	mgr := utils.InitSessionManager()
-	handler := mgr.LoadAndSave(middleware.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })))
+	handler := mgr.LoadAndSave(middleware.AuthMiddleware(utils.Session.Authenticated, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })))
 	res := httptest.NewRecorder()
 	handler.ServeHTTP(res, httptest.NewRequest("GET", "/config", nil))
 	if res.Code != http.StatusUnauthorized {
@@ -25,15 +24,12 @@ func TestMissingAuthDeniesAPI(t *testing.T) {
 }
 
 func TestStatusDoesNotInventAuthentication(t *testing.T) {
-	t.Setenv("AUTH_USER_PASS", "admin:hash")
-	mgr := utils.InitSessionManager()
-	res := httptest.NewRecorder()
-	mgr.LoadAndSave(http.HandlerFunc((&Auth{}).GetStatus)).ServeHTTP(res, httptest.NewRequest("GET", "/auth/status", nil))
+	res := send(localHandler(t), "GET", "/auth/status", "", nil)
 	var body map[string]any
 	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["authenticated"] != false {
+	if body["authenticated"] != false || body["local"] != true || body["oidc"] != false {
 		t.Fatalf("anonymous status: %s", res.Body.String())
 	}
 }
@@ -52,11 +48,7 @@ func TestConfigRedactsSecrets(t *testing.T) {
 }
 
 func TestLocalLoginRotatesSession(t *testing.T) {
-	hash, err := bcrypt.GenerateFromPassword([]byte("correct-password"), bcrypt.MinCost)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("AUTH_USER_PASS", "admin:"+string(hash))
+	auth := localAuth(t)
 	mgr := utils.InitSessionManager()
 	seed := httptest.NewRecorder()
 	mgr.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { utils.Session.Set(r, "seed", "before-login") })).ServeHTTP(seed, httptest.NewRequest("GET", "/seed", nil))
@@ -64,7 +56,7 @@ func TestLocalLoginRotatesSession(t *testing.T) {
 	req := httptest.NewRequest("POST", "/auth/login", strings.NewReader(`{"username":"admin","password":"correct-password"}`))
 	req.AddCookie(before)
 	res := httptest.NewRecorder()
-	mgr.LoadAndSave(http.HandlerFunc((&Auth{}).Login)).ServeHTTP(res, req)
+	mgr.LoadAndSave(http.HandlerFunc(auth.Login)).ServeHTTP(res, req)
 	if res.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", res.Code, res.Body.String())
 	}
@@ -85,5 +77,21 @@ func TestLogoutDestroysCookie(t *testing.T) {
 	cookies := res.Result().Cookies()
 	if len(cookies) == 0 || cookies[0].MaxAge >= 0 {
 		t.Fatal("logout retained session cookie")
+	}
+}
+
+func TestLocalLoginChecksUserAndPassword(t *testing.T) {
+	h := localHandler(t)
+	for _, body := range []string{
+		`{"username":"admin","password":"wrong"}`,
+		`{"username":"other","password":"correct-password"}`,
+		`{"username":"","password":""}`,
+	} {
+		if res := send(h, "POST", "/auth/login", body, nil); res.Code != http.StatusUnauthorized {
+			t.Errorf("%s: %d", body, res.Code)
+		}
+	}
+	if res := send(h, "POST", "/auth/login", `{"username":"admin","password":"correct-password"}`, nil); res.Code != http.StatusOK {
+		t.Fatalf("valid login: %d %s", res.Code, res.Body.String())
 	}
 }
