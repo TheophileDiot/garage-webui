@@ -1,0 +1,322 @@
+src/lib/phone-shell.ts
+  s_aacfe04e2d9a86::t_3073b0cf664108 1-27
+src/components/ui/page-header.tsx
+  s_da559de5cc7a82::t_714dc4d55e2d2c 5-7
+  s_da559de5cc7a82::t_2754a9ebb0095b 17-19,23-25
+  s_37a4c378ab029e::t_2ec266bf727d26 4,29-31,69-70
+src/pages/buckets/phone.test.ts
+  s_37a4c378ab029e::t_db29b0f323b154 1-27
+tailwind.config.js
+  s_f3addd857c7bc7::t_c508598f42053a 120-125
+  s_f3addd857c7bc7::t_4421830f83471b 114-119,126-127
+DESIGN.md
+  s_0fdc7973302912::t_6e23a2bc592680 180-182,212-221,224-245,276-278,292-295
+  s_aacfe04e2d9a86::t_301425a8a55869 71,98-101,151,154-156,159-168,183-188,190-191,203-205,209-211,267-269,273-275,285-286,291
+  s_8108f732418ef0::t_9ed1c3da767601 120-121
+  s_0fdc7973302912::t_9142abd0a59d17 72-73,102,122-125,146-147,169-179,206-208,222-223,257-259,265-266,270
+  s_0fdc7973302912::t_2376f206d269f3 70,74-76,85-97,103-119,148-150,246
+src/lib/sheet-history.ts
+  s_f3addd857c7bc7::t_efb3cac8e37d8c 1-113
+backend/ui/handler.go
+  s_da559de5cc7a82::t_28fd876e707d4e 7,14-15
+  s_8108f732418ef0::t_0f83e3f74421c0 16
+src/components/ui/dialog.tsx
+  s_8108f732418ef0::t_393012e0e03b19 95
+  s_aacfe04e2d9a86::t_afdcdbcdf87173 37-41,100-110,112
+  s_f3addd857c7bc7::t_301e15fbb53155 13,63-68
+  s_f3addd857c7bc7::t_66dc9eaefee59d 99,111
+  s_f3addd857c7bc7::t_3a0550e560996e 4-10,14,60-62,79
+  s_f3addd857c7bc7::t_5081f6b479b1da 113-127,130-132,134
+src/pages/buckets/manage/components/bucket-facts.tsx
+  s_37a4c378ab029e::t_166f33ea2be74e 52
+src/app/styles.css
+  s_f3addd857c7bc7::t_4421830f83471b 330,483-487
+  s_f3addd857c7bc7::t_653990fa1caf5d 413-416
+  s_f3addd857c7bc7::t_66dc9eaefee59d 505-524
+  s_aacfe04e2d9a86::t_73c66cc81c324e 333,380,389-412,423,478-482,488
+  s_f3addd857c7bc7::t_f47bf944592a82 525-535
+  s_f3addd857c7bc7::t_3a0550e560996e 491-500,502-504
+  s_aacfe04e2d9a86::t_25b601ff304669 417-422,424
+  s_f3addd857c7bc7::t_8bc677186d644d 489-490
+src/pages/buckets/manage/access/access-tab.tsx
+  s_37a4c378ab029e::t_2a630707401ff2 69,90,97,105,113,149
+src/pages/keys/phone.test.ts
+  s_da559de5cc7a82::t_9a7bd31077447a 1-13
+src/components/ui/input.tsx
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 12,14,46,61
+  s_aacfe04e2d9a86::t_a0d00e4ae2fc2b 8
+  s_f3addd857c7bc7::t_3addf4aa44f0a2 7,9-10
+src/pages/buckets/manage/browse/file-icon.tsx
+  s_f3addd857c7bc7::t_f2a3bac06c02ca 2
+  s_f3addd857c7bc7::t_43ed0523d02485 6,14-18,21-22
+src/pages/cluster/phone.ts
+  s_da559de5cc7a82::t_d2b679a864d626 35,40,52
+  s_da559de5cc7a82::t_415a344f91d9a5 1-34,36-39,41-51,53-55
+src/pages/buckets/components/create-bucket-dialog.tsx
+  s_37a4c378ab029e::t_5342ea14a7a032 45-47,49-50
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 48
+  s_f3addd857c7bc7::t_6b9d016374fab8 1,77
+src/components/ui/partition-map.tsx
+  s_f3addd857c7bc7::t_2c1cae70629a66 170-181
+  s_f3addd857c7bc7::t_69823854ea9463 83-95,122
+  s_f3addd857c7bc7::t_653990fa1caf5d 10,124-131
+src/components/ui/goto-top-btn.tsx
+  s_aacfe04e2d9a86::t_a0d00e4ae2fc2b 7-9
+  s_aacfe04e2d9a86::t_c94747bcf8c45d 35
+  s_aacfe04e2d9a86::t_dece80ccb6af3d 6
+src/pages/home/page.tsx
+  s_da559de5cc7a82::t_e639bda864ccd7 182-185,455,565,617,626,708
+  s_da559de5cc7a82::t_60cc2c290578b8 46,113-116,133
+  s_da559de5cc7a82::t_aa8842306a11f8 215-216
+  s_37a4c378ab029e::t_8f3f5413d306b0 224-225
+  s_da559de5cc7a82::t_c55b585624e6c9 181,186-187,229-232,234
+  s_da559de5cc7a82::t_312ec990e276c0 250,264,296,302,313,324,344,356,361,367,385,412-421
+  s_da559de5cc7a82::t_8b254bc6403c5b 40,134-135,143,188,190,202,222-223,422-423,438-440
+src/pages/buckets/manage/access/allow-key-dialog.tsx
+  s_7d1c832a8950c2::t_19199484e92be0 22,35
+  s_37a4c378ab029e::t_4ee7100b6820f0 21,156,166,179-206,245-263,296
+  s_7d1c832a8950c2::t_bb504dfdaab4d9 8
+src/pages/cluster/components/node-ledger.tsx
+  s_da559de5cc7a82::t_48ef55c42dd6e3 220
+  s_da559de5cc7a82::t_d2b679a864d626 4,16,28-31,57,74,76-81,85-87,92,109,123,165,190,200-219,221-233,237,241,254,265
+  s_da559de5cc7a82::t_0910ec229653cb 82-84
+src/pages/buckets/manage/browse/selection-bar.tsx
+  s_37a4c378ab029e::t_f28c41a87b61dc 93
+  s_37a4c378ab029e::t_451c755992b800 3,5,9,15-22,35-38,74-92,94-144
+  s_37a4c378ab029e::t_ad560f4e65ef55 1,145-148
+src/pages/cluster/phone.test.ts
+  s_da559de5cc7a82::t_d2b679a864d626 70-77
+  s_da559de5cc7a82::t_6cd4a81196a835 1-69
+src/components/shell/palette.tsx
+  s_f3addd857c7bc7::t_186f968547411a 23
+  s_f3addd857c7bc7::t_b0de342322020d 51-55,87
+  s_f3addd857c7bc7::t_10c54da03210e4 33,108,249
+src/lib/phone-shell.test.ts
+  s_aacfe04e2d9a86::t_158f5c52aeb171 1-37
+src/pages/home/phone.test.ts
+  s_da559de5cc7a82::t_e3be01c9cb4da4 1-23
+src/lib/sheet-history.test.ts
+  s_f3addd857c7bc7::t_37483360bd24af 1-117,123,129-160,166-203
+  s_f3addd857c7bc7::t_f47bf944592a82 118-122,124-128,161-165
+src/pages/buckets/phone.ts
+  s_37a4c378ab029e::t_304fded1ceba77 1-18
+src/pages/buckets/manage/access/permission-toggle.tsx
+  s_37a4c378ab029e::t_cf8c09ea942387 1-56
+src/pages/home/phone.ts
+  s_da559de5cc7a82::t_16cc22c1730ddf 1-4,6-39
+  s_da559de5cc7a82::t_0910ec229653cb 5
+src/components/ui/button-styles.ts
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 15,19,32,35-36
+  s_aacfe04e2d9a86::t_a5e4a6e96771e6 10-12
+  s_aacfe04e2d9a86::t_2df779149ae58e 17-18,20,23
+  s_aacfe04e2d9a86::t_dd555688eb9394 8-9,14,16,24
+  s_f3addd857c7bc7::t_a984e2a6b8158e 7,13,31
+src/components/ui/tag-input.tsx
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 81
+  s_f3addd857c7bc7::t_cd6e349f718076 61,95
+public/site.webmanifest
+  s_8108f732418ef0::t_193285ff2acd6c 2-8,11,13-14,17,19-20,23-24
+src/pages/buckets/manage/settings/aliases-section.tsx
+  s_f3addd857c7bc7::t_6b9d016374fab8 1
+  s_f3addd857c7bc7::t_4ba9429649afd4 165
+src/pages/buckets/page.tsx
+  s_37a4c378ab029e::t_24d0016ced8505 12,18-19,54,67-71
+src/components/shell/health-sheet.tsx
+  s_aacfe04e2d9a86::t_27f2e6f8951c3f 1-64,67-91
+  s_aacfe04e2d9a86::t_25b601ff304669 65-66
+src/components/shell/bottom-nav.tsx
+  s_aacfe04e2d9a86::t_c54a0f37ec700a 43
+  s_aacfe04e2d9a86::t_c94747bcf8c45d 19-24,49
+  s_f3addd857c7bc7::t_653990fa1caf5d 26-34
+  s_aacfe04e2d9a86::t_911e54965353af 1-18,25,35-42,44-48,50-61
+src/components/ui/ledger.tsx
+  s_f3addd857c7bc7::t_653990fa1caf5d 22-27,135
+  s_aacfe04e2d9a86::t_903c148757248f 2,4-5,16-21,47-51,54-70,74-75,86,90,102,138,166
+  s_f3addd857c7bc7::t_ea9ef798791af0 28-29,123-126
+src/pages/buckets/manage/components/delete-bucket-button.tsx
+  s_f3addd857c7bc7::t_301e15fbb53155 7,25-26
+src/components/ui/use-sheet-back.ts
+  s_f3addd857c7bc7::t_20d5b91bc0224b 1-50
+src/pages/buckets/components/bucket-ledger.tsx
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 234
+  s_37a4c378ab029e::t_24d0016ced8505 9,101,106,136,138-143,151,160,170,178,239-247,253,263,265-268,270
+  s_f3addd857c7bc7::t_653990fa1caf5d 191,262,264,269
+  s_f3addd857c7bc7::t_7be358e72a5412 186
+src/components/shell/bottom-bar.tsx
+  s_aacfe04e2d9a86::t_25b601ff304669 29-31
+  s_aacfe04e2d9a86::t_d40a7338af3fc1 1-7,9-13,17-28,32
+  s_aacfe04e2d9a86::t_708894e815dfa1 8,14-16
+src/main.tsx
+  s_8108f732418ef0::t_0ee0bfc36ef0e8 8-21
+  s_8108f732418ef0::t_d5dab5150b2caf 22
+src/pages/buckets/manage/browse/object-list.tsx
+  s_37a4c378ab029e::t_1555795b5c882e 206-216,218-223,301-326,351
+  s_37a4c378ab029e::t_3fb67b68f852e3 177
+  s_37a4c378ab029e::t_f8fbd97a92a2ea 176
+  s_37a4c378ab029e::t_b94f42375a3cc1 217
+  s_37a4c378ab029e::t_f83962e829f8a7 15
+  s_37a4c378ab029e::t_91898a15c42d81 12,108
+  s_f3addd857c7bc7::t_06672730e54148 1-2,7-10,44-47,49,109,195,205,352-357
+src/lib/keyboard-inset.ts
+  s_f3addd857c7bc7::t_3a0550e560996e 7-9
+  s_f3addd857c7bc7::t_b6a3be60a17f64 1-6,10-23
+src/components/ui/summary-strip.tsx
+  s_aacfe04e2d9a86::t_25b601ff304669 56-61,67-68
+  s_aacfe04e2d9a86::t_a0d00e4ae2fc2b 15-18,24,30-51,53-55,62-66,69-82
+  s_aacfe04e2d9a86::t_8dd07128f1119b 52
+src/components/shell/user-menu.tsx
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 115
+  s_aacfe04e2d9a86::t_e9186b7388f8ce 1,4,17-20,26,31,33,69-74,78-79,83-94,101-106
+src/pages/keys/phone.ts
+  s_da559de5cc7a82::t_ebf6d4cbd5bc8f 1-13
+src/pages/buckets/manage/browse/share-dialog.tsx
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 65
+  s_f3addd857c7bc7::t_ffa73fbb7335ec 86,93
+backend/ui/handler_test.go
+  s_37a4c378ab029e::t_7e05e7773171d6 35,187-197
+  s_8108f732418ef0::t_7177ac5b12ce9e 198-199
+src/app/router.tsx
+  s_8108f732418ef0::t_18e90cf598774d 21-26
+src/components/shell/breadcrumbs.tsx
+  s_aacfe04e2d9a86::t_25b601ff304669 2-3
+  s_f3addd857c7bc7::t_d8bae2db7598bf 43-46
+src/pages/keys/page.tsx
+  s_f3addd857c7bc7::t_653990fa1caf5d 295
+  s_f3addd857c7bc7::t_9fbcdf086a8d0a 448
+  s_8108f732418ef0::t_b4177c3544d323 24,28-30,41-42,48,51-52,55,196,209,220,240,254,259,261,269,294,393
+  s_da559de5cc7a82::t_48ef55c42dd6e3 241,255
+  s_f3addd857c7bc7::t_17d37eb7531021 2,15,416
+src/components/containers/tab-view.tsx
+  s_aacfe04e2d9a86::t_433917c369a03d 25-29
+  s_8108f732418ef0::t_393012e0e03b19 106
+  s_aacfe04e2d9a86::t_8386eef535b552 105
+  s_aacfe04e2d9a86::t_9cc6b60f5783d2 39
+src/pages/buckets/manage/page.tsx
+  s_37a4c378ab029e::t_166f33ea2be74e 9-10,20,22,44-55,57-60,77,107-112
+  s_7d1c832a8950c2::t_19199484e92be0 56,103-105
+  s_7d1c832a8950c2::t_4a606062f53009 1
+src/lib/keyboard-inset.test.ts
+  s_f3addd857c7bc7::t_b6a3be60a17f64 47-48
+  s_f3addd857c7bc7::t_2b049159cd2702 1-46,49
+src/components/shell/bottom-bar-context.ts
+  s_aacfe04e2d9a86::t_708894e815dfa1 1-41
+src/app/app.tsx
+  s_aacfe04e2d9a86::t_25b601ff304669 24
+  s_aacfe04e2d9a86::t_01c1c776a52ee9 23
+src/pages/buckets/manage/browse/model.ts
+  s_37a4c378ab029e::t_166f33ea2be74e 67-74
+src/components/shell/app-shell.tsx
+  s_aacfe04e2d9a86::t_c94747bcf8c45d 251,262
+  s_aacfe04e2d9a86::t_25b601ff304669 185-220,222-225,227-232,234-243,245-246,248-250,253-254,257-261,263-271,273-278,280,282-293
+  s_aacfe04e2d9a86::t_708894e815dfa1 26-27
+  s_f3addd857c7bc7::t_301e15fbb53155 19,22,86-88,279
+  s_aacfe04e2d9a86::t_5520010aaeb444 4,7,9,15,21,28,30,34,66-70,76,78,80-82,84,90-103,247,255,294
+  s_f3addd857c7bc7::t_634eaf9460623c 1,85,89,170-184,256
+src/pages/buckets/manage/browse/object-inspector.tsx
+  s_37a4c378ab029e::t_69265cabcb13d5 14,19-20,23-25
+  s_da559de5cc7a82::t_f9c221d98406fa 28-30,36,54
+index.html
+  s_8108f732418ef0::t_1a041d5cde36ae 14-19
+  s_aacfe04e2d9a86::t_25b601ff304669 5-8
+src/pages/buckets/manage/components/bucket-identity.tsx
+  s_37a4c378ab029e::t_92cf1ec19e8a67 1,3,10-12,14-18,22-60,64,66-92,94-98,100,103-104,108-109
+src/pages/buckets/manage/browse/browse-tab.tsx
+  s_37a4c378ab029e::t_1d55670891c966 13,15-18,125-128,148-153,155,176,179,220-252
+  s_37a4c378ab029e::t_d9c54003dbcf67 2,7
+src/pages/buckets/manage/browse/row-menu-sheet.tsx
+  s_37a4c378ab029e::t_7850f8cafaee02 2-89
+  s_37a4c378ab029e::t_7bab142531ac05 1
+src/pages/buckets/manage/browse/actions.tsx
+  s_37a4c378ab029e::t_9ed2d396330159 19-20,23,63,78,89,92,120-126
+  s_37a4c378ab029e::t_4465358bf3783c 127-132
+src/components/ui/use-sheet-keyboard.ts
+  s_f3addd857c7bc7::t_3a0550e560996e 1-42,45,51-81
+  s_f3addd857c7bc7::t_4db6d594494b7a 43-44,46-50
+  s_f3addd857c7bc7::t_6b9d016374fab8 82-88
+src/components/shell/sidebar.tsx
+  s_aacfe04e2d9a86::t_387c6109a0f5ef 24,51,92,110,156
+src/components/shell/theme-choice.tsx
+  s_f3addd857c7bc7::t_7eba3ff537ec92 58
+src/components/ui/copy-button.tsx
+  s_f3addd857c7bc7::t_24275b9a64667e 41,43
+src/components/ui/kbd.tsx
+  s_aacfe04e2d9a86::t_4ee002f047a3ba 14
+src/components/ui/notice.tsx
+  s_aacfe04e2d9a86::t_af480e8a0c4b94 45,54-57
+src/components/ui/toggle.tsx
+  s_f3addd857c7bc7::t_d47b7f5a8b8cae 43
+src/hooks/useMediaQuery.ts
+  s_aacfe04e2d9a86::t_ded742e64c84d0 3
+src/pages/buckets/manage/browse/object-list-navigator.tsx
+  s_f3addd857c7bc7::t_63603d7cd7aa66 21
+src/pages/buckets/styles.ts
+  s_f3addd857c7bc7::t_fea5f0d777d668 6
+src/pages/cluster/components/assign-node-dialog.tsx
+  s_f3addd857c7bc7::t_77c00954d70fa1 127,241
+src/pages/cluster/components/connect-node-dialog.tsx
+  s_f3addd857c7bc7::t_0f4fe954591879 64,76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "45796fe90942ab0d253ae13ec0bce73a22a912b3",
+  "prompts": {},
+  "sessions": {
+    "s_0fdc7973302912": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1491ad29-26b2-4952-b670-b4408a2b64b9",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_37a4c378ab029e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "90d347d1-4079-4075-9615-dfa6488f6c79",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_7d1c832a8950c2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d85f6b0-2b63-4735-a475-e0935bd3c999",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_8108f732418ef0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c5ab9181-0815-4cb7-9dd9-730b77a4d62b",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_aacfe04e2d9a86": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cd481da3-cfdd-4c68-9d09-94d7e5e27a1a",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_da559de5cc7a82": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8c45b287-a442-4d55-92b7-a03dcd084833",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    },
+    "s_f3addd857c7bc7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09b38094-84cf-4ad2-88e3-b788bbb37519",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "TheophileDiot <tdiot@bunkerity.com>"
+    }
+  }
+}
