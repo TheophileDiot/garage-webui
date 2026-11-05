@@ -6,11 +6,11 @@ import { useMemo, useState } from "react";
 import { TextField } from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import CopyButton from "@/components/ui/copy-button";
-import { TriangleAlert } from "lucide-react";
+import { Notice } from "@/components/ui/notice";
 
 const ShareDialog = () => {
   const { isOpen, data } = shareDialog.use();
-  const { bucket, bucketName } = useBucketContext();
+  const { bucket, globalAlias } = useBucketContext();
   const { data: config } = useConfig();
   const [picked, setPicked] = useState<string | null>(null);
 
@@ -22,15 +22,15 @@ const ShareDialog = () => {
     () =>
       rootDomain
         ? [
-            bucketName,
-            bucketName + rootDomain,
-            bucketName + rootDomain + `:${websitePort}`,
+            globalAlias,
+            globalAlias + rootDomain,
+            globalAlias + rootDomain + `:${websitePort}`,
           ]
-        : [bucketName],
-    [bucketName, rootDomain, websitePort],
+        : [globalAlias],
+    [globalAlias, rootDomain, websitePort],
   );
 
-  const domain = picked && domains.includes(picked) ? picked : bucketName;
+  const domain = picked && domains.includes(picked) ? picked : globalAlias;
   const url =
     "http://" + domain + "/" + (data?.prefix ?? "") + (data?.key ?? "");
 
@@ -41,7 +41,7 @@ const ShareDialog = () => {
       title="Share link"
       description={
         <span className="[overflow-wrap:anywhere]">
-          {bucketName}/{data?.prefix}
+          {globalAlias}/{data?.prefix}
           {data?.key}
         </span>
       }
@@ -50,21 +50,13 @@ const ShareDialog = () => {
     >
       <div className="grid gap-4">
         {!bucket.websiteAccess && (
-          <div
-            role="note"
-            className="flex items-start gap-3 rounded-sm border border-warn p-3 text-ink"
-          >
-            <TriangleAlert
-              size={16}
-              className="mt-0.5 shrink-0 text-warn"
-              aria-hidden
-            />
+          <Notice tone="warn">
             Sharing is only available for buckets with website access enabled.
-          </div>
+          </Notice>
         )}
 
-        <fieldset className="grid gap-1">
-          <legend className="mb-1 text-caption font-medium text-ink-2">
+        <fieldset className="m-0 grid gap-1 border-0 p-0">
+          <legend className="mb-1 p-0 text-caption font-medium text-ink-2">
             Domain
           </legend>
           {domains.map((item) => (
@@ -75,24 +67,31 @@ const ShareDialog = () => {
               <input
                 type="radio"
                 name="share-domain"
-                className="size-4 shrink-0 accent-gold-text"
+                className="size-4 shrink-0 accent-primary"
                 checked={item === domain}
                 onChange={() => setPicked(item)}
               />
-              <span className="[overflow-wrap:anywhere]">{item}</span>
+              <span className="font-mono text-[12.5px] [overflow-wrap:anywhere]">
+                {item}
+              </span>
             </label>
           ))}
         </fieldset>
 
-        <div className="grid gap-1">
+        <div className="grid gap-2">
           <TextField
             label="Link"
             readOnly
             value={url}
+            className="font-mono text-[12.5px]"
             onFocus={(e) => e.target.select()}
           />
           <div>
-            <CopyButton value={url} label="Copy link" />
+            <CopyButton
+              value={url}
+              label="Copy link"
+              className="h-9 md:h-[34px]"
+            />
           </div>
         </div>
       </div>

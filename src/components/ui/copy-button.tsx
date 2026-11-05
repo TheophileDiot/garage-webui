@@ -3,16 +3,21 @@ import { cn } from "@/lib/utils";
 import { Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-/** Copies `value`. "Copied" shows only after the browser took it; a failure toasts and the label stays "Copy". */
+/**
+ * Copies `value`. "Copied" shows only after the browser took it; a failure toasts and the label stays "Copy".
+ * `iconOnly` drops the word and keeps the accessible name, for a value that already sits in a tight line.
+ */
 const CopyButton = ({
   value,
   label,
   className,
+  iconOnly = false,
 }: {
   value: string;
   /** Accessible name; it should contain the word "copy". */
   label: string;
   className?: string;
+  iconOnly?: boolean;
 }) => {
   const [done, setDone] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -31,17 +36,28 @@ const CopyButton = ({
       type="button"
       onClick={() => void copy()}
       aria-label={label}
+      title={iconOnly ? label : undefined}
       className={cn(
-        "relative isolate inline-flex h-8 shrink-0 items-center gap-1.5 overflow-hidden rounded-sm px-2 text-ink-3 transition-colors duration-caret md:h-6",
-        "before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-transparent hover:before:bg-gold focus-visible:before:bg-gold before:transition-transform before:duration-caret before:ease-caret",
-        "hover:text-gold-ink hover:before:scale-x-100 focus-visible:text-gold-ink focus-visible:before:scale-x-100",
+        "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-transparent text-ink-3 transition-colors duration-100 md:h-[30px]",
+        "hover:border-line hover:bg-surface-2 hover:text-ink",
+        iconOnly ? "w-9 md:w-[30px]" : "px-2",
         className,
       )}
     >
-      {done ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-      <span aria-live="polite" className="text-caption">
-        {done ? "Copied" : "Copy"}
-      </span>
+      {done ? (
+        <Check size={14} aria-hidden className="text-ok" />
+      ) : (
+        <Copy size={14} aria-hidden />
+      )}
+      {iconOnly ? (
+        <span className="sr-only" aria-live="polite">
+          {done ? "Copied" : ""}
+        </span>
+      ) : (
+        <span aria-live="polite" className="text-caption">
+          {done ? "Copied" : "Copy"}
+        </span>
+      )}
     </button>
   );
 };

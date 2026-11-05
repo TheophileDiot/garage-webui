@@ -1,5 +1,5 @@
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/dialog";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
@@ -55,19 +55,12 @@ const CreateKeyDialog = () => {
         title={isImport ? "Import access key" : "Create access key"}
         description="A key starts with no access. Allow it on a bucket afterwards."
         actions={
-          <>
-            <Button onClick={close} disabled={createKey.isPending}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="create-key-form"
-              variant="primary"
-              loading={createKey.isPending}
-            >
-              {isImport ? "Import key" : "Create key"}
-            </Button>
-          </>
+          <FormActions
+            onCancel={close}
+            pending={createKey.isPending}
+            formId="create-key-form"
+            submitLabel={isImport ? "Import key" : "Create key"}
+          />
         }
       >
         <form id="create-key-form" onSubmit={onSubmit} className="grid gap-4">
@@ -92,6 +85,7 @@ const CreateKeyDialog = () => {
                 form={form}
                 name="accessKeyId"
                 title="Access key ID"
+                inputClassName="font-mono"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -99,6 +93,7 @@ const CreateKeyDialog = () => {
                 form={form}
                 name="secretAccessKey"
                 title="Secret access key"
+                inputClassName="font-mono"
                 type="password"
                 autoComplete="off"
               />

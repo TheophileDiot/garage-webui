@@ -1,7 +1,10 @@
-import IconButton from "@/components/ui/icon-button";
-import { AddressText } from "@/components/ui/page-header";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import IconButton from "@/components/ui/icon-button";
+import { SearchField } from "@/components/ui/input";
+import { bucketPath } from "@/lib/routes";
 import { useBucketContext } from "../context";
+import { pathParts } from "./model";
 
 type Props = {
   curPrefix: number;
@@ -9,29 +12,32 @@ type Props = {
   prefixHistory: string[];
   /** The current folder, `""` at the bucket root. */
   prefix: string;
+  filter: string;
+  onFilter: (value: string) => void;
   actions?: React.ReactNode;
 };
 
-const folderName = (prefix: string) =>
-  prefix.substring(0, prefix.lastIndexOf("/")).split("/").pop() ?? prefix;
+const part =
+  "inline-flex min-h-9 min-w-0 items-center md:min-h-6 rounded-sm px-1 [overflow-wrap:anywhere]";
 
-/** The path as a large address (each part is a link), back/forward through visited folders, and the toolbar. */
+/** The toolbar: back and forward through visited folders, the path inside the bucket (each folder a link), the filter box and the actions. */
 const ObjectListNavigator = ({
   curPrefix,
   setCurPrefix,
   prefixHistory,
   prefix,
+  filter,
+  onFilter,
   actions,
 }: Props) => {
-  const { bucket, bucketName } = useBucketContext();
-  const parts = prefix.split("/").filter(Boolean);
+  const { bucket, globalAlias } = useBucketContext();
+  const parts = pathParts(prefix);
   const hrefFor = (path: string) =>
-    `/buckets/${bucket.id}?tab=browse` +
-    (path ? `&prefix=${encodeURIComponent(path)}` : "");
+    bucketPath(bucket.id, "objects", path || undefined);
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-3">
-      <div className="flex min-w-0 items-start gap-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-3 py-2.5 md:pl-4">
+      <div className="flex min-w-0 flex-[1_1_240px] items-center gap-1">
         <div className="flex shrink-0 items-center">
           <IconButton
             icon={ChevronLeft}
@@ -48,28 +54,64 @@ const ObjectListNavigator = ({
         </div>
 
         <nav aria-label="Folder path" className="min-w-0">
-          <p className="min-w-0 pt-px text-[clamp(1rem,0.8rem+1.2vw,1.5rem)] font-medium leading-tight [overflow-wrap:anywhere]">
-            <AddressText
-              scheme="s3"
-              segments={[
-                {
-                  label: bucketName,
-                  to: parts.length ? hrefFor("") : undefined,
-                },
-                ...parts.map((_, i) => {
-                  const path = parts.slice(0, i + 1).join("/") + "/";
-                  return {
-                    label: folderName(path),
-                    to: i < parts.length - 1 ? hrefFor(path) : undefined,
-                  };
-                }),
-              ]}
-              trailing={parts.length > 0}
-            />
-          </p>
+          <ol className="m-0 flex min-w-0 list-none flex-wrap items-center p-0 font-mono text-[13px] leading-[1.3]">
+            <li className="flex min-w-0 items-center">
+              {parts.length ? (
+                <Link
+                  to={hrefFor("")}
+                  title={globalAlias}
+                  className={`${part} text-link hover:bg-surface-2 hover:underline`}
+                >
+                  {globalAlias}
+                </Link>
+              ) : (
+                <span
+                  aria-current="location"
+                  title={globalAlias}
+                  className={`${part} font-medium text-ink`}
+                >
+                  {globalAlias}
+                </span>
+              )}
+            </li>
+            {parts.map((p, i) => {
+              const last = i === parts.length - 1;
+              return (
+                <li key={p.path} className="flex min-w-0 items-center">
+                  <span aria-hidden className="text-ink-3">
+                    /
+                  </span>
+                  {last ? (
+                    <span
+                      aria-current="location"
+                      title={p.path}
+                      className={`${part} font-medium text-ink`}
+                    >
+                      {p.label}
+                    </span>
+                  ) : (
+                    <Link
+                      to={hrefFor(p.path)}
+                      title={p.path}
+                      className={`${part} text-link hover:bg-surface-2 hover:underline`}
+                    >
+                      {p.label}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
         </nav>
       </div>
 
+      <SearchField
+        label="Filter by name"
+        placeholder="Filter by name"
+        value={filter}
+        onChange={(e) => onFilter(e.target.value)}
+        className="min-w-[160px] flex-[0_1_220px] sm:max-w-[220px]"
+      />
       {actions}
     </div>
   );

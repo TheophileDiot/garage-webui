@@ -1,10 +1,6 @@
 import api from "@/lib/api";
-import {
-  useMutation,
-  UseMutationOptions,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useInvalidatingMutation } from "@/lib/mutation";
+import { UseMutationOptions, useQuery } from "@tanstack/react-query";
 import { Key } from "./types";
 import { CreateKeySchema } from "./schema";
 
@@ -26,42 +22,34 @@ export const fetchSecretKey = async (id: string) => {
 
 export const useCreateKey = (
   options?: UseMutationOptions<unknown, Error, CreateKeySchema>,
-) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (body) => {
+) =>
+  useInvalidatingMutation(
+    async (body: CreateKeySchema) => {
       if (body.isImport) {
         return api.post("/v2/ImportKey", { body });
       }
       return api.post("/v2/CreateKey", { body });
     },
-    ...options,
-    onSuccess: async (...args) => {
-      // The shell and the bucket pages read both lists.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["keys"] }),
-        queryClient.invalidateQueries({ queryKey: ["buckets"] }),
-      ]);
-      return options?.onSuccess?.(...args);
-    },
-  });
-};
+    // The shell and the bucket pages read both lists.
+    (client) =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ["keys"] }),
+        client.invalidateQueries({ queryKey: ["buckets"] }),
+      ]),
+    options,
+  );
 
 export const useRemoveKey = (
   options?: UseMutationOptions<unknown, Error, string>,
-) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id) => api.post("/v2/DeleteKey", { params: { id } }),
-    ...options,
-    onSuccess: async (...args) => {
-      // A deleted key also leaves every bucket's grants, so bucket details go stale too.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["keys"] }),
-        queryClient.invalidateQueries({ queryKey: ["buckets"] }),
-        queryClient.invalidateQueries({ queryKey: ["bucket"] }),
-      ]);
-      return options?.onSuccess?.(...args);
-    },
-  });
-};
+) =>
+  useInvalidatingMutation(
+    (id: string) => api.post("/v2/DeleteKey", { params: { id } }),
+    // A deleted key also leaves every bucket's grants, so bucket details go stale too.
+    (client) =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ["keys"] }),
+        client.invalidateQueries({ queryKey: ["buckets"] }),
+        client.invalidateQueries({ queryKey: ["bucket"] }),
+      ]),
+    options,
+  );

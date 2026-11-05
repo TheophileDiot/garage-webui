@@ -1,119 +1,162 @@
-# Garage console design
+# Garage console design: "Dock"
 
 Private administration app, not a marketing site. No loader, no decorative metrics, no scroll
 hijack. Every number on screen comes from the Garage API; when the API does not say, the screen
 says so.
 
-The console is an address space. The bar at the top always shows where you are as an S3-style
-address (`s3://media-assets/photos/`, `garage://cluster`), and the same addresses open the
-palette.
+The look is a quiet operations console: a dark grouped sidebar, a light or dark work area on a
+near-neutral graphite palette, one blue for actions and links, status in green, amber and red,
+condensed headings, and data tables as the main form. The Garage yellow appears only on the logo
+tile and on the active-navigation tick and icon.
 
 ## Tokens
 
-`src/app/tokens.css` holds every colour as a CSS variable; `tailwind.config.js` only maps names
-(`bg-lift`, `text-ink-3`, `border-rule`) to them. One olive-neutral hue, surfaces shift only in
-lightness, the logo yellow (`gold`) is the single accent.
+`src/app/tokens.css` holds every colour as a CSS variable (the Graphite palette of the prototype,
+light and dark); `tailwind.config.js` only maps names to them. A Tailwind colour has the name of
+its token without the dashes: `bg-surface`, `text-ink-2`, `border-line`, `bg-primary`,
+`text-primary-ink`, `bg-sb-bg`, `text-ok`, `bg-warn-soft`.
 
-| Token                    | Role                                                            |
-| ------------------------ | --------------------------------------------------------------- |
-| `ground` / `lift`        | page / panel and dialog surfaces                                |
-| `sunk`                   | inset fields                                                    |
-| `rule` / `rule-strong`   | hairlines / control borders                                     |
-| `wash` / `fill`          | hover wash / pressed or hovered icon control                    |
-| `ink` to `ink-4`         | text. `ink-3` is the lowest text tone (4.5:1 or better on both) |
-| `gold`, `gold-ink`       | accent fill and the text on it                                  |
-| `gold-text`, `gold-wash` | accent as text or focus ring, and a faint accent wash           |
-| `ok` / `warn` / `bad`    | status                                                          |
+| Token                           | Role                                                      |
+| ------------------------------- | --------------------------------------------------------- |
+| `bg`                            | page                                                      |
+| `surface` / `surface-2`         | panels, dialogs, fields / table heads, hover, quiet boxes |
+| `line` / `line-strong`          | hairlines / control borders                               |
+| `ink` / `ink-2` / `ink-3`       | text. `ink-3` is the lowest text tone (4.5:1 or better)   |
+| `primary`, `primary-hover`      | action fill; `primary-ink` is the text on it              |
+| `primary-soft`                  | selected row, selected menu item, pinned legend row       |
+| `link`, `focus`                 | links and the focus ring                                  |
+| `bar`, `track`                  | meter fill and its track                                  |
+| `ok`, `warn`, `bad` (+ `-soft`) | status text and icons / their tinted backgrounds          |
+| `folder`, `brand`               | folder icon amber, Garage yellow                          |
+| `sb-*`                          | the sidebar: background, ink, line, active, tick, status  |
+| `pop-shadow`, `scrim`           | popovers and dialogs / the backdrop                       |
 
-Themes: `light` and `dark`, keyed on `data-theme` on `<html>`. The choice lives in the
-`appdata` store (`localStorage`); a first visit follows `prefers-color-scheme`. An inline script
-in `index.html` sets the attribute before first paint. A document with no `data-theme` falls back
-to the OS preference through a media query in `tokens.css`. `--ink-4` is decoration only
-(disabled and idle marks), never text.
+Themes: `light`, `dark` and System. Light and Dark set `data-theme` on `<html>`; System removes
+the attribute and the OS preference decides through `prefers-color-scheme` in `tokens.css`. The
+choice lives in the `appdata` store (`localStorage`, `theme`: `light`, `dark` or `system`); with
+no stored choice the app is on System. An inline script in `index.html` sets an explicit choice
+before first paint. The user menu and the sign-in page carry the choice.
 
-Status is never colour alone: each state has a shape (filled square ok, triangle degraded, hollow
-square bad, dash unknown) and a word.
+Status is never colour alone: each state has an icon and a word (circle-check fine, triangle
+degraded, circle-x not fine, dashed circle unknown).
 
 ## Type
 
-Self-hosted, SIL OFL, no CDN: JetBrains Mono (variable, 400 to 700) is the UI face, Bricolage
-Grotesque (600 only) is for headings (`font-display`). Licences are in `misc/licenses/`. Fonts
-are imported from `src/assets/fonts` through CSS, so Vite emits them under `assets/`, which the Go
-server serves under `BASE_PATH`. Figures are tabular and zeros are slashed.
+Self-hosted woff2, latin subset, SIL OFL, no CDN, from `@fontsource` 5.3.0 (`ibm-plex-sans`,
+`ibm-plex-sans-condensed`, `ibm-plex-mono`), in `src/assets/fonts`, declared in
+`src/app/styles.css` with relative URLs so Vite emits them under `assets/`, which the Go server
+serves under `BASE_PATH`. Licence text: `misc/licenses/IBMPlex-OFL.txt`.
 
-| Class          | Size / line | Use                      |
-| -------------- | ----------- | ------------------------ |
-| `text-caption` | 13 / 18     | labels, meta, hints      |
-| `text-body`    | 13 / 20     | everything else          |
-| `text-h4`      | 14 / 20     | row titles on phone      |
-| `text-h3`      | 16 / 22     | panel and dialog titles  |
-| `text-h2`      | 20 / 26     | states and page headings |
+| Family                  | Weights     | Class       | Use                                                      |
+| ----------------------- | ----------- | ----------- | -------------------------------------------------------- |
+| IBM Plex Sans           | 400 500 600 | `font-sans` | all UI text                                              |
+| IBM Plex Sans Condensed | 500 600     | `font-cond` | page titles, big figures, panel titles, uppercase labels |
+| IBM Plex Mono           | 400 500     | `font-mono` | IDs, access keys, `s3://` URIs, addresses and paths only |
 
-The scale is replaced, not extended: Tailwind's defaults (`text-sm`, `rounded-xl`, …) do not exist.
-Radii are 2 px (`sm`), 3 px (default, `md`) and 6 px (`lg`, dialogs and the palette).
+| Class          | Size / line | Use                                                        |
+| -------------- | ----------- | ---------------------------------------------------------- |
+| `text-label`   | 12 / 14     | uppercase condensed labels (`.lbl`), key caps, table heads |
+| `text-caption` | 13 / 18     | secondary text, hints, meta                                |
+| `text-body`    | 14 / 21     | everything else                                            |
+| `text-h3`      | 16 / 22     | panel titles (condensed)                                   |
+| `text-h2`      | 20 / 26     | state headings                                             |
+| `text-stat`    | 22 / 26     | values in a summary strip, legend counts (condensed)       |
+| `text-title`   | 28 / 32     | page titles (condensed); 26 px under 768 px                |
+| `text-figure`  | 32 / 32     | big figures (condensed), also `.fig`                       |
+
+The type scale is replaced, not extended: Tailwind's default text sizes (`text-sm`, …) do not
+exist. Radii: `sm` 4 px, default and `md` 6 px (controls), `lg` 8 px (panels), `xl` 12 px
+(dialogs, palette). Numbers are tabular. Screens: `sm` 640, `md` 768 (tables become stacks),
+`nav` 961 (the sidebar is a fixed column from here up, a drawer below), `lg` 1024.
 
 ## Shell
 
-`src/components/shell/`. A rail on desktop (nav with `g` then `o`/`b`/`k`/`c` shortcuts, live
-cluster status, display name, sign out) and a labelled tab bar on phone. The address bar at the
-top shows the current address and opens the palette. The palette (`Ctrl/Cmd+K` or `/`, cmdk)
-resolves a typed address, bucket aliases, key names and node hostnames to routes, and offers
-theme and sign-out. It returns focus to the control that opened it. On route change the main
-column fades in (180 ms) while the address types itself into the bar (34 ms per character, 420 ms
-at most). The rail status reads the same health and status queries the pages use.
+`src/components/shell/`. The Dock sidebar (236 px, dark in both themes): the Garage tile and name,
+groups "Storage" (Overview, Buckets, Access keys) and "Operate" (Cluster, with an amber "N staged"
+tag when the layout has staged changes), then the cluster health block (status word and icon, the
+16 by 16 `StatusGlyph` at 32 px, "N of M nodes · layout vN") and the account menu (Light, Dark,
+System, Sign out). The top bar carries breadcrumbs (`crumbsForRoute`) and the search button
+(Ctrl/⌘ K). Under 961 px the sidebar is a modal drawer (Radix dialog: it traps focus, closes on
+Escape and returns focus to the menu button), and the bar shows the menu button, a health glyph
+with a screen-reader status word, and a search icon. Breadcrumbs keep the remaining width; links
+are at least 24 px high on desktop and 36 px on phone. Bucket labels follow the page title:
+first global alias, else first local alias, else ID. Palette S3 addresses still use global aliases
+or IDs only.
 
-URLs stay ID based (`/buckets/:id?tab=…&prefix=…`); names are labels, never identities.
+The palette (`Ctrl/⌘ K` or `/`, cmdk) resolves a typed address (`s3://media-assets/photos/`,
+bucket aliases and IDs, key names, node hostnames) to routes and offers pages, theme and sign-out.
+`g` then `o`, `b`, `k`, `c` jumps between pages; there are no visible badges for them. A palette
+that opens from a control returns focus to it.
+
+When the health reading is unavailable, including a refresh that failed after a healthy reading
+was cached, the sidebar block and the partition panel say so, give the reason and offer a retry,
+and show no counts (`healthReading` in `src/lib/partitions.ts`).
+
+URLs stay ID based (`/buckets/:id?tab=…&prefix=…`); names are labels, never identities. Bucket
+tabs are `objects`, `access`, `settings` (`bucketTab` also reads `browse`, `permissions` and
+`overview`).
 
 ## Primitives
 
 All in `src/components/ui/`, named exports where there is more than one.
 
-- Actions: `Button`, `LinkButton`, `IconButton` (label required), `CopyButton` (says "Copied" only
-  after the clipboard write succeeded), `ActionSheet` (phone overflow menu).
-- Forms: `Input`/`TextField`/`InputField`, `Toggle` (`role="switch"`), `Checkbox`, `TagInput`,
-  `FormControl`. react-hook-form with zod stays the form model.
-- Overlays: `Dialog` (Radix, bottom sheet on phone, returns focus, not dismissible while pending)
-  and `confirmAction()` from `confirm-store.ts`. A confirm with an `action` stays open with a
-  pending state while it runs, and on failure shows the server's message and stays open.
-- Data: `Ledger` (a table on desktop, labelled stacks under 768 px), `Meter`, `Status`, `Perm`,
-  `Kbd`, `Chips`, `Code`, `Diff` (staged changes), `PageHeader`, `Panel`, `AddressText`.
+- Actions: `Button`, `LinkButton`, `IconButton` (label required), `CopyButton` (`iconOnly`; says
+  "Copied" only after the clipboard write succeeded), `CopyLine` (monospace value and a copy
+  control). Copy controls are 36 px on phone, 30 px on desktop.
+- Forms: `Input`/`TextField`/`InputField`/`SearchField`, `Toggle` (`role="switch"`, reads On or
+  Off), `Checkbox`, `TagInput`, `FormControl`. react-hook-form with zod stays the form model.
+- Overlays: `Dialog` (Radix, a sheet on phone, returns focus, not dismissible while pending) and
+  `confirmAction()` from `confirm-store.ts`. A confirm with an `action` stays open with a pending
+  state while it runs, and on failure shows the server's message and stays open. Toasts sit at
+  the top centre under 768 px so they cannot cover sheet footer actions; desktop stays bottom right.
+- Layout: `PageHeader`, `Panel` (title, meta, actions, flush), `SummaryStrip`, `Inspector` with
+  `InspectorName` and `PropList`, `Notice`, `TabView` (a `normalize` prop rewrites legacy `?tab=`
+  values).
+- Data: `Ledger` (a table on desktop, labelled stacks under 768 px; `.row-actions` appear on hover,
+  focus or selection and always on touch; `selectedKey` or `selectedKeys` sets the selected fill),
+  `Meter` (`compact` fills grid cells without a minimum width or fixed flex basis), `Status`, `Perm`, `Chips`,
+  `Code`, `Diff` (staged changes), `Kbd` (the palette footer
+  and the search button only).
 - States: `SkeletonRows`, `EmptyState`, `ErrorState` (code, server message, retry). A failed query
   is an error state, never an empty list.
 - `PartitionPanel`, `StatusGlyph`, `StateGlyph`: the partition map.
 
+Ledger phone labels align left, while desktop numeric columns align right. A column with
+`mobile: "hide"` hides both its header and cells on phone. Responsive `hidden` utilities also
+work on cells: the phone `display: flex` rule has lower specificity.
+
 ## Partition map honesty rule
 
 The health API gives counts: `partitions`, `partitionsQuorum`, `partitionsAllOk`. The map draws
-exactly that and nothing more: one cell per partition, in three states (all copies reachable,
-quorum only, no quorum), computed by `src/lib/partitions.ts`. It shows no zone placement, no
-replica count and no per-partition detail, because the API does not provide them. A state glyph is
-three slivers lit three, two or one, so state reads by shape as well as colour. Unknown health,
-an error, or `partitions: 0` render a designed unavailable state, never invented counts. The 16 by
-16 shell glyph scales any partition count to 256 cells and never hides a non-zero state.
+exactly that and nothing more: one cell per partition (11 px cells on a 2 px gap, 206 px wide for
+256), in three states (all copies reachable, quorum only, no quorum), computed by
+`src/lib/partitions.ts`. It shows no zone placement, no replica count and no per-partition
+detail, because the API does not provide them. A cell is three slivers lit three, two or one, so
+state reads by shape as well as colour. Unknown health, an error, a failed refresh or
+`partitions: 0` render a designed unavailable state with the reason and a retry, never invented
+counts. The 16 by 16 sidebar glyph scales any partition count to 256 cells and never hides a
+non-zero state; at 32 px every cell is 2 px.
 
 ## Accessibility floor
 
-- Text 13 px or larger; secondary text 4.5:1 or better in both themes.
-- A visible focus ring (2 px `gold-text`, 2 px offset) on every stop.
-- Targets 24 by 24 px at least; 36 px on touch for default controls.
-- No colour-only hover on primary or icon controls: a block wipes in under the label, icon
-  controls take a fill.
+- Text 4.5:1 or better in both themes (measured: `port` a11y sweep, see the lane reports).
+- A visible focus ring (2 px `focus`, 2 px offset; `sb-focus` on the sidebar) on every stop.
+- Targets 24 by 24 px at least; 34 px default controls on desktop, 36 px on touch; small controls
+  (`size="sm"`) are 30 px on desktop and 36 px on touch, with no per-site override.
+- Hover is a fill and a border, never colour alone.
 - No horizontal overflow at 390 px; long names wrap or truncate with the full value in `title`.
-- Dialogs trap focus, close on Escape and are labelled by their title.
-- An accessible name that starts with the visible text (the rail status link).
-- axe: 0 serious or critical issues on every route.
+- Dialogs trap focus, close on Escape, return focus and are labelled by their title.
+- An accessible name that starts with the visible text (the sidebar status link).
+- `prefers-reduced-motion` turns every transition and animation off (`styles.css`).
 
 ## Motion
 
-120 ms ease-out (`cubic-bezier(0.23, 1, 0.32, 1)`), transform and opacity only: the hover wipe on
-buttons, the caret sliding in on rows, dialog open (opacity and 4 px), the route fade. Nothing
-moves at rest; live data refreshes on its own schedule and the updated time is shown. Under
-`prefers-reduced-motion: reduce` every transition and animation is off (`styles.css`) and the typed
-address appears at once.
+100 to 180 ms ease-out, transform and opacity only: row hover, dialog open (a sheet rising on
+phone, a 4 px settle on desktop), the drawer sliding in. Nothing moves at rest; live data
+refreshes on its own schedule and the updated time is shown.
 
 ## Layout
 
-`<main>` is at most 1200 px wide with 16 px gutters (20 px from `md`); the document scrolls, not an
-inner area. Lists (buckets, keys, nodes, objects) are ledgers. Pages end with a summary built only
-from real data (totals, quota usage, per-zone capacity), and on phone the explanation of an
-unreachable node comes before the partition map.
+`<main>` is at most 1400 px wide with 16 px gutters (32 px from `nav`); the document scrolls, not
+an inner area. Lists (buckets, keys, nodes, objects) are ledgers inside flush panels. Pages end
+with a summary built only from real data (totals, quota usage, per-zone capacity).

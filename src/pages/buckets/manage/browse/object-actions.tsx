@@ -1,104 +1,70 @@
-import { Object } from "./types";
-import Button from "@/components/ui/button";
+import { DownloadIcon, ExternalLink, Share2, Trash2 } from "lucide-react";
 import IconButton from "@/components/ui/icon-button";
-import {
-  ActionSheet,
-  ActionSheetItem,
-  ActionSheetSeparator,
-} from "@/components/ui/action-sheet";
-import { DownloadIcon, MoreHorizontal, Share2, Trash2 } from "lucide-react";
-import { useDeleteObject } from "./hooks";
-import { toast } from "sonner";
-import { API_URL } from "@/lib/api";
-import { shareDialog } from "./stores";
-import { confirmAction } from "@/components/ui/confirm-store";
+import { buttonClass } from "@/components/ui/button-styles";
+import { isFolder, targetName } from "./model";
+import { ObjectTarget } from "./types";
+import { ObjectOps, viewUrl } from "./use-object-ops";
 
-type Props = {
-  prefix?: string;
-  object: Pick<Object, "objectKey" | "url">;
+/** A link to the object in a new tab, drawn like an icon button or a text button. */
+export const OpenLink = ({
+  object,
+  iconOnly = false,
+}: {
+  object: ObjectTarget;
+  iconOnly?: boolean;
+}) => {
+  const name = targetName(object);
+  return (
+    <a
+      href={viewUrl(object)}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${name} in a new tab`}
+      title={iconOnly ? `Open ${name}` : undefined}
+      className={buttonClass({
+        variant: iconOnly ? "ghost" : "secondary",
+        size: "md",
+        iconOnly,
+      })}
+    >
+      <ExternalLink size={16} aria-hidden />
+      {iconOnly ? null : "Open"}
+    </a>
+  );
 };
 
-const ObjectActions = ({ prefix = "", object }: Props) => {
-  const deleteObject = useDeleteObject();
-  const isDirectory = object.objectKey.endsWith("/");
-  const name = object.objectKey.replace(/\/$/, "").split("/").pop();
-  const downloadUrl = API_URL + object.url + "?dl=1";
-
-  const onDownload = () => {
-    window.open(downloadUrl, "_blank", "noopener");
-  };
-
-  const onShare = () => shareDialog.open({ key: object.objectKey, prefix });
-
-  const onDelete = async () => {
-    const ok = await confirmAction({
-      title: isDirectory ? "Delete folder" : "Delete object",
-      message: isDirectory
-        ? `Delete ${name} and everything inside it? This cannot be undone.`
-        : `Delete ${name}? This cannot be undone.`,
-      confirmLabel: "Delete",
-      danger: true,
-      action: () =>
-        deleteObject.mutateAsync({
-          key: prefix + object.objectKey,
-          recursive: isDirectory,
-        }),
-    });
-    if (ok) toast.success(isDirectory ? "Folder deleted" : "Object deleted");
-  };
-
+/** Row actions: open, download, share and delete for a file; share and delete for a folder. Hidden until hover, focus or selection on a pointer device. */
+const ObjectActions = ({
+  object,
+  ops,
+}: {
+  object: ObjectTarget;
+  ops: ObjectOps;
+}) => {
+  const folder = isFolder(object);
+  const name = targetName(object);
   return (
-    <>
-      <span className="flex justify-end gap-0.5 max-md:hidden">
-        {!isDirectory && (
-          <IconButton
-            label={`Download ${name}`}
-            icon={DownloadIcon}
-            onClick={onDownload}
-          />
-        )}
-        <IconButton label={`Share ${name}`} icon={Share2} onClick={onShare} />
+    <div className="row-actions">
+      {!folder && <OpenLink object={object} iconOnly />}
+      {!folder && (
         <IconButton
-          label={`Delete ${name}`}
-          icon={Trash2}
-          variant="ghost-danger"
-          onClick={() => void onDelete()}
+          label={`Download ${name}`}
+          icon={DownloadIcon}
+          onClick={() => ops.download([object])}
         />
-      </span>
-      <span className="md:hidden">
-        <ActionSheet
-          label={`Actions for ${name}`}
-          trigger={
-            <Button size="sm" icon={MoreHorizontal}>
-              Actions<span className="sr-only"> for {name}</span>
-            </Button>
-          }
-        >
-          {!isDirectory && (
-            <ActionSheetItem
-              href={downloadUrl}
-              icon={<DownloadIcon size={16} aria-hidden />}
-            >
-              Download
-            </ActionSheetItem>
-          )}
-          <ActionSheetItem
-            onSelect={onShare}
-            icon={<Share2 size={16} aria-hidden />}
-          >
-            Share
-          </ActionSheetItem>
-          <ActionSheetSeparator />
-          <ActionSheetItem
-            danger
-            onSelect={() => void onDelete()}
-            icon={<Trash2 size={16} aria-hidden />}
-          >
-            Delete
-          </ActionSheetItem>
-        </ActionSheet>
-      </span>
-    </>
+      )}
+      <IconButton
+        label={`Share ${name}`}
+        icon={Share2}
+        onClick={() => ops.share(object)}
+      />
+      <IconButton
+        label={`Delete ${name}`}
+        icon={Trash2}
+        variant="ghost-danger"
+        onClick={() => void ops.remove([object])}
+      />
+    </div>
   );
 };
 

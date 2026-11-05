@@ -45,7 +45,7 @@ type WebsiteConfig = {
  * `null` = no quota. The app-owned `/api/buckets` list re-encodes Go int64 quotas, so there "no quota" can arrive
  * as `0`: list consumers treat `null` and `0` alike as no quota.
  */
-export type Quotas = {
+type Quotas = {
   maxSize: number | null;
   maxObjects: number | null;
 };

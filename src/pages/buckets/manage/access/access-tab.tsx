@@ -9,21 +9,23 @@ import { confirmAction } from "@/components/ui/confirm-store";
 import { Ledger, LedgerColumn } from "@/components/ui/ledger";
 import { Panel } from "@/components/ui/page-header";
 import IconButton from "@/components/ui/icon-button";
+import CopyButton from "@/components/ui/copy-button";
 import Perm from "@/components/ui/perm";
-import { bucketName } from "../../utils";
+import { bucketName, grantedKeys } from "../../utils";
+import { textLink } from "../../styles";
 import { Key } from "../../types";
 import { keyLabel } from "@/pages/keys/utils";
+import { cn } from "@/lib/utils";
+import { searchPath } from "@/lib/routes";
 
-const PermissionsTab = () => {
+/** The keys that can use this bucket, with their read, write and owner grants. */
+const AccessTab = () => {
   const { bucket } = useBucketContext();
   const name = bucketName(bucket);
 
   const denyKey = useDenyKey(bucket.id);
 
-  const keys = bucket.keys.filter(
-    (key) =>
-      key.permissions.read || key.permissions.write || key.permissions.owner,
-  );
+  const keys = grantedKeys(bucket.keys);
 
   const onRemove = async (key: Key) => {
     const label = keyLabel(key);
@@ -49,9 +51,12 @@ const PermissionsTab = () => {
       width: "24%",
       cell: (key) => (
         <Link
-          to={`/keys?q=${encodeURIComponent(key.accessKeyId)}`}
+          to={searchPath("keys", key.accessKeyId)}
           title={key.name || key.accessKeyId}
-          className="xlink font-medium max-md:[overflow-wrap:anywhere]"
+          className={cn(
+            textLink,
+            "font-medium max-md:[overflow-wrap:anywhere]",
+          )}
         >
           {keyLabel(key)}
         </Link>
@@ -59,11 +64,21 @@ const PermissionsTab = () => {
     },
     {
       key: "id",
-      header: "Access key id",
-      width: "30%",
+      header: "Access key ID",
+      width: "32%",
       cell: (key) => (
-        <span title={key.accessKeyId} className="text-ink-2">
-          {key.accessKeyId}
+        <span className="flex min-w-0 items-center gap-0.5">
+          <span
+            title={key.accessKeyId}
+            className="min-w-0 truncate font-mono text-[12.5px] max-md:[overflow-wrap:anywhere]"
+          >
+            {key.accessKeyId}
+          </span>
+          <CopyButton
+            value={key.accessKeyId}
+            label={`Copy access key ID of ${keyLabel(key)}`}
+            iconOnly
+          />
         </span>
       ),
     },
@@ -76,13 +91,15 @@ const PermissionsTab = () => {
     {
       key: "aliases",
       header: "Local aliases",
-      width: "21%",
+      width: "19%",
       cell: (key) => {
         const text = key.bucketLocalAliases?.join(", ");
         return text ? (
-          <span title={text}>{text}</span>
+          <span title={text} className="font-mono text-[12.5px]">
+            {text}
+          </span>
         ) : (
-          <span className="text-ink-3">none</span>
+          <span className="text-ink-3">None</span>
         );
       },
     },
@@ -92,33 +109,34 @@ const PermissionsTab = () => {
       align: "right",
       mobile: "actions",
       width: "5rem",
-      cell: (key) => {
-        const label = keyLabel(key);
-        return (
+      cell: (key) => (
+        <div className="row-actions">
           <IconButton
-            label={`Remove access of ${label}`}
+            label={`Remove access of ${keyLabel(key)}`}
             icon={X}
             variant="ghost-danger"
             onClick={() => void onRemove(key)}
           />
-        );
-      },
+        </div>
+      ),
     },
   ];
 
   return (
     <Panel
-      id="permissions"
+      id="access"
       title="Keys with access"
-      aside={
+      meta={`${keys.length} ${keys.length === 1 ? "key" : "keys"}`}
+      actions={
         <AllowKeyDialog currentKeys={keys.map((key) => key.accessKeyId)} />
       }
       flush
     >
-      <p className="border-b border-rule px-3 py-2 text-ink-3">
-        <span className="text-ink-2">R</span> read ·{" "}
-        <span className="text-ink-2">W</span> write ·{" "}
-        <span className="text-ink-2">O</span> owner. A filled cell is granted.
+      <p className="border-b border-line px-4 py-2.5 text-ink-3">
+        <span className="font-medium text-ink-2">R</span> read ·{" "}
+        <span className="font-medium text-ink-2">W</span> write ·{" "}
+        <span className="font-medium text-ink-2">O</span> owner. A filled cell
+        is granted.
       </p>
       <Ledger
         caption={`Keys with access to ${name}`}
@@ -136,4 +154,4 @@ const PermissionsTab = () => {
   );
 };
 
-export default PermissionsTab;
+export default AccessTab;

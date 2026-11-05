@@ -1,5 +1,6 @@
 import type { Tone } from "@/components/ui/status";
 import { ofCounts } from "../../lib/partitions.ts";
+import { bucketPath, searchPath } from "../../lib/routes.ts";
 import { quotaTone, quotaValue } from "../buckets/utils.ts";
 import type { Bucket } from "../buckets/types";
 import {
@@ -9,8 +10,7 @@ import {
   type DiffLine,
   type NodeRow,
 } from "../cluster/model.ts";
-import type { GetClusterLayoutResult } from "../cluster/types";
-import type { GetHealthResult } from "./types";
+import type { GetClusterLayoutResult, GetHealthResult } from "../cluster/types";
 
 // Pure helpers for the Overview: the headline sentence and the "worth a look" list. Imports only types and other
 // pure modules (relative, with extension), so `node --test` runs them.
@@ -20,10 +20,10 @@ export const headline = (
   health: GetHealthResult | undefined,
   failed: boolean,
 ): { title: string; text: string } => {
-  if (failed && !health)
+  if (failed)
     return {
       title: "Health unavailable",
-      text: "Garage did not answer the health request, so nothing about quorum is shown.",
+      text: "The last health refresh failed.",
     };
   if (!health) return { title: "Overview", text: "Checking the cluster…" };
   const { partitionsQuorum: q, partitions: p } = health;
@@ -84,14 +84,6 @@ export type WatchBucket = Pick<
   | "unfinishedMultipartUploadBytes"
 > & { quotas?: { maxSize?: number | null } };
 
-/** Free share of a data disk below which the Overview calls it low (warn) or nearly full (bad). */
-const DISK_FREE = { warn: 0.25, bad: 0.1 } as const;
-
-export const diskTone = (available: number, total: number) => {
-  const free = available / total;
-  return free < DISK_FREE.bad ? "bad" : free < DISK_FREE.warn ? "warn" : "ink";
-};
-
 /** What needs a look, in order: unreachable nodes, a staged layout, buckets near a quota, unfinished uploads. */
 export const watchItems = ({
   rows,
@@ -123,7 +115,7 @@ export const watchItems = ({
           ? "No last-seen time reported."
           : `Last seen ${duration(r.node.lastSeenSecsAgo)} ago.`
       }${quorumOnly > 0 ? ` ${quorumOnly.toLocaleString()} partitions have quorum only.` : ""}`,
-      to: `/cluster?q=${encodeURIComponent(r.node.hostname || r.node.id)}`,
+      to: searchPath("cluster", r.node.hostname || r.node.id),
     });
   }
   const stagedCount = layout?.stagedRoleChanges?.length ?? 0;
@@ -144,7 +136,7 @@ export const watchItems = ({
         tone: "warn",
         label: `${label} at ${Math.round((b.bytes / max) * 100)}% of its quota`,
         detail: `${bytes(b.bytes)} of ${bytes(max)}.`,
-        to: `/buckets/${b.id}`,
+        to: bucketPath(b.id),
       });
     if (b.unfinishedMultipartUploads > 0)
       list.push({
@@ -152,7 +144,7 @@ export const watchItems = ({
         tone: "idle",
         label: `${label} has ${b.unfinishedMultipartUploads.toLocaleString()} unfinished multipart ${b.unfinishedMultipartUploads === 1 ? "upload" : "uploads"}`,
         detail: `${bytes(b.unfinishedMultipartUploadBytes)} held by uploads that never completed.`,
-        to: `/buckets/${b.id}`,
+        to: bucketPath(b.id),
       });
   }
   return list;

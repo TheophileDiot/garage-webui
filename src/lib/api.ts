@@ -1,5 +1,4 @@
-import * as utils from "@/lib/utils";
-import { BASE_PATH } from "./consts";
+import { BASE_PATH, url as appUrl } from "./consts";
 
 type FetchOptions = Omit<RequestInit, "headers" | "body"> & {
   params?: Record<string, unknown>;
@@ -9,7 +8,7 @@ type FetchOptions = Omit<RequestInit, "headers" | "body"> & {
 
 export const API_URL = BASE_PATH + "/api";
 
-export class APIError extends Error {
+class APIError extends Error {
   status!: number;
 
   constructor(message: string, status: number = 400) {
@@ -54,7 +53,7 @@ const api = {
     const data = isJson ? await res.json() : await res.text();
 
     if (res.status === 401 && !url.startsWith("/auth")) {
-      window.location.href = utils.url("/auth/login");
+      window.location.href = appUrl("/auth/login");
       throw new APIError("unauthorized", res.status);
     }
 

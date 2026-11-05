@@ -1,18 +1,12 @@
 import { useCallback, useState } from "react";
 
-export const useDisclosure = <T = unknown>() => {
+/** Open/closed state for a dialog. `onOpen` ignores its arguments, so it can be wired straight to `onClick`. */
+export const useDisclosure = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [data, setData] = useState<T | null | undefined>(null);
 
   return {
     isOpen,
-    data,
-    onOpen: useCallback((data?: T | null) => {
-      setIsOpen(true);
-      setData(data);
-    }, []),
-    onClose: useCallback(() => {
-      setIsOpen(false);
-    }, []),
+    onOpen: useCallback(() => setIsOpen(true), []),
+    onClose: useCallback(() => setIsOpen(false), []),
   };
 };

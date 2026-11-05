@@ -3,7 +3,7 @@
  * runs this file as it is.
  */
 
-export type AutosaveState = {
+type AutosaveState = {
   /** Key of the payload last sent, or of the snapshot the form last reset to. */
   sent: string | null;
   /** Saves sent and not yet settled. */

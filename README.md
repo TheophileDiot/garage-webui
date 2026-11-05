@@ -118,4 +118,4 @@ The GitHub Actions workflow runs frontend lint/typecheck/build, dependency audit
 
 Auth tests use a local signed mock identity provider and cover PKCE, token claims, group denial, state replay, session rotation/logout, prefix routing and cross-origin writes. They do not prove an actual Authentik provider is configured correctly. Visual review uses synthetic Garage fixtures; validate real cluster operations and your identity provider before rollout.
 
-Fonts are self-hosted: JetBrains Mono and Bricolage Grotesque, both SIL OFL. Their licenses are in `misc/licenses/JetBrainsMono-OFL.txt` and `misc/licenses/BricolageGrotesque-OFL.txt`.
+Fonts are self-hosted: IBM Plex Sans, IBM Plex Sans Condensed and IBM Plex Mono, all SIL OFL. Their license is in `misc/licenses/IBMPlex-OFL.txt`.

@@ -8,7 +8,7 @@ type CheckboxProps = Omit<React.ComponentPropsWithoutRef<"input">, "form"> & {
   inputClassName?: string;
 };
 
-/** The whole label is the target (at least 24 px tall); the box shows a check mark, not only a colour. */
+/** The whole label is the target (at least 24 px tall); the native box shows a tick, not only a colour. */
 const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, className, inputClassName, ...props }, ref) => {
     return (

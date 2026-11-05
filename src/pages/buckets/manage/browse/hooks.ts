@@ -1,9 +1,9 @@
 import api from "@/lib/api";
+import { useInvalidatingMutation } from "@/lib/mutation";
 import {
-  useMutation,
+  QueryClient,
   UseMutationOptions,
   useQuery,
-  useQueryClient,
 } from "@tanstack/react-query";
 import { useBucketContext } from "../context";
 import {
@@ -23,40 +23,39 @@ export const useBrowseObjects = (
   });
 };
 
-/** The bucket a browse write targets, and the refresh that follows it: the listing, plus the bucket list and detail that carry object counts and bytes. */
-const useBrowseWrite = () => {
-  const queryClient = useQueryClient();
-  const { bucket, bucketName } = useBucketContext();
-  const invalidate = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["browse", bucketName] }),
-      queryClient.invalidateQueries({ queryKey: ["buckets"] }),
-      queryClient.invalidateQueries({ queryKey: ["bucket", bucket.id] }),
-    ]);
-  return { bucketName, invalidate };
+/** The refresh that follows a browse write: the listing, plus the bucket list and detail that carry object counts and bytes. */
+const useBrowseRefresh = () => {
+  const { bucket, globalAlias } = useBucketContext();
+  return {
+    globalAlias,
+    refresh: (queryClient: QueryClient) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["browse", globalAlias] }),
+        queryClient.invalidateQueries({ queryKey: ["buckets"] }),
+        queryClient.invalidateQueries({ queryKey: ["bucket", bucket.id] }),
+      ]),
+  };
 };
 
 export const usePutObject = (
   options?: UseMutationOptions<unknown, Error, PutObjectPayload>,
 ) => {
-  const { bucketName, invalidate } = useBrowseWrite();
-  return useMutation({
-    mutationFn: async (body) => {
+  const { globalAlias, refresh } = useBrowseRefresh();
+  return useInvalidatingMutation(
+    async (body: PutObjectPayload) => {
       const formData = new FormData();
       if (body.file) {
         formData.append("file", body.file);
       }
 
-      return api.put(`/browse/${bucketName}/${encodeURIComponent(body.key)}`, {
-        body: formData,
-      });
+      return api.put<unknown>(
+        `/browse/${globalAlias}/${encodeURIComponent(body.key)}`,
+        { body: formData },
+      );
     },
-    ...options,
-    onSuccess: async (...args) => {
-      await invalidate();
-      return options?.onSuccess?.(...args);
-    },
-  });
+    refresh,
+    options,
+  );
 };
 
 export const useDeleteObject = (
@@ -66,16 +65,14 @@ export const useDeleteObject = (
     { key: string; recursive?: boolean }
   >,
 ) => {
-  const { bucketName, invalidate } = useBrowseWrite();
-  return useMutation({
-    mutationFn: (data) =>
-      api.delete(`/browse/${bucketName}/${encodeURIComponent(data.key)}`, {
-        params: { recursive: data.recursive },
-      }),
-    ...options,
-    onSuccess: async (...args) => {
-      await invalidate();
-      return options?.onSuccess?.(...args);
-    },
-  });
+  const { globalAlias, refresh } = useBrowseRefresh();
+  return useInvalidatingMutation(
+    (data: { key: string; recursive?: boolean }) =>
+      api.delete<unknown>(
+        `/browse/${globalAlias}/${encodeURIComponent(data.key)}`,
+        { params: { recursive: data.recursive } },
+      ),
+    refresh,
+    options,
+  );
 };

@@ -33,6 +33,32 @@ export const hasUsableHealth = <H extends Partial<PartitionHealth>>(
   hasPartitionCounts(h) &&
   (h.partitions ?? 0) > 0;
 
+/** Why no partition counts are drawn, for a health body that is not usable. */
+const unavailableReason = (h?: Partial<PartitionHealth>) =>
+  !h
+    ? "No health reading yet."
+    : h.status === "unknown"
+      ? "The cluster reports its health as unknown."
+      : !hasPartitionCounts(h)
+        ? "The health reply carries no partition counts."
+        : "The cluster reports no partitions.";
+
+/**
+ * Whether a health query's result can be drawn. A refresh that failed makes it unusable even when an earlier,
+ * healthy reading is still cached: stale counts are never shown as if they were current.
+ */
+export const healthReading = <H extends Partial<PartitionHealth>>(
+  health: H | undefined,
+  isError: boolean,
+):
+  | { usable: true; health: H & PartitionHealth }
+  | { usable: false; reason: string } =>
+  isError
+    ? { usable: false, reason: "The last health refresh failed." }
+    : hasUsableHealth(health)
+      ? { usable: true, health }
+      : { usable: false, reason: unavailableReason(health) };
+
 const atLeastZero = (n: number) => (Number.isFinite(n) && n > 0 ? n : 0);
 
 /**

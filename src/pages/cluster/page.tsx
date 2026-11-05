@@ -5,16 +5,17 @@ import {
   useClusterLayout,
   useClusterStatus,
   useNodeInfo,
+  useNodesHealth,
   useRevertChanges,
   useUnassignNode,
 } from "./hooks";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Check, Search, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { ErrorState, EmptyState, SkeletonRows } from "@/components/ui/state";
 import { PageHeader, Panel } from "@/components/ui/page-header";
-import { TextField } from "@/components/ui/input";
+import { SearchField } from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import IconButton from "@/components/ui/icon-button";
 import Diff from "@/components/ui/diff";
@@ -22,8 +23,8 @@ import { Ledger } from "@/components/ui/ledger";
 import { Status } from "@/components/ui/status";
 import { confirmAction } from "@/components/ui/confirm-store";
 import { dec, readableBytes } from "@/lib/utils";
-import { ofCounts } from "@/lib/partitions";
-import { useNodesHealth } from "../home/hooks";
+import { healthReading, ofCounts } from "@/lib/partitions";
+import PartitionPanel from "@/components/ui/partition-map";
 import NodeLedger from "./components/node-ledger";
 import ConnectNodeDialog from "./components/connect-node-dialog";
 import AssignNodeDialog from "./components/assign-node-dialog";
@@ -45,7 +46,9 @@ const ClusterPage = () => {
   const status = useClusterStatus();
   const layoutQuery = useClusterLayout();
   const { data: info } = useNodeInfo();
-  const { data: health } = useNodesHealth();
+  const healthQuery = useNodesHealth();
+  const reading = healthReading(healthQuery.data, !!healthQuery.error);
+  const health = reading.usable ? reading.health : undefined;
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const focus = params.get("node");
@@ -166,7 +169,7 @@ const ClusterPage = () => {
                 : `layout v${layout.version}`
               : undefined
           }
-          className={hasStaged ? "border-gold-text/60" : undefined}
+          className={hasStaged ? "border-warn bg-warn-soft" : undefined}
         >
           {layoutQuery.isError ? (
             <div role="alert" className="grid justify-items-start gap-2">
@@ -230,20 +233,18 @@ const ClusterPage = () => {
         ) : null}
 
         <div className="max-w-sm">
-          <TextField
+          <SearchField
             label="Search nodes"
-            type="search"
-            prefix={<Search size={14} aria-hidden />}
             placeholder="Host, zone, tag, address or id"
             autoComplete="off"
             value={q}
             onChange={(e) => setQuery(e.target.value)}
-            hint={
-              q && status.data
-                ? `${visible.length} of ${rows.length} nodes match`
-                : undefined
-            }
           />
+          {q && status.data ? (
+            <p className="mt-1 text-caption text-ink-3" role="status">
+              {visible.length} of {rows.length} nodes match
+            </p>
+          ) : null}
         </div>
 
         {status.isPending ? (
@@ -273,7 +274,7 @@ const ClusterPage = () => {
         ) : (
           groups.map((g) => {
             const s = summary.find((z) => z.zone === g.zone);
-            const label = g.zone ? `zone ${g.zone}` : "no role";
+            const label = g.zone ? `Zone ${g.zone}` : "No role";
             return (
               <Panel
                 key={g.zone ?? "none"}
@@ -298,6 +299,21 @@ const ClusterPage = () => {
             );
           })
         )}
+
+        <Panel
+          id="partitions"
+          title="Partitions"
+          meta={
+            health ? `${health.partitions.toLocaleString()} total` : undefined
+          }
+        >
+          <PartitionPanel
+            health={healthQuery.data}
+            isLoading={healthQuery.isPending}
+            error={healthQuery.error}
+            onRetry={() => void healthQuery.refetch()}
+          />
+        </Panel>
 
         {rows.length > 0 ? (
           <Panel

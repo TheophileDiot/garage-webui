@@ -4,7 +4,7 @@ import { Bucket } from "../types";
 export const BucketContext = createContext<{
   bucket: Bucket;
   refetch: () => void;
-  bucketName: string;
+  globalAlias: string;
 } | null>(null);
 
 export const useBucketContext = () => {

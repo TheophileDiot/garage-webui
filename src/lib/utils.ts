@@ -3,27 +3,17 @@ import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 import dayjsRelativeTime from "dayjs/plugin/relativeTime";
 import dayjs from "dayjs";
-import { BASE_PATH } from "./consts";
 import { copyText } from "./clipboard";
 
 dayjs.extend(dayjsRelativeTime);
 export { dayjs };
+// Re-exported so existing importers keep their path; the pure parts live in modules node --test can load.
+export { dec, readableBytes } from "./format";
+export { url } from "./consts";
 
 export const cn = (...args: ClassValue[]) => {
   return twMerge(clsx(...args));
 };
-
-export const readableBytes = (bytes?: number | null, divider = 1024) => {
-  if (bytes == null || Number.isNaN(bytes)) return "n/a";
-
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.max(0, Math.floor(Math.log(bytes) / Math.log(divider)));
-
-  return `${(bytes / Math.pow(divider, i)).toFixed(1)} ${sizes[i]}`;
-};
-
-/** Decimal units (1 GB = 1000 MB): what Garage reports node capacity in. */
-export const dec = (bytes: number) => readableBytes(bytes, 1000);
 
 export const handleError = (err: unknown) => {
   toast.error((err as Error)?.message || "Unknown error");
@@ -62,8 +52,4 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   if (ok) toast.success("Copied to clipboard");
   else toast.error("Could not copy to the clipboard");
   return ok;
-};
-
-export const url = (...paths: unknown[]) => {
-  return BASE_PATH + paths.join("/");
 };

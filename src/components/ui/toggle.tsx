@@ -9,7 +9,7 @@ type ToggleProps = Omit<React.ComponentPropsWithoutRef<"input">, "form"> & {
 };
 
 /**
- * A switch with its state written out: the box reads "on" or "off", never colour alone.
+ * A switch with its state written out: the box reads "On" or "Off", never colour alone.
  * A real checkbox input with role="switch", so keyboard, forms and assistive tech work as usual.
  */
 const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
@@ -40,10 +40,10 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
         <span
           aria-hidden
           className={cn(
-            "relative isolate inline-flex h-9 min-w-[3.75rem] shrink-0 items-center gap-2 overflow-hidden rounded-sm border border-rule-strong px-2.5 font-medium text-ink-2 transition-colors duration-caret md:h-7",
-            "before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:bg-gold before:transition-transform before:duration-caret before:ease-caret hover:border-gold hover:text-gold-ink hover:before:scale-x-100",
-            "after:content-['off'] peer-checked:border-gold peer-checked:bg-gold peer-checked:text-gold-ink peer-checked:after:content-['on'] peer-checked:before:bg-ink peer-checked:hover:text-ground",
-            "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-gold-text",
+            "inline-flex h-9 min-w-[3.75rem] shrink-0 items-center justify-center rounded border border-line-strong bg-surface px-2.5 font-medium text-ink-2 transition-colors duration-100 md:h-[34px]",
+            "hover:border-ink-3 hover:bg-surface-2",
+            "after:content-['Off'] peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-ink peer-checked:after:content-['On'] peer-checked:hover:border-primary-hover peer-checked:hover:bg-primary-hover",
+            "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus",
           )}
         />
       </label>

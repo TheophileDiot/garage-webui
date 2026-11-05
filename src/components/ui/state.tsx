@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { CircleAlert, LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
 import Button from "./button";
 
@@ -12,23 +13,19 @@ export const SkeletonRows = ({
   label?: string;
   className?: string;
 }) => (
-  <div
-    role="status"
-    aria-label={label}
-    className={cn("grid gap-px", className)}
-  >
+  <div role="status" aria-label={label} className={cn("grid", className)}>
     {Array.from({ length: rows }, (_, i) => (
       <div
         key={i}
         aria-hidden
-        className="flex h-8 items-center gap-4 border-b border-rule px-3"
+        className="flex h-[45px] items-center gap-4 border-b border-line px-4"
       >
         <span
-          className="h-2 bg-rule-strong"
+          className="h-2.5 rounded-[2px] bg-track"
           style={{ width: `${Math.max(12, 34 - i * 3)}%` }}
         />
-        <span className="ml-auto h-2 w-16 bg-rule" />
-        <span className="hidden h-2 w-24 bg-rule md:block" />
+        <span className="ml-auto h-2.5 w-16 rounded-[2px] bg-surface-2" />
+        <span className="hidden h-2.5 w-24 rounded-[2px] bg-surface-2 md:block" />
       </div>
     ))}
     <span className="sr-only">{label}…</span>
@@ -40,27 +37,34 @@ export const EmptyState = ({
   title,
   children,
   action,
+  icon: Icon,
   className,
 }: {
   title: string;
   children?: ReactNode;
   action?: ReactNode;
+  /** An optional lucide icon above the title. */
+  icon?: LucideIcon;
   className?: string;
 }) => (
   <div
     className={cn(
-      "grid justify-items-start gap-2 px-4 py-10 md:px-6",
+      "grid justify-items-center gap-2 px-4 py-10 text-center md:px-6",
       className,
     )}
   >
-    <p className="text-ink-3" aria-hidden>
-      {"s3://"}
-      <span className="caret-blink ml-0.5" />
-    </p>
-    <h2 className="font-display text-h2 font-semibold tracking-[-0.02em]">
-      {title}
-    </h2>
-    {children ? <p className="max-w-[52ch] text-ink-2">{children}</p> : null}
+    {Icon ? (
+      <span
+        aria-hidden
+        className="mb-1 grid h-10 w-10 place-items-center rounded-lg border border-line bg-surface-2 text-ink-2"
+      >
+        <Icon size={20} />
+      </span>
+    ) : null}
+    <h2 className="font-cond text-[18px] font-semibold">{title}</h2>
+    {children ? (
+      <p className="max-w-[52ch] text-ink-2 [text-wrap:pretty]">{children}</p>
+    ) : null}
     {action ? <div className="mt-2">{action}</div> : null}
   </div>
 );
@@ -89,18 +93,22 @@ export const ErrorState = ({
     <div
       role="alert"
       className={cn(
-        "grid justify-items-start gap-2 px-4 py-10 md:px-6",
+        "grid justify-items-center gap-2 px-4 py-10 text-center md:px-6",
         className,
       )}
     >
-      <p className="font-medium text-bad">
+      <span
+        aria-hidden
+        className="mb-1 grid h-10 w-10 place-items-center rounded-lg bg-bad-soft text-bad"
+      >
+        <CircleAlert size={20} />
+      </span>
+      <p className="text-caption font-semibold uppercase tracking-[0.07em] text-bad">
         {code ?? (status ? String(status) : "error")}
       </p>
-      <h2 className="font-display text-h2 font-semibold tracking-[-0.02em]">
-        {title}
-      </h2>
+      <h2 className="font-cond text-[18px] font-semibold">{title}</h2>
       {children ? (
-        <p className="max-w-[52ch] text-ink-2">{children}</p>
+        <p className="max-w-[52ch] text-ink-2 [text-wrap:pretty]">{children}</p>
       ) : error?.message ? (
         <p className="max-w-[52ch] text-ink-2 [overflow-wrap:anywhere]">
           {error.message}

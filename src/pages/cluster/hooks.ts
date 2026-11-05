@@ -1,18 +1,15 @@
 import api from "@/lib/api";
+import { useInvalidatingMutation } from "@/lib/mutation";
 import {
   ApplyLayoutResult,
   AssignNodeBody,
   GetClusterLayoutResult,
+  GetHealthResult,
   GetNodeInfoResult,
   GetStatusResult,
   Node,
 } from "./types";
-import {
-  useMutation,
-  UseMutationOptions,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { UseMutationOptions, useQuery } from "@tanstack/react-query";
 
 type ConnectNodeResult = { success: boolean; error?: string | null };
 
@@ -49,6 +46,16 @@ export const getStatusNodes = (data?: GetStatusResult): Node[] => {
   return data.nodes || [];
 };
 
+export const useNodesHealth = () => {
+  return useQuery({
+    queryKey: ["health"],
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    retry: false,
+    queryFn: () => api.get<GetHealthResult>("/v2/GetClusterHealth"),
+  });
+};
+
 export const useClusterLayout = () => {
   return useQuery({
     queryKey: ["layout"],
@@ -63,23 +70,17 @@ export const useClusterLayout = () => {
 const useClusterMutation = <TData, TVars>(
   mutationFn: (vars: TVars) => Promise<TData>,
   options?: Partial<UseMutationOptions<TData, Error, TVars>>,
-) => {
-  const queryClient = useQueryClient();
-  return useMutation<TData, Error, TVars>({
+) =>
+  useInvalidatingMutation(
     mutationFn,
-    ...options,
-    onSuccess: async (...args) => {
-      await Promise.all(
+    (client) =>
+      Promise.all(
         ["status", "layout", "health"].map((key) =>
-          queryClient.invalidateQueries({ queryKey: [key] }),
+          client.invalidateQueries({ queryKey: [key] }),
         ),
-      );
-      return (
-        options?.onSuccess as ((...a: typeof args) => unknown) | undefined
-      )?.(...args);
-    },
-  });
-};
+      ),
+    options,
+  );
 
 export const useConnectNode = (
   options?: Partial<UseMutationOptions<ConnectNodeResult, Error, string>>,

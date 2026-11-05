@@ -12,17 +12,17 @@ export type Config = {
   admin?: Admin;
 };
 
-export type Admin = {
+type Admin = {
   api_bind_addr: string;
 };
 
-export type S3API = {
+type S3API = {
   s3_region: string;
   api_bind_addr: string;
   root_domain: string;
 };
 
-export type S3Web = {
+type S3Web = {
   bind_addr: string;
   root_domain: string;
   index: string;

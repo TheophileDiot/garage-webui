@@ -18,8 +18,7 @@ import { useEffect, useId, useMemo } from "react";
 import { assignNodeDialog } from "../stores";
 import { buildRows } from "../model";
 import FormControl from "@/components/ui/form-control";
-import Dialog from "@/components/ui/dialog";
-import Button from "@/components/ui/button";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import Input, { inputClass } from "@/components/ui/input";
 import Toggle from "@/components/ui/toggle";
 import TagInput from "@/components/ui/tag-input";
@@ -109,19 +108,12 @@ const AssignNodeDialog = () => {
       size="lg"
       dismissible={!assignNode.isPending}
       actions={
-        <>
-          <Button onClick={close} disabled={assignNode.isPending}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="assign-node-form"
-            variant="primary"
-            loading={assignNode.isPending}
-          >
-            Stage assignment
-          </Button>
-        </>
+        <FormActions
+          onCancel={close}
+          pending={assignNode.isPending}
+          formId="assign-node-form"
+          submitLabel="Stage assignment"
+        />
       }
     >
       <form id="assign-node-form" onSubmit={onSubmit} className="grid gap-4">
@@ -132,7 +124,7 @@ const AssignNodeDialog = () => {
           render={(field, { id }) => (
             <Input
               id={id}
-              className="[overflow-wrap:anywhere]"
+              className="font-mono text-caption [overflow-wrap:anywhere]"
               name={field.name}
               ref={field.ref}
               value={field.value}
@@ -246,6 +238,7 @@ const AssignNodeDialog = () => {
           name="tags"
           render={(field, { id }) => (
             <TagInput
+              className="max-md:[&_button]:min-h-9 max-md:[&_button]:min-w-9 max-md:[&_input]:min-h-9"
               id={id}
               label="Tags"
               value={field.value ?? []}

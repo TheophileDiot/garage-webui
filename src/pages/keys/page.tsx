@@ -1,8 +1,10 @@
 import Button from "@/components/ui/button";
 import CopyButton from "@/components/ui/copy-button";
+import Chips from "@/components/ui/chips";
 import IconButton from "@/components/ui/icon-button";
-import Input from "@/components/ui/input";
+import { SearchField } from "@/components/ui/input";
 import { Ledger, LedgerColumn } from "@/components/ui/ledger";
+import { Notice } from "@/components/ui/notice";
 import { PageHeader, Panel } from "@/components/ui/page-header";
 import Perm from "@/components/ui/perm";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
@@ -11,22 +13,78 @@ import { confirmAction } from "@/components/ui/confirm-store";
 import Page from "@/context/page-context";
 import { dayjs, handleError } from "@/lib/utils";
 import { useBuckets } from "@/pages/buckets/hooks";
-import { bucketName, grantBucketName } from "@/pages/buckets/utils";
-import { Eye, EyeOff, Search, Trash } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { bucketPath, searchPath } from "@/lib/routes";
+import { Eye, EyeOff, KeyRound, Trash } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import CreateKeyDialog from "./components/create-key-dialog";
 import { fetchSecretKey, useKeys, useRemoveKey } from "./hooks";
 import { Key } from "./types";
-import { keyLabel } from "./utils";
+import { grantsByKey, keyLabel, keysPerBucket, type Grant } from "./utils";
 import { toast } from "sonner";
 
-type Grant = {
-  bucketId: string;
-  name: string;
-  read: boolean;
-  write: boolean;
-  owner: boolean;
+const BucketAccess = ({
+  grants,
+  keyName,
+}: {
+  grants: Grant[];
+  keyName: string;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
+  const visible = expanded ? grants : grants.slice(0, 3);
+  if (!grants.length) return <span className="text-ink-3">No bucket yet</span>;
+  return (
+    <div className="w-full min-w-0 py-1">
+      <ul
+        id={id}
+        aria-label={`Bucket access for ${keyName}`}
+        className="grid gap-1"
+      >
+        {visible.map((g) => (
+          <li key={g.bucketId} className="min-w-0">
+            <Chips className="w-full p-0 [&>span]:w-full">
+              <Link
+                to={bucketPath(g.bucketId, "access")}
+                className="flex h-9 min-w-0 items-center gap-2 px-2 text-link hover:underline md:h-7"
+              >
+                <span className="min-w-0 flex-1 truncate" title={g.name}>
+                  {g.name}
+                </span>
+                <Perm
+                  read={g.read}
+                  write={g.write}
+                  owner={g.owner}
+                  className="shrink-0 [&>span]:h-5 [&>span]:w-5"
+                />
+              </Link>
+            </Chips>
+          </li>
+        ))}
+      </ul>
+      {grants.length > 3 ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="mt-1 text-link"
+          aria-expanded={expanded}
+          aria-controls={id}
+          aria-label={`${expanded ? "Show less" : `+${grants.length - 3} more`} bucket access for ${keyName}`}
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show less" : `+${grants.length - 3} more`}
+        </Button>
+      ) : null}
+      <span
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        Showing {visible.length} of {grants.length} bucket grants for {keyName}.
+      </span>
+    </div>
+  );
 };
 
 const KeysPage = () => {
@@ -96,21 +154,7 @@ const KeysPage = () => {
   };
 
   // Grants per key, joined by access key id (names are not unique) from the bucket list.
-  const grants = useMemo(() => {
-    const map = new Map<string, Grant[]>();
-    for (const bucket of buckets.data ?? []) {
-      for (const k of bucket.keys ?? []) {
-        const list = map.get(k.accessKeyId) ?? [];
-        list.push({
-          bucketId: bucket.id,
-          name: grantBucketName(bucket, k.accessKeyId),
-          ...k.permissions,
-        });
-        map.set(k.accessKeyId, list);
-      }
-    }
-    return map;
-  }, [buckets.data]);
+  const grants = useMemo(() => grantsByKey(buckets.data ?? []), [buckets.data]);
 
   const items = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -130,7 +174,7 @@ const KeysPage = () => {
       key: "name",
       header: "Name",
       mobile: "title",
-      width: "14%",
+      width: "17%",
       cell: (k) =>
         k.name ? (
           <span className="font-medium [overflow-wrap:anywhere]" title={k.name}>
@@ -142,16 +186,20 @@ const KeysPage = () => {
     },
     {
       key: "id",
-      header: "Access key id",
-      width: "27%",
+      header: "Access key ID",
+      width: "25%",
       cell: (k) => (
         <span className="inline-flex min-w-0 max-w-full items-center gap-x-1">
-          <span className="min-w-0 truncate text-ink-2" title={k.id}>
+          <span
+            className="min-w-0 truncate font-mono text-caption text-ink-2"
+            title={k.id}
+          >
             {k.id}
           </span>
           <CopyButton
             value={k.id}
             label={`Copy access key id of ${keyLabel(k)}`}
+            iconOnly
           />
         </span>
       ),
@@ -161,7 +209,7 @@ const KeysPage = () => {
           {
             key: "created",
             header: "Created",
-            width: "10%",
+            width: "7.5rem",
             cell: (k: Key) =>
               k.created ? (
                 <time
@@ -179,31 +227,13 @@ const KeysPage = () => {
       : []),
     {
       key: "buckets",
-      header: "Buckets",
-      width: hasCreated ? "25%" : "32%",
+      header: "Bucket access",
       cell: (k) => {
         if (buckets.isPending) return <span className="text-ink-3">…</span>;
         if (buckets.error)
-          return <span className="text-ink-3">unavailable</span>;
-        const list = grants.get(k.id) ?? [];
-        return list.length ? (
-          <ul className="grid gap-1 py-1">
-            {list.map((g) => (
-              <li key={g.bucketId} className="flex items-center gap-3">
-                <Perm read={g.read} write={g.write} owner={g.owner} />
-                <Link
-                  to={`/buckets/${g.bucketId}?tab=permissions`}
-                  title={g.name}
-                  className="xlink min-w-0 break-all"
-                >
-                  <span className="text-ink-3">s3://</span>
-                  {g.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <span className="text-ink-3">no bucket yet</span>
+          return <span className="text-ink-3">Unavailable</span>;
+        return (
+          <BucketAccess grants={grants.get(k.id) ?? []} keyName={keyLabel(k)} />
         );
       },
     },
@@ -215,7 +245,7 @@ const KeysPage = () => {
         secretKeys[k.id] ? (
           <span className="inline-flex min-w-0 max-w-full items-center gap-x-1">
             <span
-              className="min-w-0 truncate text-ink-2"
+              className="min-w-0 truncate font-mono text-caption text-ink-2"
               title={secretKeys[k.id]}
             >
               {secretKeys[k.id]}
@@ -223,6 +253,7 @@ const KeysPage = () => {
             <CopyButton
               value={secretKeys[k.id]}
               label={`Copy secret key of ${keyLabel(k)}`}
+              iconOnly
             />
             <IconButton
               label={`Hide secret key of ${keyLabel(k)}`}
@@ -250,37 +281,33 @@ const KeysPage = () => {
       align: "right",
       width: "4.5rem",
       cell: (k) => (
-        <IconButton
-          label={`Remove key ${keyLabel(k)}`}
-          icon={Trash}
-          variant="ghost-danger"
-          size="sm"
-          onClick={() => void onRemove(k)}
-        />
+        <div className="row-actions">
+          <IconButton
+            label={`Remove key ${keyLabel(k)}`}
+            icon={Trash}
+            variant="ghost-danger"
+            size="sm"
+            onClick={() => void onRemove(k)}
+          />
+        </div>
       ),
     },
   ];
 
   // Lower half: real data only. Needs both lists; a failed bucket list shows the retry above instead.
   const unused = (data ?? []).filter((k) => !(grants.get(k.id)?.length ?? 0));
-  const perBucket = useMemo(() => {
-    const rows = (buckets.data ?? []).map((b) => ({
-      id: b.id,
-      name: bucketName(b),
-      count: b.keys?.length ?? 0,
-    }));
-    return rows.sort(
-      (a, b) => b.count - a.count || a.name.localeCompare(b.name),
-    );
-  }, [buckets.data]);
+  const perBucket = useMemo(
+    () => keysPerBucket(buckets.data ?? []),
+    [buckets.data],
+  );
   const maxCount = perBucket[0]?.count ?? 0;
   const shown = perBucket.slice(0, 6);
 
   return (
     <>
-      <Page title="Keys" />
+      <Page title="Access keys" />
       <PageHeader
-        title="Keys"
+        title="Access keys"
         meta={
           data
             ? `${data.length} access ${data.length === 1 ? "key" : "keys"} · each grants read, write or owner per bucket`
@@ -290,28 +317,14 @@ const KeysPage = () => {
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="w-full sm:max-w-sm">
-          <label htmlFor="keys-search" className="sr-only">
-            Search keys
-          </label>
-          <div className="relative">
-            <Search
-              size={14}
-              aria-hidden
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3"
-            />
-            <Input
-              id="keys-search"
-              type="search"
-              className="pl-8"
-              placeholder="Search by name or key id"
-              autoComplete="off"
-              spellCheck={false}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
+        <SearchField
+          id="keys-search"
+          label="Search access keys"
+          placeholder="Search by name or key ID"
+          spellCheck={false}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <p className="text-ink-3" aria-live="polite">
           {data
             ? `${items.length} of ${data.length} ${data.length === 1 ? "key" : "keys"}`
@@ -320,19 +333,21 @@ const KeysPage = () => {
       </div>
 
       {buckets.error ? (
-        <div
-          role="alert"
-          className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-rule bg-lift px-3 py-2 text-ink-2"
-        >
-          <span className="font-medium text-bad">
-            Bucket access unavailable
-          </span>
-          <span className="min-w-0 [overflow-wrap:anywhere]">
+        <div className="mb-3">
+          <Notice
+            tone="bad"
+            alert
+            action={
+              <Button size="sm" onClick={() => void buckets.refetch()}>
+                Try again
+              </Button>
+            }
+          >
+            <strong className="font-semibold">
+              Bucket access unavailable.
+            </strong>{" "}
             {buckets.error.message}
-          </span>
-          <Button size="sm" onClick={() => void buckets.refetch()}>
-            Try again
-          </Button>
+          </Notice>
         </div>
       ) : null}
 
@@ -346,7 +361,7 @@ const KeysPage = () => {
             onRetry={() => void refetch()}
           />
         ) : data.length === 0 ? (
-          <EmptyState title="No access keys yet">
+          <EmptyState title="No access keys yet" icon={KeyRound}>
             Create a key, then allow it on a bucket so applications can read and
             write.
           </EmptyState>
@@ -373,16 +388,16 @@ const KeysPage = () => {
           <Panel
             id="keys-unused"
             title="Keys without a bucket"
-            aside={`${unused.length} of ${data.length}`}
+            meta={`${unused.length} of ${data.length}`}
           >
             {unused.length ? (
               <ul className="grid gap-1">
                 {unused.map((k) => (
                   <li key={k.id} className="min-w-0">
                     <Link
-                      to={{ search: `?q=${encodeURIComponent(k.id)}` }}
+                      to={searchPath("keys", k.id)}
                       title={k.id}
-                      className="xlink break-all"
+                      className="inline-flex min-h-9 items-center rounded px-1 text-link [overflow-wrap:anywhere] hover:bg-surface-2 hover:underline md:min-h-6"
                     >
                       {keyLabel(k)}
                     </Link>
@@ -398,7 +413,7 @@ const KeysPage = () => {
           <Panel
             id="keys-per-bucket"
             title="Keys per bucket"
-            aside={
+            meta={
               perBucket.length > shown.length
                 ? `top ${shown.length} of ${perBucket.length}`
                 : `${perBucket.length} ${perBucket.length === 1 ? "bucket" : "buckets"}`
@@ -412,11 +427,10 @@ const KeysPage = () => {
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1"
                   >
                     <Link
-                      to={`/buckets/${b.id}?tab=permissions`}
+                      to={bucketPath(b.id, "access")}
                       title={b.name}
-                      className="xlink min-w-0 break-all"
+                      className="inline-flex min-h-9 min-w-0 items-center rounded px-1 text-link [overflow-wrap:anywhere] hover:bg-surface-2 hover:underline md:min-h-6"
                     >
-                      <span className="text-ink-3">s3://</span>
                       {b.name}
                     </Link>
                     <span className="text-ink-2">

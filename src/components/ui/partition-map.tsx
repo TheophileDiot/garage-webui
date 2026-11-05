@@ -1,6 +1,5 @@
 import {
-  hasPartitionCounts,
-  hasUsableHealth,
+  healthReading,
   partitionStates,
   safeRatio,
   type PartitionHealth,
@@ -147,21 +146,16 @@ const IdleMap = () => (
   </div>
 );
 
-const unavailableWhy = (health?: PartitionHealth) =>
-  !health
-    ? "No health reading yet."
-    : health.status === "unknown"
-      ? "The cluster reports its health as unknown."
-      : !hasPartitionCounts(health)
-        ? "The health reply carries no partition counts."
-        : "The cluster reports no partitions.";
+const READ_IDLE =
+  "Point at a cell, or focus the map and use the arrow keys, to read its state.";
 
 /**
  * Map, legend and readout as one unit. The legend row highlights the cells it describes (hover, focus or click to
- * pin) and a cell answers the pointer with its state. With no usable health it shows an unavailable state instead of
- * a map, so no count is ever invented.
+ * pin) and a cell answers the pointer with its state. With no usable health, or when the last refresh failed, it
+ * shows an unavailable state with the reason and a retry instead of a map, so no count is ever invented and a
+ * stale reading is never shown as current.
  */
-export const PartitionPanel = ({
+const PartitionPanel = ({
   health,
   isLoading,
   error,
@@ -192,28 +186,25 @@ export const PartitionPanel = ({
     );
   }
 
-  if (!hasUsableHealth(health)) {
-    const message = error
-      ? ((error as Error)?.message ?? "The health request failed.")
-      : unavailableWhy(health);
+  const reading = healthReading(health, !!error);
+  if (!reading.usable) {
+    const detail = error ? (error as Error)?.message : undefined;
     return (
       <div
         role={error ? "alert" : "status"}
-        className={cn(
-          "grid items-start gap-4 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]",
-          className,
-        )}
+        className={cn("flex flex-wrap items-start gap-x-5 gap-y-4", className)}
       >
         <IdleMap />
-        <div className="grid justify-items-start gap-2">
-          <p className="flex items-center gap-2 font-medium">
+        <div className="grid min-w-0 flex-[1_1_200px] justify-items-start gap-2 [overflow-wrap:anywhere]">
+          <p className="flex items-center gap-2 font-semibold">
             <StateGlyph state="unknown" size={22} />
             Partition map unavailable
           </p>
-          <p className="max-w-[52ch] text-ink-2 [overflow-wrap:anywhere]">
-            {message}
-          </p>
-          <p className="max-w-[52ch] text-ink-2">
+          <p className="text-ink-2">{reading.reason}</p>
+          {detail && detail !== reading.reason ? (
+            <p className="text-ink-2">{detail}</p>
+          ) : null}
+          <p className="text-ink-2">
             No partition counts are shown until health is known.
           </p>
           <Button onClick={onRetry}>Try again</Button>
@@ -222,7 +213,7 @@ export const PartitionPanel = ({
     );
   }
 
-  const counts = partitionStates(health);
+  const counts = partitionStates(reading.health);
   const total = counts.full + counts.quorumOnly + counts.none;
   const rows: Array<{
     key: keyof Counts;
@@ -234,41 +225,22 @@ export const PartitionPanel = ({
   ];
 
   return (
-    <div
-      className={cn(
-        "grid items-start gap-5 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]",
-        className,
-      )}
-    >
-      <div className="grid gap-2">
+    <div className={className}>
+      <p className="fig">
+        {counts.full.toLocaleString()}
+        <small>of {total.toLocaleString()} fully reachable</small>
+      </p>
+      <div className="mt-3.5 flex flex-wrap items-start gap-x-5 gap-y-4">
         <PartitionMap
           counts={counts}
           focus={focus}
           active={active}
           onActive={setActive}
         />
-        <p className="text-caption text-ink-3">
-          One cell per partition, grouped by state. The API reports counts, not
-          where a partition lives.
-        </p>
-      </div>
-      <div className="grid gap-4">
-        {error ? (
-          <p role="alert" className="text-bad [overflow-wrap:anywhere]">
-            The last refresh failed, so this is the previous reading.{" "}
-            <button
-              type="button"
-              onClick={onRetry}
-              className="xlink text-ink underline"
-            >
-              Try again
-            </button>
-          </p>
-        ) : null}
         <div
           role="group"
           aria-label="Highlight cells by state"
-          className="grid gap-1"
+          className="flex min-w-0 flex-[1_1_210px] flex-col gap-0.5"
         >
           {rows.map(({ key, state }) => (
             <button
@@ -280,36 +252,51 @@ export const PartitionPanel = ({
               onPointerLeave={() => setHover(null)}
               onFocus={() => setHover(state)}
               onBlur={() => setHover(null)}
-              className={cn(
-                "legend-row caret-row",
-                pinned === state && "bg-gold-wash",
-              )}
+              className="legend-row"
             >
-              <StateGlyph state={state} size={27} className="ml-1" />
-              <span
-                className={cn(
-                  "text-[26px] font-bold leading-none",
-                  counts[key] === 0 && "text-ink-3",
-                )}
-              >
-                {counts[key]}
+              <StateGlyph state={state} size={22} />
+              <span className="min-w-0">
+                <span className="block font-semibold leading-tight">
+                  {COPY[state].name}
+                </span>
+                <span className="mt-px block text-label leading-snug text-ink-3">
+                  {COPY[state].note}
+                </span>
               </span>
-              <span className="min-w-0 text-left">
-                <span className="block font-medium">{COPY[state].name}</span>
-                <span className="block text-ink-3">{COPY[state].note}</span>
-              </span>
-              <span className="text-ink-3">
-                {Math.round(safeRatio(counts[key], total) * 100)}%
+              <span className="text-right">
+                <span
+                  className={cn(
+                    "block font-cond text-stat font-semibold leading-none",
+                    counts[key] === 0 && "text-ink-3",
+                  )}
+                >
+                  {counts[key].toLocaleString()}
+                </span>
+                <span className="mt-[3px] block text-label text-ink-3">
+                  {Math.round(safeRatio(counts[key], total) * 100)}%
+                </span>
               </span>
             </button>
           ))}
         </div>
-        <p className="min-h-[2.25rem] text-ink-2" aria-live="polite">
-          {active !== null
-            ? describeCell(active, total, counts)
-            : "Point at a cell, or focus the map and use the arrow keys, to read its state."}
-        </p>
       </div>
+      <p
+        className="mt-3.5 flex min-h-9 items-center gap-2 border-t border-line pt-3 text-ink-2"
+        aria-live="polite"
+      >
+        {active !== null ? (
+          <>
+            <StateGlyph state={cellState(active, counts)} size={22} />
+            {describeCell(active, total, counts)}
+          </>
+        ) : (
+          READ_IDLE
+        )}
+      </p>
+      <p className="mt-2 text-caption text-ink-3">
+        One cell per partition, grouped by state. The API reports counts, not
+        where a partition lives.
+      </p>
     </div>
   );
 };

@@ -1,71 +1,55 @@
-import type { Tone } from "@/components/ui/status";
-import { getStatusNodes, useClusterStatus } from "@/pages/cluster/hooks";
-import { layoutVersionOf } from "@/pages/cluster/model";
-import { useNodesHealth } from "@/pages/home/hooks";
 import {
-  hasPartitionCounts,
-  ofCounts,
-  partitionStates,
-} from "@/lib/partitions";
+  getStatusNodes,
+  useClusterLayout,
+  useClusterStatus,
+  useNodesHealth,
+} from "@/pages/cluster/hooks";
+import { layoutVersionOf } from "@/pages/cluster/model";
+import { summarizeHealth } from "@/lib/cluster-summary";
 
-/** What the shell says about the cluster, from the live health and status queries. Never a placeholder as fact. */
+/**
+ * What the shell says about the cluster, from the live health, status and layout queries. Never a placeholder as
+ * fact: a failed health refresh makes the reading unavailable even when an earlier one is still cached.
+ */
 export const useClusterSummary = () => {
   const health = useNodesHealth();
   const status = useClusterStatus();
-  const h = health.data;
-
-  const layoutVersion = layoutVersionOf(status.data);
-
-  const word = health.isError
-    ? "status unavailable"
-    : !h
-      ? "checking…"
-      : h.status === "healthy"
-        ? "healthy"
-        : h.status === "degraded"
-          ? "degraded"
-          : h.status === "unavailable"
-            ? "unavailable"
-            : "unknown";
-  const tone: Tone = health.isError
-    ? "bad"
-    : !h
-      ? "idle"
-      : h.status === "healthy"
-        ? "ok"
-        : h.status === "degraded"
-          ? "warn"
-          : h.status === "unavailable"
-            ? "bad"
-            : "idle";
-
-  const nodeCounts = h ? ofCounts(h.connectedNodes, h.knownNodes) : null;
-  const nodes = h
-    ? nodeCounts
-      ? `${nodeCounts} nodes`
-      : "node counts unavailable"
-    : health.isError
-      ? "health request failed"
-      : "loading nodes…";
-  const layout =
-    layoutVersion !== undefined
-      ? `layout v${layoutVersion}`
-      : status.isError
-        ? "layout unavailable"
-        : "layout …";
-  const counted = !!h && hasPartitionCounts(h);
-  const quorumOnly = counted ? partitionStates(h).quorumOnly : 0;
-
-  return {
-    health: h,
+  const layout = useClusterLayout();
+  const {
     word,
     tone,
     nodes,
-    layout,
+    layout: layoutText,
     quorumOnly,
+    reading,
+    label,
+    sidebarLabel,
+  } = summarizeHealth({
+    health: health.data,
+    failed: health.isError,
+    layoutVersion: layoutVersionOf(status.data, layout.data),
+    statusFailed: status.isError,
+  });
+  const staged = layout.data?.stagedRoleChanges?.length ?? 0;
+
+  return {
+    /** The reading the glyph may draw: only a usable one, never stale counts after a failed refresh. */
+    health: reading.usable ? reading.health : undefined,
+    /** Why there is no glyph, when there is none and the query is not simply loading. */
+    unavailableReason:
+      !reading.usable && (health.data || health.isError)
+        ? reading.reason
+        : null,
+    failed: health.isError,
+    retry: () => void health.refetch(),
+    word,
+    tone,
+    nodes,
+    layout: layoutText,
+    quorumOnly,
+    staged,
     nodeList: getStatusNodes(status.data),
-    label: `Cluster ${word}${counted ? `: ${quorumOnly} partitions on quorum only` : ""}`,
-    /** Starts with the text the rail link shows, so the accessible name contains its visible label (WCAG 2.5.3). */
-    railLabel: `${word} ${nodes} ${layout}${counted ? `. Cluster: ${quorumOnly} partitions on quorum only` : ""}`,
+    label,
+    sidebarLabel,
   };
 };

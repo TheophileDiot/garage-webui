@@ -6,17 +6,19 @@ type AppState = {
   theme: Themes;
 };
 
+/** No stored choice means System: the document gets no `data-theme` and the OS preference decides. */
 const store = createStore(
-  persist<AppState>(
-    () => ({
-      theme: window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light",
-    }),
-    {
-      name: "appdata",
+  persist<AppState>(() => ({ theme: "system" }), {
+    name: "appdata",
+    // Anything but an explicit light or dark falls back to System, so a hand-edited value cannot wedge the theme.
+    merge: (persisted, current) => {
+      const theme = (persisted as Partial<AppState> | undefined)?.theme;
+      return {
+        ...current,
+        theme: theme === "light" || theme === "dark" ? theme : "system",
+      };
     },
-  ),
+  }),
 );
 
 const appStore = {

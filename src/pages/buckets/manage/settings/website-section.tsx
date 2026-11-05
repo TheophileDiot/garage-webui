@@ -6,16 +6,13 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useUpdateBucket } from "../hooks";
 import { useConfig } from "@/hooks/useConfig";
 import { ExternalLink, Info } from "lucide-react";
-import {
-  buttonBase,
-  buttonSizes,
-  buttonVariants,
-} from "@/components/ui/button-styles";
+import { buttonClass } from "@/components/ui/button-styles";
 import { InputField } from "@/components/ui/input";
 import { ToggleField } from "@/components/ui/toggle";
 import { Panel } from "@/components/ui/page-header";
 import { useBucketContext } from "../context";
 import { cn, handleError } from "@/lib/utils";
+import { textLink } from "../../styles";
 import SaveState from "./save-state";
 import {
   markEdited,
@@ -37,7 +34,7 @@ const keyOf = (
 ) => (enabled ? `${id}|on|${index}|${error}` : `${id}|off`);
 
 const WebsiteAccessSection = () => {
-  const { bucket: data, bucketName } = useBucketContext();
+  const { bucket: data, globalAlias } = useBucketContext();
   const { data: config } = useConfig();
   const form = useForm<WebsiteConfigSchema>({
     resolver: zodResolver(websiteConfigSchema),
@@ -115,13 +112,13 @@ const WebsiteAccessSection = () => {
   ]);
 
   // Website hosts are built on the first global alias; a bucket without one has no website address.
-  const links = bucketName
+  const links = globalAlias
     ? [
-        `${bucketName}`,
+        `${globalAlias}`,
         ...(rootDomain
           ? [
-              `${bucketName}${rootDomain}`,
-              `${bucketName}${rootDomain}:${websitePort}`,
+              `${globalAlias}${rootDomain}`,
+              `${globalAlias}${rootDomain}:${websitePort}`,
             ]
           : []),
       ]
@@ -131,7 +128,7 @@ const WebsiteAccessSection = () => {
     <Panel
       id="website"
       title="Website access"
-      aside={
+      meta={
         <span className="inline-flex items-center gap-1">
           <SaveState mutation={updateMutation} />
           <a
@@ -140,11 +137,11 @@ const WebsiteAccessSection = () => {
             rel="noopener noreferrer"
             aria-label="Website hosting documentation (opens in a new tab)"
             title="Website hosting documentation (opens in a new tab)"
-            className={cn(
-              buttonBase,
-              buttonSizes.sm.icon,
-              buttonVariants.ghost,
-            )}
+            className={buttonClass({
+              variant: "ghost",
+              size: "sm",
+              iconOnly: true,
+            })}
           >
             <Info size={15} aria-hidden />
           </a>
@@ -161,7 +158,7 @@ const WebsiteAccessSection = () => {
       </p>
 
       {isEnabled ? (
-        <div className="mt-4 border-t border-rule pt-4">
+        <div className="mt-4 border-t border-line pt-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             <InputField
               form={form}
@@ -183,7 +180,10 @@ const WebsiteAccessSection = () => {
                 <li key={host} className="min-w-0">
                   <a
                     href={`http://${host}`}
-                    className="xlink inline-flex min-w-0 items-center gap-2 [overflow-wrap:anywhere]"
+                    className={cn(
+                      textLink,
+                      "min-w-0 gap-2 font-mono text-[12.5px] [overflow-wrap:anywhere]",
+                    )}
                     target="_blank"
                     rel="noreferrer"
                   >

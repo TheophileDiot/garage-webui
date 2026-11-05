@@ -1,3 +1,4 @@
+import { safeRatio } from "../../lib/partitions.ts";
 import type {
   GetClusterLayoutResult,
   GetStatusResult,
@@ -6,7 +7,8 @@ import type {
   StagedRole,
 } from "./types";
 
-// Pure helpers shared by the Overview and Cluster pages. Imports nothing but types, so `node --test` runs them.
+// Pure helpers shared by the Overview and Cluster pages. Imports only types and `lib/partitions.ts` (relative, with
+// extension), so `node --test` runs them.
 
 export type DiffLine = { sign: "+" | "-" | " "; text: string };
 
@@ -207,22 +209,46 @@ export type ZoneSummary = {
   reporting: number;
 };
 
+/** Free share of a data disk below which a page calls it low (warn) or nearly full (bad). */
+const DISK_FREE = { warn: 0.25, bad: 0.1 } as const;
+
+export const diskTone = (available: number, total: number) => {
+  const free = available / total;
+  return free < DISK_FREE.bad ? "bad" : free < DISK_FREE.warn ? "warn" : "ink";
+};
+
+/** A node's data disk: `null` when it reports none (a missing report does not imply the node is down). */
+export const diskReading = (n: Pick<Node, "dataPartition">) => {
+  const d = n.dataPartition;
+  if (!d || !(d.total > 0)) return null;
+  return {
+    total: d.total,
+    used: d.total - d.available,
+    free: d.available,
+    share: safeRatio(d.available, d.total),
+  };
+};
+
+/** Total and free bytes over the rows whose node reports a data disk. */
+export const sumDisks = (rows: NodeRow[]) => {
+  let total = 0;
+  let free = 0;
+  let reporting = 0;
+  for (const r of rows) {
+    const d = diskReading(r.node);
+    if (!d) continue;
+    total += d.total;
+    free += d.free;
+    reporting++;
+  }
+  return { total, free, reporting };
+};
+
 export const summarizeZones = (rows: NodeRow[]): ZoneSummary[] =>
-  groupByZone(rows).map(({ zone, rows: rs }) => {
-    const reporting = rs.filter((r) => (r.node.dataPartition?.total ?? 0) > 0);
-    return {
-      zone,
-      nodes: rs.length,
-      up: rs.filter((r) => r.node.isUp).length,
-      capacity: rs.reduce((s, r) => s + (r.capacity ?? 0), 0),
-      free: reporting.reduce(
-        (s, r) => s + (r.node.dataPartition?.available ?? 0),
-        0,
-      ),
-      total: reporting.reduce(
-        (s, r) => s + (r.node.dataPartition?.total ?? 0),
-        0,
-      ),
-      reporting: reporting.length,
-    };
-  });
+  groupByZone(rows).map(({ zone, rows: rs }) => ({
+    zone,
+    nodes: rs.length,
+    up: rs.filter((r) => r.node.isUp).length,
+    capacity: rs.reduce((s, r) => s + (r.capacity ?? 0), 0),
+    ...sumDisks(rs),
+  }));

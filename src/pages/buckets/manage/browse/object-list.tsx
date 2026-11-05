@@ -1,35 +1,103 @@
+import { useEffect, useRef } from "react";
+import { Folder } from "lucide-react";
 import { dayjs, readableBytes } from "@/lib/utils";
-import mime from "mime/lite";
-import { GetObjectsResult, Object } from "./types";
-import { API_URL } from "@/lib/api";
-import { FileArchive, FileIcon, FileType, Folder } from "lucide-react";
-import ObjectActions from "./object-actions";
 import GotoTopButton from "@/components/ui/goto-top-btn";
 import { EmptyState, ErrorState, SkeletonRows } from "@/components/ui/state";
 import { Ledger, LedgerColumn } from "@/components/ui/ledger";
+import { Object } from "./types";
+import ObjectActions from "./object-actions";
+import FilePreview from "./file-icon";
+import { mimeOf } from "./file-types";
+import { extOf, folderLabel, splitName, typeLabel } from "./model";
+import { ObjectOps } from "./use-object-ops";
 
 type Row =
   | { kind: "folder"; folder: string; name: string }
   | { kind: "file"; object: Object };
 
 type Props = {
-  data?: GetObjectsResult;
+  /** The listing prefix, `""` at the bucket root. */
+  prefix: string;
+  /** The listing's `prefix` as the server reports it, which file keys are relative to. */
+  listingPrefix: string;
+  folders: string[];
+  files: Object[];
+  /** Nothing matched the filter box, as opposed to nothing existing. */
+  filter: string;
   error: Error | null;
   isLoading: boolean;
   onRetry: () => void;
-  prefix?: string;
-  onPrefixChange?: (prefix: string) => void;
+  onPrefixChange: (prefix: string) => void;
+  /** Keys (relative) of the selected files. */
+  selected: string[];
+  onToggle: (key: string) => void;
+  onToggleAll: (on: boolean) => void;
+  onInspect: (key: string) => void;
+  ops: ObjectOps;
 };
 
-const nameClass = "min-w-0 [overflow-wrap:anywhere] md:truncate";
+const checkLabel =
+  "inline-grid size-9 shrink-0 cursor-pointer place-items-center md:size-6";
+/** `relative` keeps the screen-reader span inside the clip box, so a clipped long name never widens the page. */
+const nameButton =
+  "relative flex min-h-9 min-w-0 items-center text-left hover:text-link hover:underline md:min-h-6";
+const nameText =
+  "min-w-0 [overflow-wrap:anywhere] md:truncate md:[overflow-wrap:normal]";
+
+/** The box in the header: all, some (indeterminate) or none of the listed files. */
+const SelectAll = ({
+  count,
+  total,
+  onChange,
+  text,
+}: {
+  count: number;
+  total: number;
+  onChange: (on: boolean) => void;
+  /** Visible words beside the box, for the phone row that replaces the hidden header. */
+  text?: string;
+}) => {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = count > 0 && count < total;
+  }, [count, total]);
+  return (
+    <label
+      className={
+        text
+          ? "inline-flex min-h-9 cursor-pointer items-center gap-2 text-ink-2"
+          : checkLabel
+      }
+    >
+      <input
+        ref={ref}
+        type="checkbox"
+        className="cbx"
+        aria-label="Select all objects"
+        disabled={total === 0}
+        checked={total > 0 && count === total}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {text}
+    </label>
+  );
+};
 
 const ObjectList = ({
-  data,
+  prefix,
+  listingPrefix,
+  folders,
+  files,
+  filter,
   error,
   isLoading,
   onRetry,
-  prefix = "",
   onPrefixChange,
+  selected,
+  onToggle,
+  onToggleAll,
+  onInspect,
+  ops,
 }: Props) => {
   if (isLoading) return <SkeletonRows label="Loading objects" rows={6} />;
   if (error)
@@ -40,8 +108,12 @@ const ObjectList = ({
         onRetry={onRetry}
       />
     );
-  if (!data?.prefixes?.length && !data?.objects?.length) {
-    return (
+  if (!folders.length && !files.length) {
+    return filter ? (
+      <EmptyState title="No match">
+        Nothing in this folder starts with “{filter.trim()}”.
+      </EmptyState>
+    ) : (
       <EmptyState
         title={prefix ? "This folder is empty" : "This bucket is empty"}
       >
@@ -51,17 +123,40 @@ const ObjectList = ({
   }
 
   const rows: Row[] = [
-    ...data.prefixes.map((folder): Row => {
-      const name = folder
-        .substring(0, folder.lastIndexOf("/"))
-        .split("/")
-        .pop();
-      return { kind: "folder", folder, name: name ?? folder };
-    }),
-    ...data.objects.map((object): Row => ({ kind: "file", object })),
+    ...folders.map((folder): Row => ({
+      kind: "folder",
+      folder,
+      name: folderLabel(folder),
+    })),
+    ...files.map((object): Row => ({ kind: "file", object })),
   ];
 
   const columns: LedgerColumn<Row>[] = [
+    {
+      key: "select",
+      header: (
+        <SelectAll
+          count={selected.length}
+          total={files.length}
+          onChange={onToggleAll}
+        />
+      ),
+      width: "2.75rem",
+      mobile: "hide",
+      className: "md:!pr-0",
+      cell: (row) =>
+        row.kind === "file" ? (
+          <label className={checkLabel}>
+            <input
+              type="checkbox"
+              className="cbx"
+              aria-label={`Select ${row.object.objectKey}`}
+              checked={selected.includes(row.object.objectKey)}
+              onChange={() => onToggle(row.object.objectKey)}
+            />
+          </label>
+        ) : null,
+    },
     {
       key: "name",
       header: "Name",
@@ -69,42 +164,45 @@ const ObjectList = ({
       cell: (row) => {
         if (row.kind === "folder") {
           return (
-            <button
-              type="button"
-              className="xlink inline-flex max-w-full items-center gap-2 text-left font-medium"
-              title={row.folder}
-              onClick={() => onPrefixChange?.(row.folder)}
-            >
-              <Folder
-                size={14}
-                aria-hidden
-                className="shrink-0 text-gold-text"
-              />
-              <span className={nameClass}>{row.name}/</span>
-              <span className="sr-only"> (folder)</span>
-            </button>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <Folder size={16} aria-hidden className="shrink-0 text-folder" />
+              <button
+                type="button"
+                className={`${nameButton} font-semibold`}
+                title={row.folder}
+                onClick={() => onPrefixChange(row.folder)}
+              >
+                <span className={nameText}>{row.name}/</span>
+                <span className="sr-only"> (folder)</span>
+              </button>
+            </div>
           );
         }
         const { object } = row;
-        const extIdx = object.objectKey.lastIndexOf(".");
-        const filename =
-          extIdx > 0 ? object.objectKey.substring(0, extIdx) : object.objectKey;
-        const ext = extIdx > 0 ? object.objectKey.substring(extIdx) : null;
+        const { stem, ext } = splitName(object.objectKey);
         return (
-          <a
-            href={API_URL + object.url + "?view=1"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="xlink inline-flex max-w-full items-center gap-2 text-left font-medium"
-            title={data.prefix + object.objectKey}
-          >
-            <FilePreview ext={ext?.substring(1)} object={object} />
-            <span className="inline-flex min-w-0">
-              <span className={nameClass}>{filename}</span>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <label className={`${checkLabel} md:hidden`}>
+              <input
+                type="checkbox"
+                className="cbx"
+                aria-label={`Select ${object.objectKey}`}
+                checked={selected.includes(object.objectKey)}
+                onChange={() => onToggle(object.objectKey)}
+              />
+            </label>
+            <FilePreview ext={ext.substring(1)} object={object} />
+            <button
+              type="button"
+              className={`${nameButton} font-medium`}
+              title={listingPrefix + object.objectKey}
+              aria-label={`${object.objectKey} (show details)`}
+              onClick={() => onInspect(object.objectKey)}
+            >
+              <span className={nameText}>{stem}</span>
               {ext && <span className="shrink-0 text-ink-3">{ext}</span>}
-            </span>
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
+            </button>
+          </div>
         );
       },
     },
@@ -112,7 +210,8 @@ const ObjectList = ({
       key: "size",
       header: "Size",
       align: "right",
-      width: "7rem",
+      width: "5.5rem",
+      className: "tabular-nums",
       cell: (row) =>
         row.kind === "file" ? (
           <span className="whitespace-nowrap">
@@ -121,9 +220,31 @@ const ObjectList = ({
         ) : null,
     },
     {
+      key: "type",
+      header: "Type",
+      width: "7.5rem",
+      mobile: "hide",
+      className: "max-[1359px]:hidden",
+      cell: (row) =>
+        row.kind === "folder" ? (
+          <span className="text-ink-2">Folder</span>
+        ) : (
+          <span
+            className="whitespace-nowrap text-ink-2"
+            title={mimeOf(extOf(row.object.objectKey)) || undefined}
+          >
+            {typeLabel(
+              row.object.objectKey,
+              mimeOf(extOf(row.object.objectKey)),
+            )}
+          </span>
+        ),
+    },
+    {
       key: "modified",
       header: "Last modified",
-      width: "10rem",
+      mobileLabel: "Modified",
+      width: "8.5rem",
       cell: (row) =>
         row.kind === "file" ? (
           <time
@@ -139,19 +260,39 @@ const ObjectList = ({
       key: "actions",
       header: <span className="sr-only">Actions</span>,
       align: "right",
-      width: "7.5rem",
+      width: "9.5rem",
       mobile: "actions",
       cell: (row) =>
         row.kind === "folder" ? (
-          <ObjectActions object={{ objectKey: row.folder, url: "" }} />
+          <ObjectActions
+            ops={ops}
+            object={{ objectKey: row.folder, prefix: "", url: "" }}
+          />
         ) : (
-          <ObjectActions prefix={data.prefix} object={row.object} />
+          <ObjectActions
+            ops={ops}
+            object={{
+              objectKey: row.object.objectKey,
+              prefix: listingPrefix,
+              url: row.object.url,
+            }}
+          />
         ),
     },
   ];
 
   return (
     <>
+      {files.length > 0 && (
+        <div className="border-b border-line px-4 py-0.5 md:hidden">
+          <SelectAll
+            text="Select all"
+            count={selected.length}
+            total={files.length}
+            onChange={onToggleAll}
+          />
+        </div>
+      )}
       <Ledger
         caption={`Objects under ${prefix || "the bucket root"}`}
         columns={columns}
@@ -161,44 +302,11 @@ const ObjectList = ({
             ? `d:${row.folder}`
             : `f:${row.object.objectKey}`
         }
+        selectedKeys={selected.map((key) => `f:${key}`)}
       />
       <GotoTopButton />
     </>
   );
-};
-
-type FilePreviewProps = {
-  ext?: string | null;
-  object: Object;
-};
-
-const FilePreview = ({ ext, object }: FilePreviewProps) => {
-  const type = mime.getType(ext || "")?.split("/")[0];
-  let Icon = FileIcon;
-
-  if (
-    ["zip", "rar", "7z", "iso", "tar", "gz", "bz2", "xz"].includes(ext || "")
-  ) {
-    Icon = FileArchive;
-  }
-
-  if (type === "image") {
-    const thumbnailSupport = ["jpg", "jpeg", "png", "gif"].includes(ext || "");
-    return (
-      <img
-        src={API_URL + object.url + (thumbnailSupport ? "?thumb=1" : "?view=1")}
-        alt=""
-        loading="lazy"
-        className="size-5 shrink-0 overflow-hidden rounded-sm bg-sunk object-cover"
-      />
-    );
-  }
-
-  if (type === "text") {
-    Icon = FileType;
-  }
-
-  return <Icon size={14} aria-hidden className="shrink-0 text-ink-3" />;
 };
 
 export default ObjectList;

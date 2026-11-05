@@ -1,14 +1,7 @@
-import { cn } from "@/lib/utils";
 import { Loader2, LucideIcon } from "lucide-react";
 import { ButtonHTMLAttributes, forwardRef, ReactNode } from "react";
 import { Link } from "react-router-dom";
-import {
-  ButtonSize,
-  buttonBase,
-  ButtonVariant,
-  buttonSizes,
-  buttonVariants,
-} from "./button-styles";
+import { ButtonSize, buttonClass, ButtonVariant } from "./button-styles";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -44,19 +37,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const iconOnly = Boolean(Icon) && !children;
-    const sizing = buttonSizes[size === "sm" ? "sm" : "md"];
-    const classes = cn(
-      buttonBase,
-      iconOnly ? sizing.icon : sizing.text,
-      buttonVariants[variant ?? "secondary"],
-      className,
-    );
+    const classes = buttonClass({ variant, size, iconOnly, className });
     const inner = (
       <>
         {loading ? (
-          <Loader2 size={14} aria-hidden className="animate-spin" />
+          <Loader2 size={16} aria-hidden className="animate-spin" />
         ) : Icon ? (
-          <Icon size={14} aria-hidden />
+          <Icon size={16} aria-hidden />
         ) : null}
         {children}
       </>

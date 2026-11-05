@@ -2,6 +2,7 @@ import * as RDialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { PropsWithChildren, ReactNode, useLayoutEffect, useRef } from "react";
+import Button from "./button";
 import IconButton from "./icon-button";
 
 type Size = "sm" | "md" | "lg" | "xl";
@@ -52,7 +53,7 @@ const Dialog = ({
       }}
     >
       <RDialog.Portal>
-        <RDialog.Overlay className="veil fixed inset-0 z-40 bg-[rgb(0_0_0/0.55)]" />
+        <RDialog.Overlay className="veil fixed inset-0 z-[60] bg-scrim" />
         <RDialog.Content
           onCloseAutoFocus={(e) => {
             e.preventDefault();
@@ -69,17 +70,17 @@ const Dialog = ({
             else stop(e);
           }}
           className={cn(
-            "pop fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-auto rounded-t-lg border border-rule-strong bg-lift-2 shadow-[var(--shadow-pop)] md:inset-x-auto md:bottom-auto md:left-1/2 md:top-[12vh] md:-translate-x-1/2 md:rounded-lg",
+            "dialog-in fixed inset-x-0 bottom-0 z-[70] max-h-[92dvh] overflow-auto rounded-t-xl border border-line-strong bg-surface shadow-pop md:inset-x-auto md:bottom-auto md:left-1/2 md:top-[12vh] md:-translate-x-1/2 md:rounded-xl",
             widths[size ?? "md"],
           )}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-rule px-4 py-3">
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-3.5">
             <div className="min-w-0">
-              <RDialog.Title className="font-display text-h3 font-semibold tracking-[-0.02em] [overflow-wrap:anywhere]">
+              <RDialog.Title className="font-cond text-[18px] font-semibold leading-snug [overflow-wrap:anywhere]">
                 {title}
               </RDialog.Title>
               {description ? (
-                <RDialog.Description className="mt-0.5 text-ink-3">
+                <RDialog.Description className="mt-0.5 text-caption text-ink-3">
                   {description}
                 </RDialog.Description>
               ) : (
@@ -92,15 +93,14 @@ const Dialog = ({
               <IconButton
                 label="Close dialog"
                 icon={X}
-                iconSize={16}
                 disabled={!dismissible}
                 className="-mr-2 -mt-1"
               />
             </RDialog.Close>
           </div>
-          <div className="px-4 py-4">{children}</div>
+          <div className="px-5 py-4">{children}</div>
           {actions ? (
-            <div className="flex flex-wrap justify-end gap-2 border-t border-rule px-4 py-3">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">
               {actions}
             </div>
           ) : null}
@@ -109,5 +109,39 @@ const Dialog = ({
     </RDialog.Root>
   );
 };
+
+/**
+ * The Cancel and submit pair of a form dialog, for the `actions` of a `Dialog`. The submit button belongs to the
+ * form with the id `formId`; while `pending` it spins and Cancel is off.
+ */
+export const FormActions = ({
+  onCancel,
+  pending,
+  formId,
+  submitLabel,
+  disabled,
+}: {
+  onCancel: () => void;
+  pending: boolean;
+  formId: string;
+  submitLabel: ReactNode;
+  /** The submit button is off while true (nothing to submit yet). */
+  disabled?: boolean;
+}) => (
+  <>
+    <Button onClick={onCancel} disabled={pending}>
+      Cancel
+    </Button>
+    <Button
+      type="submit"
+      form={formId}
+      variant="primary"
+      loading={pending}
+      disabled={disabled}
+    >
+      {submitLabel}
+    </Button>
+  </>
+);
 
 export default Dialog;

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
-export type DiffLine = { sign: "+" | "-" | " "; text: ReactNode };
+type DiffLine = { sign: "+" | "-" | " "; text: ReactNode };
 
 /** A pending change as a diff: `-` leaves, `+` arrives. One treatment wherever something waits to be applied. */
 const Diff = ({

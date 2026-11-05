@@ -21,6 +21,13 @@ const TONE: Record<GlyphState, string> = {
   lost: "var(--bad)",
   unknown: "var(--ink-3)",
 };
+/** The same colours on the dark sidebar, which has its own token set. */
+const SIDEBAR = {
+  ok: "var(--sb-ok)",
+  warn: "var(--sb-warn)",
+  bad: "var(--sb-bad)",
+  mute: "var(--sb-ink-2)",
+};
 const LIT: Record<GlyphState, number> = {
   full: 3,
   degraded: 2,
@@ -75,14 +82,21 @@ export const StateGlyph = ({
   </svg>
 );
 
-/** The map at 16 x 16 pixels for the shell: the same counts as the big map, scaled to 256 pixels. */
+/**
+ * The map at 16 x 16 pixels for the shell: the same counts as the big map, scaled to 256 pixels. At 32 px every
+ * cell is 2 px, so a single quorum-only or no-quorum cell is visible. `onSidebar` uses the sidebar colours.
+ * With no usable health it draws a dashed outline, never counts.
+ */
 export const StatusGlyph = ({
   health,
-  size = 24,
+  size = 32,
+  onSidebar = false,
   className,
 }: {
+  /** Pass only a reading that `healthReading` called usable; anything else draws the unavailable outline. */
   health?: PartitionHealth;
   size?: number;
+  onSidebar?: boolean;
   className?: string;
 }) => {
   const paths = useMemo(
@@ -92,6 +106,14 @@ export const StatusGlyph = ({
         : null,
     [health],
   );
+  const c = onSidebar
+    ? SIDEBAR
+    : {
+        ok: "var(--ok)",
+        warn: "var(--warn)",
+        bad: "var(--bad)",
+        mute: "var(--ink-3)",
+      };
 
   return (
     <svg
@@ -104,9 +126,9 @@ export const StatusGlyph = ({
     >
       {paths ? (
         <>
-          <path d={paths.full} fill="var(--ok)" />
-          <path d={paths.degraded} fill="var(--warn)" />
-          <path d={paths.lost} fill="var(--bad)" />
+          <path d={paths.full} fill={c.ok} />
+          <path d={paths.degraded} fill={c.warn} />
+          <path d={paths.lost} fill={c.bad} />
         </>
       ) : (
         <>
@@ -116,10 +138,10 @@ export const StatusGlyph = ({
             width="15"
             height="15"
             fill="none"
-            stroke="var(--ink-3)"
+            stroke={c.mute}
             strokeDasharray="2 2"
           />
-          <rect x="4" y="7.25" width="8" height="1.5" fill="var(--ink-3)" />
+          <rect x="4" y="7.25" width="8" height="1.5" fill={c.mute} />
         </>
       )}
     </svg>

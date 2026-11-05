@@ -1,6 +1,7 @@
 import api from "@/lib/api";
+import { useInvalidatingMutation } from "@/lib/mutation";
 import {
-  useMutation,
+  QueryClient,
   UseMutationOptions,
   useQuery,
   useQueryClient,
@@ -19,13 +20,9 @@ type UpdateBucketBody = {
 type KeyGrant = { keyId: string; permissions: Permissions };
 
 /** Refreshes everything that shows this bucket: the list (page, shell, keys page) and its detail. */
-const useInvalidateBucket = (id?: string | null) => {
-  const queryClient = useQueryClient();
-  return () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["buckets"] }),
-      queryClient.invalidateQueries({ queryKey: ["bucket", id] }),
-    ]);
+const invalidateBucket = (queryClient: QueryClient, id?: string | null) => {
+  void queryClient.invalidateQueries({ queryKey: ["buckets"] });
+  void queryClient.invalidateQueries({ queryKey: ["bucket", id] });
 };
 
 export const useBucket = (id?: string | null) => {
@@ -40,67 +37,49 @@ export const useUpdateBucket = (
   id?: string | null,
   options?: UseMutationOptions<unknown, Error, UpdateBucketBody>,
 ) => {
-  const invalidate = useInvalidateBucket(id);
-  return useMutation({
-    mutationFn: (values: UpdateBucketBody) => {
-      return api.post<unknown>("/v2/UpdateBucket", {
-        params: { id },
-        body: values,
-      });
-    },
-    ...options,
-    onSuccess: (...args) => {
-      void invalidate();
-      return options?.onSuccess?.(...args);
-    },
-  });
+  return useInvalidatingMutation(
+    (values: UpdateBucketBody) =>
+      api.post<unknown>("/v2/UpdateBucket", { params: { id }, body: values }),
+    (queryClient) => invalidateBucket(queryClient, id),
+    options,
+  );
 };
 
 export const useAddAlias = (
   bucketId?: string | null,
   options?: UseMutationOptions<unknown, Error, string>,
 ) => {
-  const invalidate = useInvalidateBucket(bucketId);
-  return useMutation({
-    mutationFn: (alias: string) => {
-      return api.post("/v2/AddBucketAlias", {
+  return useInvalidatingMutation(
+    (alias: string) =>
+      api.post<unknown>("/v2/AddBucketAlias", {
         body: { bucketId, globalAlias: alias },
-      });
-    },
-    ...options,
-    onSuccess: (...args) => {
-      void invalidate();
-      return options?.onSuccess?.(...args);
-    },
-  });
+      }),
+    (queryClient) => invalidateBucket(queryClient, bucketId),
+    options,
+  );
 };
 
 export const useRemoveAlias = (
   bucketId?: string | null,
   options?: UseMutationOptions<unknown, Error, string>,
 ) => {
-  const invalidate = useInvalidateBucket(bucketId);
-  return useMutation({
-    mutationFn: (alias: string) => {
-      return api.post("/v2/RemoveBucketAlias", {
+  return useInvalidatingMutation(
+    (alias: string) =>
+      api.post<unknown>("/v2/RemoveBucketAlias", {
         body: { bucketId, globalAlias: alias },
-      });
-    },
-    ...options,
-    onSuccess: (...args) => {
-      void invalidate();
-      return options?.onSuccess?.(...args);
-    },
-  });
+      }),
+    (queryClient) => invalidateBucket(queryClient, bucketId),
+    options,
+  );
 };
 
 export const useAllowKey = (
   bucketId?: string | null,
   options?: UseMutationOptions<unknown, Error, KeyGrant[]>,
 ) => {
-  const invalidate = useInvalidateBucket(bucketId);
-  return useMutation({
-    mutationFn: async (payload: KeyGrant[]) => {
+  const queryClient = useQueryClient();
+  return useInvalidatingMutation(
+    async (payload: KeyGrant[]) => {
       const promises = payload.map(async (key) => {
         return api.post("/v2/AllowBucketKey", {
           body: {
@@ -125,59 +104,49 @@ export const useAllowKey = (
       }
       return settled.map((r) => (r as PromiseFulfilledResult<unknown>).value);
     },
-    ...options,
-    onSuccess: (...args) => {
-      void invalidate();
-      return options?.onSuccess?.(...args);
+    (client) => invalidateBucket(client, bucketId),
+    {
+      ...options,
+      // Some grants may have gone through before another failed: show the truth.
+      onError: (...args) => {
+        invalidateBucket(queryClient, bucketId);
+        return options?.onError?.(...args);
+      },
     },
-    // Some grants may have gone through before another failed: show the truth.
-    onError: (...args) => {
-      void invalidate();
-      return options?.onError?.(...args);
-    },
-  });
+  );
 };
 
 export const useDenyKey = (
   bucketId?: string | null,
   options?: UseMutationOptions<unknown, Error, KeyGrant>,
 ) => {
-  const invalidate = useInvalidateBucket(bucketId);
-  return useMutation({
-    mutationFn: (payload: KeyGrant) => {
-      return api.post("/v2/DenyBucketKey", {
+  return useInvalidatingMutation(
+    (payload: KeyGrant) =>
+      api.post<unknown>("/v2/DenyBucketKey", {
         body: {
           bucketId,
           accessKeyId: payload.keyId,
           permissions: payload.permissions,
         },
-      });
-    },
-    ...options,
-    onSuccess: (...args) => {
-      void invalidate();
-      return options?.onSuccess?.(...args);
-    },
-  });
+      }),
+    (queryClient) => invalidateBucket(queryClient, bucketId),
+    options,
+  );
 };
 
 export const useRemoveBucket = (
   options?: UseMutationOptions<unknown, Error, string>,
 ) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      api.post("/v2/DeleteBucket", { params: { id } }),
-    ...options,
-    onSuccess: (...args) => {
-      const [, id] = args;
+  return useInvalidatingMutation(
+    (id: string) => api.post<unknown>("/v2/DeleteBucket", { params: { id } }),
+    (queryClient, id) => {
       void queryClient.invalidateQueries({ queryKey: ["buckets"] });
       // Mark the detail stale without refetching a bucket that no longer exists.
       void queryClient.invalidateQueries({
         queryKey: ["bucket", id],
         refetchType: "none",
       });
-      return options?.onSuccess?.(...args);
     },
-  });
+    options,
+  );
 };

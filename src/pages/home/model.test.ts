@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { GetHealthResult } from "./types";
-import { diskTone, headline, watchItems, type WatchBucket } from "./model.ts";
+import type { GetHealthResult } from "../cluster/types";
+import { headline, watchItems, type WatchBucket } from "./model.ts";
 
 const health = (status: string, p = 256, q = 256): GetHealthResult =>
   ({
@@ -35,8 +35,11 @@ test("headline covers failure, loading and each health status", () => {
     "Unavailable, quorum lost",
   );
   assert.equal(headline(health("mystery"), false).title, "Status unknown");
-  // A stale reading beats a failed refetch: health is shown while `failed` is true.
-  assert.equal(headline(health("healthy"), true).title, "Healthy");
+  assert.equal(headline(health("healthy"), true).title, "Health unavailable");
+  assert.equal(
+    headline(health("healthy"), true).text,
+    "The last health refresh failed.",
+  );
 });
 
 test("headline never prints a count that is not a finite number", () => {
@@ -131,12 +134,4 @@ test("watchItems flags a staged layout, a quota from 75 %, and unfinished upload
   assert.equal(items[1].label, "b-2 at 75% of its quota");
   assert.equal(items[1].detail, "75 B of 100 B.");
   assert.equal(items[2].label, "b-4 has 1 unfinished multipart upload");
-});
-
-test("diskTone calls a disk low under 25 % free and nearly full under 10 %", () => {
-  assert.equal(diskTone(30, 100), "ink");
-  assert.equal(diskTone(25, 100), "ink");
-  assert.equal(diskTone(24, 100), "warn");
-  assert.equal(diskTone(10, 100), "warn");
-  assert.equal(diskTone(9, 100), "bad");
 });

@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildRows,
+  diskReading,
+  diskTone,
   duration,
   groupByZone,
   matchesQuery,
   stagedLines,
+  sumDisks,
   summarizeZones,
 } from "./model.ts";
 
@@ -105,4 +108,70 @@ test("summarizeZones counts nodes, capacity and reporting disks", () => {
     },
     { n: 1, up: 1, cap: 2e12, free: 4, rep: 1 },
   );
+});
+
+test("diskReading is null without a usable report and derives used and free share otherwise", () => {
+  assert.equal(diskReading({}), null);
+  assert.equal(
+    diskReading({ dataPartition: { available: 1, total: 0 } }),
+    null,
+  );
+  assert.equal(
+    diskReading({ dataPartition: { available: 1, total: -5 } }),
+    null,
+  );
+  assert.deepEqual(
+    diskReading({ dataPartition: { available: 4, total: 10 } }),
+    {
+      total: 10,
+      used: 6,
+      free: 4,
+      share: 0.4,
+    },
+  );
+  // The share is clamped to 0..1, so a bad report cannot draw past a full meter.
+  assert.equal(
+    diskReading({ dataPartition: { available: 20, total: 10 } })?.share,
+    1,
+  );
+});
+
+test("diskTone calls a disk low under 25 % free and nearly full under 10 %", () => {
+  assert.equal(diskTone(30, 100), "ink");
+  assert.equal(diskTone(25, 100), "ink");
+  assert.equal(diskTone(24, 100), "warn");
+  assert.equal(diskTone(10, 100), "warn");
+  assert.equal(diskTone(9, 100), "bad");
+});
+
+test("sumDisks adds only the rows that report a data disk", () => {
+  const rows = buildRows(
+    [
+      node("1", { dataPartition: { available: 4, total: 10 } }),
+      node("2", { dataPartition: { available: 30, total: 50 } }),
+      node("3"),
+      node("4", { isUp: false, dataPartition: { available: 0, total: 0 } }),
+    ],
+    layout,
+  );
+  assert.deepEqual(sumDisks(rows), { total: 60, free: 34, reporting: 2 });
+  assert.deepEqual(sumDisks([]), { total: 0, free: 0, reporting: 0 });
+});
+
+test("a gateway's disk counts in a zone summary but not in the storage-only Overview total", () => {
+  const rows = buildRows(
+    [
+      node("1", { dataPartition: { available: 4, total: 10 } }),
+      node("2", { dataPartition: { available: 5, total: 20 } }),
+    ],
+    layout,
+  );
+  // Node 2 is a gateway (capacity null) in zone ams1.
+  const ams = summarizeZones(rows).find((z) => z.zone === "ams1");
+  assert.deepEqual(
+    { total: ams?.total, free: ams?.free, rep: ams?.reporting },
+    { total: 20, free: 5, rep: 1 },
+  );
+  const storage = rows.filter((r) => r.capacity !== null);
+  assert.deepEqual(sumDisks(storage), { total: 10, free: 4, reporting: 1 });
 });

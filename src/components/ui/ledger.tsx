@@ -23,13 +23,19 @@ type LedgerProps<T> = {
   caption: string;
   /** Shown instead of the table when there are no rows. */
   empty?: ReactNode;
-  /** The row that takes the gold caret (for example a selection). */
+  /** The row that takes the selected fill (for example a selection). */
   selectedKey?: string | null;
+  /** Rows selected together, for example the object browser's checked files. */
+  selectedKeys?: readonly string[];
+  /** A totals row under the body: cell content by column key. Columns without an entry stay empty. */
+  footer?: Record<string, ReactNode>;
 };
 
 /**
- * Dense table: 32 px rows on desktop; under 768 px every row becomes a stack where each cell carries its own label.
- * Cells truncate on desktop, so put the full value in a `title` and let long names wrap in the stack.
+ * Data table: condensed uppercase heads on a quiet band, hover rows, row actions (`.row-actions`) that show on
+ * hover, focus or selection and always on touch. Under 768 px every row becomes a stack where each cell carries its
+ * own label. Cells truncate on desktop, so put the full value in a `title` and let long names wrap in the stack.
+ * Put it flush in a `Panel flush`.
  */
 export const Ledger = <T,>({
   columns,
@@ -38,6 +44,8 @@ export const Ledger = <T,>({
   caption,
   empty,
   selectedKey,
+  selectedKeys,
+  footer,
 }: LedgerProps<T>) => {
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
@@ -50,7 +58,11 @@ export const Ledger = <T,>({
               key={c.key}
               scope="col"
               style={c.width ? { width: c.width } : undefined}
-              className={cn(c.align === "right" && "text-right", c.className)}
+              data-mobile={c.mobile}
+              className={cn(
+                c.align === "right" && "md:text-right",
+                c.className,
+              )}
             >
               {c.header}
             </th>
@@ -63,8 +75,9 @@ export const Ledger = <T,>({
           return (
             <tr
               key={key}
-              className="caret-tr"
-              data-selected={selectedKey === key}
+              data-selected={
+                selectedKey === key || !!selectedKeys?.includes(key)
+              }
             >
               {columns.map((c) => {
                 const label =
@@ -78,7 +91,7 @@ export const Ledger = <T,>({
                     data-label={label || undefined}
                     data-mobile={c.mobile}
                     className={cn(
-                      c.align === "right" && "text-right md:text-right",
+                      c.align === "right" && "md:text-right",
                       c.className,
                     )}
                   >
@@ -90,6 +103,31 @@ export const Ledger = <T,>({
           );
         })}
       </tbody>
+      {footer ? (
+        <tfoot>
+          <tr>
+            {columns.map((c) => (
+              <td
+                key={c.key}
+                data-label={
+                  footer[c.key] != null && c.mobile !== "title"
+                    ? typeof c.header === "string"
+                      ? c.header
+                      : undefined
+                    : undefined
+                }
+                data-mobile={footer[c.key] == null ? "hide" : c.mobile}
+                className={cn(
+                  c.align === "right" && "md:text-right",
+                  c.className,
+                )}
+              >
+                {footer[c.key]}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      ) : null}
     </table>
   );
 };

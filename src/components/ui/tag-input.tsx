@@ -58,7 +58,7 @@ const TagInput = ({
       <label htmlFor={fid} className="text-caption font-medium text-ink-2">
         {label}
       </label>
-      <div className="flex min-h-9 flex-wrap items-center gap-1 rounded-sm border border-rule-strong bg-sunk p-1 transition-colors duration-caret focus-within:border-gold-text hover:border-ink-3 md:min-h-8">
+      <div className="flex min-h-9 flex-wrap items-center gap-1 rounded border border-line-strong bg-surface p-1 transition-colors duration-100 focus-within:border-focus hover:border-ink-3 md:min-h-[34px]">
         {value.map((tag) => (
           <Chips
             key={tag}
@@ -92,7 +92,7 @@ const TagInput = ({
                 type="button"
                 disabled={disabled}
                 onClick={() => add(s)}
-                className="inline-flex h-8 items-center rounded-sm border border-rule px-2 text-ink-2 transition-colors duration-caret hover:bg-fill hover:text-ink md:h-6"
+                className="inline-flex h-8 items-center rounded border border-line px-2 text-caption text-ink-2 transition-colors duration-100 hover:bg-surface-2 hover:text-ink md:h-[26px]"
               >
                 + {s}
               </button>

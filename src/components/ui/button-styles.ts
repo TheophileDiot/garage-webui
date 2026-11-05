@@ -1,32 +1,56 @@
+import { cn } from "@/lib/utils";
+
 export type ButtonVariant =
   "primary" | "secondary" | "ghost" | "danger" | "ghost-danger";
 export type ButtonSize = "sm" | "md";
 
-/**
- * Caret verb: on hover a block wipes in from the left under the label (scaleX, 120 ms).
- * Primary rests on gold and wipes to ink; the others rest transparent and wipe to gold (danger: red).
- */
+/** Shared by Button, IconButton and anything that must look like one (a link, a menu trigger). */
 export const buttonBase =
-  "relative isolate inline-flex select-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-sm border text-body font-medium " +
-  "transition-[color,transform] duration-caret ease-caret active:translate-y-px " +
-  "before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:transition-transform before:duration-caret before:ease-caret " +
-  "hover:before:scale-x-100 focus-visible:before:scale-x-100 disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40";
+  "inline-flex select-none items-center justify-center gap-[7px] whitespace-nowrap rounded border text-body font-medium " +
+  "transition-colors duration-100 active:translate-y-px " +
+  "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
 
-/** Controls are 28 px on desktop and 36 px on touch; small ones 24 px and 32 px. Never below 24 x 24. */
+/** Controls are 34 px on desktop and 36 px on touch; small ones are 30 px on desktop and 36 px on touch too. Never below 24 x 24. */
 export const buttonSizes: Record<ButtonSize, { text: string; icon: string }> = {
-  md: { text: "h-9 px-3 md:h-7", icon: "h-9 w-9 shrink-0 md:h-7 md:w-7" },
-  sm: { text: "h-8 px-2 md:h-6", icon: "h-8 w-8 shrink-0 md:h-6 md:w-6" },
+  md: {
+    text: "h-9 px-3.5 md:h-[34px]",
+    icon: "h-9 w-9 shrink-0 md:h-[34px] md:w-[34px]",
+  },
+  sm: {
+    text: "h-9 px-2.5 text-caption md:h-[30px]",
+    icon: "h-9 w-9 shrink-0 md:h-[30px] md:w-[30px]",
+  },
 };
 
 export const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "border-gold bg-gold text-gold-ink before:bg-transparent hover:before:bg-ink focus-visible:before:bg-ink hover:text-ground focus-visible:text-ground",
+    "border-primary bg-primary text-primary-ink hover:border-primary-hover hover:bg-primary-hover",
   secondary:
-    "border-rule-strong bg-transparent text-ink before:bg-transparent hover:before:bg-gold focus-visible:before:bg-gold hover:border-gold hover:text-gold-ink focus-visible:text-gold-ink",
+    "border-line-strong bg-surface text-ink hover:border-ink-3 hover:bg-surface-2",
   ghost:
-    "border-transparent bg-transparent text-ink-2 before:bg-transparent hover:before:bg-fill focus-visible:before:bg-fill hover:text-ink focus-visible:text-ink",
+    "border-transparent bg-transparent text-ink-3 hover:border-line hover:bg-surface-2 hover:text-ink",
   "ghost-danger":
-    "border-transparent bg-transparent text-ink-2 before:bg-transparent hover:before:bg-bad focus-visible:before:bg-bad hover:text-ground focus-visible:text-ground",
+    "border-transparent bg-transparent text-ink-3 hover:border-bad hover:bg-bad-soft hover:text-bad",
   danger:
-    "border-bad bg-transparent text-bad before:bg-transparent hover:before:bg-bad focus-visible:before:bg-bad hover:text-ground focus-visible:text-ground",
+    "border-line-strong bg-surface text-bad hover:border-bad hover:bg-bad-soft",
 };
+
+/** The class list of a button: base, size, variant, then the caller's own. For Button, IconButton and anything styled like one. */
+export const buttonClass = ({
+  variant = "secondary",
+  size = "md",
+  iconOnly = false,
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Square icon button sizing instead of text button sizing. */
+  iconOnly?: boolean;
+  className?: string;
+} = {}) =>
+  cn(
+    buttonBase,
+    buttonSizes[size][iconOnly ? "icon" : "text"],
+    buttonVariants[variant],
+    className,
+  );

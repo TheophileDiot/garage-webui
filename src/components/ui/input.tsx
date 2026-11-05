@@ -1,13 +1,14 @@
 import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 import React, { forwardRef, ReactNode, useId } from "react";
 import FormControl from "./form-control";
 import { FieldValues } from "react-hook-form";
 
-/** Inputs are inset (the `sunk` surface) so they read as "type here" without a heavy border. */
+/** Fields are 34 px tall on desktop and 36 px on touch, on the surface colour with a strong rule. */
 export const inputClass =
-  "h-9 w-full min-w-0 rounded-sm border border-rule-strong bg-sunk px-2.5 text-ink transition-colors duration-caret " +
-  "placeholder:text-ink-3 hover:border-ink-3 focus-visible:border-gold-text focus-visible:[outline-offset:-1px] " +
-  "aria-[invalid=true]:border-bad read-only:text-ink-2 disabled:opacity-40 md:h-8";
+  "h-9 w-full min-w-0 rounded border border-line-strong bg-surface px-2.5 text-ink transition-colors duration-100 " +
+  "placeholder:text-ink-3 hover:border-ink-3 focus-visible:border-focus focus-visible:[outline-offset:0] " +
+  "aria-[invalid=true]:border-bad read-only:bg-surface-2 read-only:text-ink-2 disabled:opacity-50 md:h-[34px]";
 
 type InputProps = Omit<React.ComponentPropsWithoutRef<"input">, "form">;
 
@@ -39,12 +40,14 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
         </label>
         <div
           className={cn(
-            "flex h-9 items-center rounded-sm border bg-sunk transition-colors duration-caret focus-within:border-gold-text md:h-8",
-            error ? "border-bad" : "border-rule-strong hover:border-ink-3",
+            "flex h-9 items-center rounded border bg-surface transition-colors duration-100 focus-within:border-focus md:h-[34px]",
+            error ? "border-bad" : "border-line-strong hover:border-ink-3",
           )}
         >
           {prefix ? (
-            <span className="select-none pl-2.5 text-ink-3">{prefix}</span>
+            <span className="select-none pl-2.5 font-mono text-[12.5px] text-ink-3">
+              {prefix}
+            </span>
           ) : null}
           <input
             ref={ref}
@@ -52,7 +55,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             aria-describedby={hint || error ? hid : undefined}
             aria-invalid={error ? true : undefined}
             className={cn(
-              "h-full min-w-0 flex-1 bg-transparent px-2.5 text-ink placeholder:text-ink-3 focus-visible:[outline-offset:-1px]",
+              "h-full min-w-0 flex-1 rounded bg-transparent px-2.5 text-ink placeholder:text-ink-3 focus-visible:[outline-offset:-1px]",
               prefix && "pl-1",
               className,
             )}
@@ -121,5 +124,42 @@ export const InputField = <T extends FieldValues>({
     />
   );
 };
+
+/**
+ * A search box: the field with a leading magnifier. Give `label` an accessible name; it is visually hidden.
+ * Same size as every other field, so it lines up with a button beside it.
+ */
+export const SearchField = forwardRef<
+  HTMLInputElement,
+  Omit<InputProps, "type"> & { label: string }
+>(({ label, className, ...rest }, ref) => {
+  const uid = useId();
+  return (
+    <div
+      className={cn(
+        "relative min-w-[200px] flex-1 sm:max-w-[340px]",
+        className,
+      )}
+    >
+      <label htmlFor={rest.id ?? uid} className="sr-only">
+        {label}
+      </label>
+      <Search
+        size={16}
+        aria-hidden
+        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3"
+      />
+      <input
+        ref={ref}
+        id={rest.id ?? uid}
+        type="search"
+        autoComplete="off"
+        className={cn(inputClass, "pl-[33px]")}
+        {...rest}
+      />
+    </div>
+  );
+});
+SearchField.displayName = "SearchField";
 
 export default Input;

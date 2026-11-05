@@ -4,6 +4,7 @@ import {
   allocateCells,
   hasPartitionCounts,
   hasUsableHealth,
+  healthReading,
   ofCounts,
   partitionStates,
   runsFromCounts,
@@ -137,4 +138,70 @@ test("hasUsableHealth wants a known status and a partition", () => {
   assert.equal(hasUsableHealth({ ...ok, status: "unknown" }), false);
   assert.equal(hasUsableHealth({ ...ok, partitions: 0 }), false);
   assert.equal(hasUsableHealth({ status: "healthy", partitions: 256 }), false);
+});
+
+test("allocateCells lights nothing for a cluster that reports no partitions", () => {
+  const none = partitionStates({
+    partitions: 0,
+    partitionsQuorum: 0,
+    partitionsAllOk: 0,
+  });
+  assert.deepEqual(allocateCells(none, 256), {
+    full: 0,
+    quorumOnly: 0,
+    none: 0,
+  });
+  assert.deepEqual(runsFromCounts(allocateCells(none, 256)), {
+    full: "",
+    degraded: "",
+    lost: "",
+  });
+});
+
+const healthy = {
+  status: "healthy",
+  partitions: 256,
+  partitionsQuorum: 256,
+  partitionsAllOk: 256,
+};
+
+test("healthReading is usable only with a known status, counts and no failed refresh", () => {
+  const ok = healthReading(healthy, false);
+  assert.equal(ok.usable, true);
+  if (ok.usable) assert.equal(ok.health.partitions, 256);
+});
+
+test("cached healthy data plus a failed refresh is unavailable, never the stale counts", () => {
+  const r = healthReading(healthy, true);
+  assert.deepEqual(r, {
+    usable: false,
+    reason: "The last health refresh failed.",
+  });
+});
+
+test("healthReading explains why no counts are shown", () => {
+  assert.deepEqual(healthReading(undefined, false), {
+    usable: false,
+    reason: "No health reading yet.",
+  });
+  assert.deepEqual(healthReading({ ...healthy, status: "unknown" }, false), {
+    usable: false,
+    reason: "The cluster reports its health as unknown.",
+  });
+  assert.deepEqual(
+    healthReading({ status: "healthy", partitions: 256 }, false),
+    {
+      usable: false,
+      reason: "The health reply carries no partition counts.",
+    },
+  );
+  assert.deepEqual(healthReading({ ...healthy, partitions: 0 }, false), {
+    usable: false,
+    reason: "The cluster reports no partitions.",
+  });
+  // An error with nothing cached is the same state: unavailable, with the refresh reason.
+  assert.deepEqual(healthReading(undefined, true), {
+    usable: false,
+    reason: "The last health refresh failed.",
+  });
 });

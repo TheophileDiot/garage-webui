@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Read / Write / Owner as three cells. Active cells are gold fills, inactive are outlined; the letters always show. */
+/** Read / Write / Owner as three cells. Active cells are filled, inactive are outlined; the letters always show. */
 const Perm = ({
   read,
   write,
@@ -33,10 +33,10 @@ const Perm = ({
           key={l}
           aria-hidden
           className={cn(
-            "inline-flex h-6 w-6 items-center justify-center border text-caption font-bold",
+            "inline-flex h-6 w-6 items-center justify-center border font-cond text-caption font-semibold first:rounded-l-sm last:rounded-r-sm",
             on
-              ? "border-gold bg-gold text-gold-ink"
-              : "border-rule-strong text-ink-3",
+              ? "border-primary bg-primary text-primary-ink"
+              : "border-line-strong text-ink-3",
           )}
         >
           {l}

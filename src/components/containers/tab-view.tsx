@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
-import { KeyboardEvent, useId, useRef } from "react";
+import { KeyboardEvent, useEffect, useId, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 export type Tab = {
@@ -15,6 +15,11 @@ type Props = {
   name?: string;
   /** Accessible name of the tab list. */
   label: string;
+  /**
+   * Maps the raw `?tab=` value to a tab name (for example `bucketTab`, which also reads the pre-redesign values).
+   * When the URL holds a different spelling of the same tab, it is replaced in place with the canonical one.
+   */
+  normalize?: (raw: string | null) => string;
   className?: string;
   contentClassName?: string;
 };
@@ -23,11 +28,13 @@ const TabView = ({
   tabs,
   name = "tab",
   label,
+  normalize,
   className,
   contentClassName,
 }: Props) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const requested = searchParams.get(name);
+  const raw = searchParams.get(name);
+  const requested = normalize ? normalize(raw) : raw;
   const curTab = tabs.some((tab) => tab.name === requested)
     ? requested!
     : tabs[0].name;
@@ -45,6 +52,20 @@ const TabView = ({
       },
       { replace: true },
     );
+
+  // A legacy spelling in the URL is rewritten once, with replace, so history keeps no extra entry.
+  useEffect(() => {
+    if (normalize && raw !== null && raw !== curTab) {
+      setSearchParams(
+        (params) => {
+          const next = new URLSearchParams(params);
+          next.set(name, curTab);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [normalize, raw, curTab, name, setSearchParams]);
 
   const onKeyDown = (e: KeyboardEvent, index: number) => {
     const last = tabs.length - 1;
@@ -74,7 +95,7 @@ const TabView = ({
         role="tablist"
         aria-label={label}
         className={cn(
-          "-mx-4 flex gap-1 overflow-x-auto border-b border-rule px-4 md:mx-0 md:px-0",
+          "mb-4 flex gap-1 overflow-x-auto border-b border-line-strong",
           className,
         )}
       >
@@ -95,15 +116,14 @@ const TabView = ({
               onClick={() => select(tab.name)}
               onKeyDown={(e) => onKeyDown(e, index)}
               className={cn(
-                "relative -mb-px inline-flex h-10 shrink-0 items-center gap-2 px-3 font-medium transition-colors duration-caret hover:bg-fill md:h-8",
-                "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-bottom-left after:scale-x-0 after:bg-transparent after:transition-transform after:duration-caret after:ease-caret hover:after:scale-x-100 hover:after:scale-y-[2] hover:after:bg-gold focus-visible:after:bg-gold",
+                "-mb-px inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3.5 font-medium transition-colors duration-100",
                 active
-                  ? "text-ink after:scale-x-100 after:bg-gold hover:after:scale-y-[2]"
-                  : "text-ink-3 hover:text-ink",
+                  ? "border-ink font-semibold text-ink"
+                  : "border-transparent text-ink-2 hover:text-ink",
               )}
             >
               {Icon ? (
-                <Icon size={14} aria-hidden className="hidden sm:block" />
+                <Icon size={16} aria-hidden className="hidden sm:block" />
               ) : null}
               <span>{tab.title || tab.name}</span>
             </button>
@@ -115,7 +135,7 @@ const TabView = ({
         role="tabpanel"
         id={`${uid}-panel`}
         aria-labelledby={`${uid}-tab-${curTab}`}
-        className={cn("mt-5", contentClassName)}
+        className={contentClassName}
       >
         {Content ? <Content /> : null}
       </div>

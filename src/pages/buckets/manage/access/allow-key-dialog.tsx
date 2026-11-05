@@ -1,5 +1,5 @@
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/dialog";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import { useKeys } from "@/pages/keys/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { handleError } from "@/lib/utils";
 import { useBucketContext } from "../context";
 import { keyLabel } from "@/pages/keys/utils";
+import { textLink } from "../../styles";
 
 type Props = {
   currentKeys?: string[];
@@ -165,6 +166,7 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
             form={form}
             name={`keys.${field.index}.${perm}`}
             aria-label={`${perm[0].toUpperCase() + perm.slice(1)} for ${label}`}
+            inputClassName="!h-6 !w-6"
           />
         );
       },
@@ -185,20 +187,13 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
         description="Pick the keys and the permissions each one gets."
         size="xl"
         actions={
-          <>
-            <Button onClick={close} disabled={allowKey.isPending}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              variant="primary"
-              loading={allowKey.isPending}
-              disabled={keyFields.length === 0}
-            >
-              Allow selected keys
-            </Button>
-          </>
+          <FormActions
+            onCancel={close}
+            pending={allowKey.isPending}
+            formId={FORM_ID}
+            submitLabel="Allow selected keys"
+            disabled={keyFields.length === 0}
+          />
         }
       >
         <form id={FORM_ID} onSubmit={onSubmit}>
@@ -214,14 +209,14 @@ const AllowKeyDialog = ({ currentKeys }: Props) => {
           ) : keyFields.length === 0 ? (
             <EmptyState title="No other key available" className="px-0 py-4">
               Every key already has access, or none exists yet.{" "}
-              <Link to="/keys" className="xlink" onClick={close}>
+              <Link to="/keys" className={textLink} onClick={close}>
                 Create a key
               </Link>
               .
             </EmptyState>
           ) : (
             <>
-              <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-rule pb-3">
+              <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line pb-3">
                 <legend className="sr-only">Select all</legend>
                 <span className="text-ink-3" aria-hidden>
                   Select all

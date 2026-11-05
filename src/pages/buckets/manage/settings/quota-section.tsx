@@ -8,8 +8,10 @@ import { InputField } from "@/components/ui/input";
 import { ToggleField } from "@/components/ui/toggle";
 import { Panel } from "@/components/ui/page-header";
 import { useBucketContext } from "../context";
-import { handleError } from "@/lib/utils";
-import { quotaValue } from "../../utils";
+import { handleError, readableBytes } from "@/lib/utils";
+import { TriangleAlert } from "lucide-react";
+import { Meter } from "@/components/ui/status";
+import { quotaPercent, quotaTone, quotaUses, quotaValue } from "../../utils";
 import SaveState from "./save-state";
 import {
   markEdited,
@@ -61,6 +63,7 @@ const QuotaSection = () => {
       .finally(() => markSettled(autosave.current));
   });
 
+  const uses = quotaUses(data);
   const serverObjects = quotaValue(data?.quotas?.maxObjects);
   const serverSize = quotaValue(data?.quotas?.maxSize);
 
@@ -86,20 +89,78 @@ const QuotaSection = () => {
     <Panel
       id="quotas"
       title="Quotas"
-      aside={<SaveState mutation={updateMutation} />}
+      meta={<SaveState mutation={updateMutation} />}
     >
       <p className="text-ink-3">
         Limit how much this bucket can hold. Changes save automatically.
       </p>
+
+      <div className="mt-3 grid gap-3 rounded border border-line bg-surface-2 p-3">
+        {(["size", "objects"] as const).map((kind) => {
+          const use = uses.find((q) => q.kind === kind);
+          const title = kind === "size" ? "Size quota" : "Object quota";
+          if (!use)
+            return (
+              <div key={kind}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="text-ink-2">No limit</p>
+                </div>
+                {kind === "size" ? (
+                  <p className="mt-1 text-ink-3">
+                    Writes are limited only by cluster disk.
+                  </p>
+                ) : null}
+              </div>
+            );
+          const tone = quotaTone(use.ratio);
+          return (
+            <div key={kind}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="font-semibold">{title}</h3>
+                <p className="tabular-nums text-ink-2">
+                  {kind === "size"
+                    ? `${readableBytes(use.used)} of ${readableBytes(use.max)}`
+                    : `${use.used.toLocaleString()} of ${use.max.toLocaleString()}`}
+                </p>
+              </div>
+              <Meter
+                className="mt-2"
+                compact
+                value={use.used}
+                max={use.max}
+                tone={tone}
+                label={`${title} used`}
+              />
+              <p
+                className={
+                  tone === "ink"
+                    ? "mt-1.5 text-ink-3"
+                    : "mt-1.5 flex items-center gap-1.5 font-medium text-warn"
+                }
+              >
+                {tone !== "ink" ? (
+                  <TriangleAlert size={14} aria-hidden className="shrink-0" />
+                ) : null}
+                {quotaPercent(use)}% used
+                {kind === "size"
+                  ? `, ${readableBytes(Math.max(0, use.max - use.used))} left`
+                  : ""}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
       <ToggleField
         form={form}
         name="enabled"
         label="Enforce quotas"
-        className="mt-3"
+        className="mt-4"
       />
 
       {isEnabled && (
-        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-rule pt-4 md:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-line pt-4 md:grid-cols-2">
           <InputField
             form={form}
             name="maxObjects"

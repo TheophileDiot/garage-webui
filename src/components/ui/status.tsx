@@ -1,6 +1,12 @@
 import { safeRatio } from "@/lib/partitions";
 import { cn } from "@/lib/utils";
-import { CSSProperties, ReactNode } from "react";
+import {
+  CircleCheck,
+  CircleDashed,
+  CircleX,
+  TriangleAlert,
+} from "lucide-react";
+import { ReactNode } from "react";
 
 export type Tone = "ok" | "warn" | "bad" | "idle";
 
@@ -11,7 +17,14 @@ const text: Record<Tone, string> = {
   idle: "text-ink-3",
 };
 
-/** Status = a shape plus a word. Filled square: fine. Hollow square: not fine. Triangle: degraded. Dash: unknown. */
+const icon = {
+  ok: CircleCheck,
+  warn: TriangleAlert,
+  bad: CircleX,
+  idle: CircleDashed,
+} as const;
+
+/** Status = an icon shape plus a word, never colour alone: circle-check fine, triangle degraded, circle-x not fine, dashed unknown. */
 export const Status = ({
   tone,
   children,
@@ -20,54 +33,29 @@ export const Status = ({
   tone: Tone;
   children: ReactNode;
   className?: string;
-}) => (
-  <span
-    className={cn(
-      "inline-flex items-center gap-1.5 whitespace-nowrap font-medium",
-      text[tone],
-      className,
-    )}
-  >
-    <svg
-      width="9"
-      height="9"
-      viewBox="0 0 9 9"
-      aria-hidden
-      className="shrink-0"
+}) => {
+  const Icon = icon[tone];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap font-medium",
+        text[tone],
+        className,
+      )}
     >
-      {tone === "ok" && (
-        <rect x="0.5" y="0.5" width="8" height="8" fill="currentColor" />
-      )}
-      {tone === "bad" && (
-        <rect
-          x="1"
-          y="1"
-          width="7"
-          height="7"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-      )}
-      {tone === "warn" && (
-        <path d="M4.5 0.5 8.5 8.5H0.5Z" fill="currentColor" />
-      )}
-      {tone === "idle" && (
-        <rect x="1" y="3.5" width="7" height="2" fill="currentColor" />
-      )}
-    </svg>
-    {children}
-  </span>
-);
+      <Icon size={15} aria-hidden className="shrink-0" />
+      {children}
+    </span>
+  );
+};
 
-type Tint = "ink" | "ok" | "warn" | "bad" | "gold";
+type Tint = "ink" | "ok" | "warn" | "bad";
 
 const fill: Record<Tint, string> = {
-  ink: "var(--ink-2)",
-  ok: "var(--ok)",
-  warn: "var(--warn)",
-  bad: "var(--bad)",
-  gold: "var(--gold-text)",
+  ink: "bg-bar",
+  ok: "bg-ok",
+  warn: "bg-warn",
+  bad: "bg-bad",
 };
 
 type MeterProps = {
@@ -75,11 +63,13 @@ type MeterProps = {
   label: string;
   value: number;
   tone?: Tint;
+  /** Fills a grid cell without reserving the normal 90 px flex basis. */
+  compact?: boolean;
   className?: string;
 };
 
 /**
- * Cell meter. Always sits next to its numbers in text; the bar is a second reading, not the only one.
+ * Thin bar, 6 px. Always sits next to its numbers in text; the bar is a second reading, not the only one.
  * A zero or missing `max` draws an empty bar, never NaN.
  */
 export const Meter = ({
@@ -87,10 +77,10 @@ export const Meter = ({
   label,
   value,
   tone = "ink",
+  compact = false,
   className,
 }: MeterProps) => {
   const p = safeRatio(value, max) * 100;
-  const style = { "--meter-fill": fill[tone] } as CSSProperties;
   return (
     <div
       role="meter"
@@ -99,10 +89,16 @@ export const Meter = ({
       aria-valuemax={max > 0 ? max : 0}
       aria-valuenow={Math.max(0, value)}
       aria-valuetext={`${Math.round(p)}%`}
-      className={cn("meter w-full", className)}
-      style={style}
+      className={cn(
+        "h-1.5 flex-1 overflow-hidden rounded-[2px] bg-track",
+        compact ? "min-w-0 basis-auto" : "min-w-[60px] basis-[90px]",
+        className,
+      )}
     >
-      <i style={{ width: `${p}%` }} />
+      <i
+        className={cn("block h-full rounded-[2px]", fill[tone])}
+        style={{ width: `${p}%` }}
+      />
     </div>
   );
 };

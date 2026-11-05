@@ -18,7 +18,7 @@ const Chips = ({
 }: Props) => (
   <span
     className={cn(
-      "inline-flex min-h-7 max-w-full items-center gap-1 rounded-sm border border-rule-strong bg-sunk pl-2 [overflow-wrap:anywhere]",
+      "inline-flex min-h-6 max-w-full items-center gap-1 rounded-sm border border-line bg-surface-2 py-0.5 pl-2 text-caption font-medium text-ink-2 [overflow-wrap:anywhere]",
       onRemove ? "pr-0.5" : "pr-2",
       className,
     )}
@@ -32,6 +32,7 @@ const Chips = ({
         iconSize={13}
         variant="ghost-danger"
         onClick={onRemove}
+        className="!h-6 !w-6"
       />
     ) : null}
   </span>

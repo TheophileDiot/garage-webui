@@ -1,5 +1,5 @@
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/dialog";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -52,19 +52,12 @@ const CreateBucketDialog = () => {
         title="Create bucket"
         description="A bucket is a flat namespace. The name becomes its global alias, the address clients use."
         actions={
-          <>
-            <Button onClick={close} disabled={createBucket.isPending}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              variant="primary"
-              loading={createBucket.isPending}
-            >
-              Create bucket
-            </Button>
-          </>
+          <FormActions
+            onCancel={close}
+            pending={createBucket.isPending}
+            formId={FORM_ID}
+            submitLabel="Create bucket"
+          />
         }
       >
         <form id={FORM_ID} onSubmit={onSubmit}>

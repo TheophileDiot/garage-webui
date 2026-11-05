@@ -1,11 +1,29 @@
 import { Link } from "react-router-dom";
+import {
+  CircleX,
+  FolderOpen,
+  Globe,
+  Settings,
+  TriangleAlert,
+} from "lucide-react";
 import { Ledger, LedgerColumn } from "@/components/ui/ledger";
-import Button from "@/components/ui/button";
+import CopyButton from "@/components/ui/copy-button";
+import IconButton from "@/components/ui/icon-button";
 import { Meter, Status } from "@/components/ui/status";
-import { readableBytes } from "@/lib/utils";
-import { safeRatio } from "@/lib/partitions";
+import { cn, readableBytes } from "@/lib/utils";
+import { bucketPath } from "@/lib/routes";
 import { Bucket } from "../types";
-import { bucketName, quotaTone, quotaValue } from "../utils";
+import {
+  bucketTotals,
+  grantedKeys,
+  QuotaUse,
+  quotaAmount,
+  quotaPercent,
+  quotaTone,
+  quotaUses,
+  s3Uri,
+} from "../utils";
+import { textLink } from "../styles";
 
 export type BucketRow = Bucket & {
   name: string;
@@ -13,162 +31,174 @@ export type BucketRow = Bucket & {
   aliases: string[];
 };
 
-/** The buckets table. `largest` is the biggest bucket's size, the scale of the share meter. */
+/** One quota as a bar and its numbers. The icon and the word, not the colour, carry a warning. */
+const QuotaLine = ({ q, name }: { q: QuotaUse; name: string }) => {
+  const tone = quotaTone(q.ratio);
+  const of = quotaAmount(q.kind, q.max);
+  return (
+    <span className="grid grid-cols-[minmax(48px,1fr)_auto] items-center gap-2.5">
+      <Meter
+        max={q.max}
+        value={q.used}
+        tone={tone}
+        label={`${name} ${q.kind} quota used`}
+        compact
+      />
+      <span className="whitespace-nowrap tabular-nums">
+        {tone !== "ink" ? (
+          <>
+            {tone === "bad" ? (
+              <CircleX
+                size={14}
+                aria-hidden
+                className="mr-1 inline align-[-2px] text-bad"
+              />
+            ) : (
+              <TriangleAlert
+                size={14}
+                aria-hidden
+                className="mr-1 inline align-[-2px] text-warn"
+              />
+            )}
+            <span className="sr-only">
+              {tone === "bad" ? "Quota full: " : "Near the quota: "}
+            </span>
+          </>
+        ) : null}
+        <b className="font-semibold">{quotaPercent(q)}%</b>{" "}
+        <span className="text-ink-2">of {of}</span>
+      </span>
+    </span>
+  );
+};
+
+/** The buckets table: name and short ID, objects, size, quota bars, website, keys, row actions and a totals row. */
 const BucketLedger = ({
   rows,
-  largest,
+  total,
 }: {
   rows: BucketRow[];
-  largest: number;
+  /** Buckets before the search filter, for the totals label. */
+  total: number;
 }) => {
+  const { bytes, objects } = bucketTotals(rows);
+  const websites = rows.filter((b) => b.websiteAccess).length;
+
   const columns: LedgerColumn<BucketRow>[] = [
     {
       key: "bucket",
       header: "Bucket",
       mobile: "title",
-      width: "24%",
+      width: "27%",
       cell: (b) => {
-        const hasGlobal = (b.globalAliases?.length ?? 0) > 0;
         const extra = b.aliases.filter((a) => a !== b.name);
+        const unfinished = b.unfinishedMultipartUploads;
         return (
-          <span className="flex min-w-0 items-baseline gap-2">
+          <span className="block min-w-0">
             <Link
-              to={`/buckets/${b.id}`}
+              to={bucketPath(b.id)}
               title={b.name}
-              className="xlink min-w-0 truncate font-medium max-md:[overflow-wrap:anywhere] max-md:whitespace-normal"
+              className="block min-h-6 truncate font-medium leading-6 text-ink hover:underline hover:underline-offset-2 max-md:flex max-md:min-h-9 max-md:items-center max-md:whitespace-normal max-md:leading-snug max-md:[overflow-wrap:anywhere]"
             >
-              {hasGlobal ? (
-                <span className="font-normal text-ink-3">s3://</span>
-              ) : null}
               {b.name}
             </Link>
-            {extra.length > 0 ? (
-              <span
-                className="shrink-0 text-caption text-ink-3 max-md:[overflow-wrap:anywhere]"
-                title={`Also: ${extra.join(", ")}`}
-              >
-                +{extra.length} {extra.length === 1 ? "alias" : "aliases"}
-                <span className="sr-only">: {extra.join(", ")}</span>
+            <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-caption text-ink-3">
+              <span className="font-mono" title={b.id}>
+                {b.id.slice(0, 8)}
               </span>
-            ) : null}
+              {extra.length > 0 ? (
+                <span title={`Also: ${extra.join(", ")}`}>
+                  +{extra.length} {extra.length === 1 ? "alias" : "aliases"}
+                  <span className="sr-only">: {extra.join(", ")}</span>
+                </span>
+              ) : null}
+              {(b.globalAliases?.length ?? 0) === 0 ? (
+                <span title="No global alias: object browsing needs one">
+                  local alias only
+                </span>
+              ) : null}
+              {unfinished > 0 ? (
+                <Status tone="warn" className="text-caption">
+                  {unfinished} unfinished{" "}
+                  {unfinished === 1 ? "upload" : "uploads"}
+                </Status>
+              ) : null}
+            </span>
           </span>
         );
       },
-    },
-    {
-      key: "id",
-      header: "ID",
-      width: "11%",
-      cell: (b) => (
-        <span title={b.id} className="text-ink-2">
-          {b.id.slice(0, 8)}…
-        </span>
-      ),
     },
     {
       key: "objects",
       header: "Objects",
       align: "right",
       width: "9%",
-      cell: (b) => b.objects.toLocaleString(),
+      cell: (b) => (
+        <span className="tabular-nums">{b.objects.toLocaleString()}</span>
+      ),
     },
     {
       key: "size",
       header: "Size",
       align: "right",
       width: "9%",
-      cell: (b) => readableBytes(b.bytes),
-    },
-    {
-      key: "share",
-      header: "Share",
-      mobileLabel: "Size vs largest",
-      width: "11%",
-      cell: (b) => {
-        const ratio = safeRatio(b.bytes, largest);
-        return (
-          <span className="grid w-full grid-cols-[minmax(2rem,1fr)_auto] items-center gap-2">
-            <Meter
-              max={largest}
-              value={b.bytes}
-              label={`${b.name} size relative to the largest bucket`}
-            />
-            <span className="w-9 text-right tabular-nums">
-              {Math.round(ratio * 100)}%
-            </span>
-          </span>
-        );
-      },
+      cell: (b) => (
+        <span className="tabular-nums">{readableBytes(b.bytes)}</span>
+      ),
     },
     {
       key: "quota",
       header: "Quota",
-      width: "17%",
+      width: "23%",
       cell: (b) => {
-        const size = quotaValue(b.quotas?.maxSize);
-        const objects = quotaValue(b.quotas?.maxObjects);
-        if (size) {
-          const ratio = safeRatio(b.bytes, size);
-          return (
-            <span
-              className="grid w-full grid-cols-[minmax(2rem,1fr)_auto] items-center gap-2"
-              title={
-                objects
-                  ? `Object quota: ${b.objects.toLocaleString()} of ${objects.toLocaleString()}`
-                  : undefined
-              }
-            >
-              <Meter
-                max={size}
-                value={b.bytes}
-                tone={quotaTone(ratio)}
-                label={`${b.name} size quota used`}
-              />
-              <span className="text-right tabular-nums">
-                {Math.round(ratio * 100)}% of {readableBytes(size)}
-              </span>
-            </span>
-          );
-        }
-        if (objects)
-          return (
-            <span className="tabular-nums">
-              {b.objects.toLocaleString()} of {objects.toLocaleString()} objects
-            </span>
-          );
-        return <span className="text-ink-3">no limit</span>;
+        const uses = quotaUses(b);
+        return uses.length ? (
+          <span className="grid gap-1.5">
+            {uses.map((q) => (
+              <QuotaLine key={q.kind} q={q} name={b.name} />
+            ))}
+          </span>
+        ) : (
+          <span className="text-ink-3">No quota</span>
+        );
       },
     },
     {
-      key: "notes",
-      header: "Notes",
-      width: "12%",
-      cell: (b) => {
-        const notes = [
-          b.websiteAccess ? (
-            <Status key="w" tone="ok">
-              website
-            </Status>
-          ) : null,
-          b.unfinishedMultipartUploads > 0 ? (
-            <Status key="m" tone="warn">
-              {b.unfinishedMultipartUploads} unfinished
-            </Status>
-          ) : null,
-          (b.globalAliases?.length ?? 0) === 0 ? (
-            <span
-              key="l"
-              className="text-ink-3"
-              title="No global alias: object browsing needs one"
-            >
-              local only
-            </span>
-          ) : null,
-        ].filter(Boolean);
-        return notes.length ? (
-          <span className="flex min-w-0 flex-wrap gap-x-3">{notes}</span>
+      key: "website",
+      header: "Website",
+      width: "11%",
+      cell: (b) =>
+        b.websiteAccess ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-caption font-medium text-link">
+            <Globe size={13} aria-hidden />
+            Website
+          </span>
         ) : (
-          <span className="text-ink-3">none</span>
+          <>
+            <span aria-hidden className="text-ink-3">
+              —
+            </span>
+            <span className="sr-only">Not served as a website</span>
+          </>
+        ),
+    },
+    {
+      key: "keys",
+      header: "Keys",
+      align: "right",
+      width: "6%",
+      cell: (b) => {
+        const n = grantedKeys(b.keys).length;
+        return n > 0 ? (
+          <Link
+            to={bucketPath(b.id, "access")}
+            aria-label={`${n} ${n === 1 ? "key" : "keys"} with access to ${b.name}`}
+            className={cn(textLink, "min-w-6 justify-center tabular-nums")}
+          >
+            {n}
+          </Link>
+        ) : (
+          <span className="tabular-nums text-ink-3">0</span>
         );
       },
     },
@@ -178,23 +208,24 @@ const BucketLedger = ({
       mobile: "actions",
       width: "9.5rem",
       cell: (b) => (
-        <span className="flex gap-1.5 md:justify-end">
-          <Button
-            size="sm"
-            href={`/buckets/${b.id}`}
-            aria-label={`Manage ${bucketName(b)}`}
-          >
-            Manage
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            href={`/buckets/${b.id}?tab=browse`}
-            aria-label={`Browse ${bucketName(b)}`}
-          >
-            Browse
-          </Button>
-        </span>
+        <div className="row-actions">
+          <IconButton
+            label={`Browse objects of ${b.name}`}
+            icon={FolderOpen}
+            href={bucketPath(b.id, "objects")}
+          />
+          <IconButton
+            label={`Settings of ${b.name}`}
+            icon={Settings}
+            href={bucketPath(b.id, "settings")}
+          />
+          <CopyButton
+            value={s3Uri(b)}
+            label={`Copy S3 address of ${b.name}`}
+            iconOnly
+            className="max-md:h-9 max-md:w-9 md:h-[34px] md:w-[34px]"
+          />
+        </div>
       ),
     },
   ];
@@ -205,6 +236,15 @@ const BucketLedger = ({
       columns={columns}
       rows={rows}
       rowKey={(b) => b.id}
+      footer={{
+        bucket:
+          rows.length === total
+            ? `Total · ${total} ${total === 1 ? "bucket" : "buckets"}`
+            : `Total · ${rows.length} of ${total} buckets`,
+        objects: objects.toLocaleString(),
+        size: readableBytes(bytes),
+        website: `${websites} ${websites === 1 ? "site" : "sites"}`,
+      }}
     />
   );
 };

@@ -1,14 +1,7 @@
-import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 import { Link } from "react-router-dom";
-import {
-  ButtonSize,
-  buttonBase,
-  ButtonVariant,
-  buttonSizes,
-  buttonVariants,
-} from "./button-styles";
+import { ButtonSize, buttonClass, ButtonVariant } from "./button-styles";
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> & {
   /** The accessible name and the tooltip. Required: the control has no visible text. */
@@ -21,7 +14,7 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> & {
   iconSize?: number;
 };
 
-/** Square icon-only control, 24 x 24 at the smallest. Hover takes a background fill, never colour alone. */
+/** Square icon-only control, 30 x 30 on desktop at the smallest. Hover takes a background fill and a border, never colour alone. */
 const IconButton = forwardRef<HTMLButtonElement, Props>(
   (
     {
@@ -30,19 +23,14 @@ const IconButton = forwardRef<HTMLButtonElement, Props>(
       variant = "ghost",
       size = "md",
       href,
-      iconSize = 15,
+      iconSize = 16,
       type = "button",
       className,
       ...rest
     },
     ref,
   ) => {
-    const classes = cn(
-      buttonBase,
-      buttonSizes[size].icon,
-      buttonVariants[variant],
-      className,
-    );
+    const classes = buttonClass({ variant, size, iconOnly: true, className });
     const icon = <Icon size={iconSize} aria-hidden />;
     if (href) {
       return (

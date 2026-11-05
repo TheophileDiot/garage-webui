@@ -1,5 +1,5 @@
 import Code from "@/components/ui/code";
-import Dialog from "@/components/ui/dialog";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import Button from "@/components/ui/button";
 import { InputField } from "@/components/ui/input";
 import { useConnectNode } from "../hooks";
@@ -50,25 +50,20 @@ const ConnectNodeDialog = () => {
         title="Connect node"
         dismissible={!connectNode.isPending}
         actions={
-          <>
-            <Button onClick={close} disabled={connectNode.isPending}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="connect-node-form"
-              variant="primary"
-              loading={connectNode.isPending}
-            >
-              Connect
-            </Button>
-          </>
+          <FormActions
+            onCancel={close}
+            pending={connectNode.isPending}
+            formId="connect-node-form"
+            submitLabel="Connect"
+          />
         }
       >
         <p className="text-ink-2">
           Run this command on the target node to read its node id:
         </p>
-        <Code className="mt-2">docker exec garage /garage node id</Code>
+        <Code className="mt-2 max-md:[&_button]:min-h-9 max-md:[&_button]:min-w-9">
+          docker exec garage /garage node id
+        </Code>
 
         <form id="connect-node-form" onSubmit={onSubmit} className="mt-5">
           <InputField
@@ -78,6 +73,7 @@ const ConnectNodeDialog = () => {
             placeholder="<id>@<host>:3901"
             autoComplete="off"
             spellCheck={false}
+            inputClassName="font-mono text-caption"
           />
         </form>
 

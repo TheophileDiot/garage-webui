@@ -1,7 +1,7 @@
 import { FolderPlus, UploadIcon } from "lucide-react";
 import { ChangeEvent, useRef, useState } from "react";
 import Button from "@/components/ui/button";
-import Dialog from "@/components/ui/dialog";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import { usePutObject } from "./hooks";
 import { toast } from "sonner";
 import { handleError } from "@/lib/utils";
@@ -87,7 +87,7 @@ type CreateFolderActionProps = {
 
 const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { bucketName } = useBucketContext();
+  const { globalAlias } = useBucketContext();
 
   const form = useForm<CreateFolderSchema>({
     resolver: zodResolver(createFolderSchema),
@@ -124,19 +124,12 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
         description="S3 has no real folders: this creates an empty key ending in a slash."
         dismissible={!createFolder.isPending}
         actions={
-          <>
-            <Button onClick={close} disabled={createFolder.isPending}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="create-folder-form"
-              variant="primary"
-              loading={createFolder.isPending}
-            >
-              Create folder
-            </Button>
-          </>
+          <FormActions
+            onCancel={close}
+            pending={createFolder.isPending}
+            formId="create-folder-form"
+            submitLabel="Create folder"
+          />
         }
       >
         <form id="create-folder-form" onSubmit={onSubmit}>
@@ -148,7 +141,7 @@ const CreateFolderAction = ({ prefix }: CreateFolderActionProps) => {
               <>
                 Created under{" "}
                 <span className="[overflow-wrap:anywhere]">
-                  {bucketName}/{prefix}
+                  {globalAlias}/{prefix}
                 </span>
               </>
             }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,28 +17,25 @@
     <meta name="color-scheme" content="dark light" />
     <meta
       name="theme-color"
-      content="#0e0f0c"
+      content="#0B0C0F"
       media="(prefers-color-scheme: dark)"
     />
     <meta
       name="theme-color"
-      content="#f2f3ef"
+      content="#EAEBEE"
       media="(prefers-color-scheme: light)"
     />
     <title>Garage · Storage console</title>
     <script>
       window.__BASE_PATH = "%BASE_PATH%";
-      // Apply the saved theme before first paint to avoid a flash.
+      // Apply an explicit light or dark choice before first paint. With none (System) no attribute is set, and the
+      // tokens follow the OS preference through prefers-color-scheme.
       (function () {
         try {
           var saved = JSON.parse(localStorage.getItem("appdata") || "null");
           var theme = saved && saved.state && saved.state.theme;
-          if (theme !== "light" && theme !== "dark") {
-            theme = window.matchMedia("(prefers-color-scheme: light)").matches
-              ? "light"
-              : "dark";
-          }
-          document.documentElement.setAttribute("data-theme", theme);
+          if (theme === "light" || theme === "dark")
+            document.documentElement.setAttribute("data-theme", theme);
         } catch (e) {}
       })();
     </script>

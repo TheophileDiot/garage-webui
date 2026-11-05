@@ -1,10 +1,9 @@
-import garageLogo from "@/assets/garage-logo.svg";
-import { useAuth } from "@/hooks/useAuth";
+import * as RDialog from "@radix-ui/react-dialog";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import api from "@/lib/api";
-import { url } from "@/lib/utils";
-import appStore from "@/stores/app-store";
+import { cn, url } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import {
   lazy,
   PropsWithChildren,
@@ -14,16 +13,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useStore } from "zustand";
 import IconButton from "../ui/icon-button";
 import Kbd from "../ui/kbd";
-import { StatusGlyph } from "../ui/state-glyph";
-import { Status } from "../ui/status";
-import AddressBar from "./address-bar";
+import { StateGlyph } from "../ui/state-glyph";
+import Breadcrumbs from "./breadcrumbs";
 import { NAV } from "./nav";
-import TabBar from "./tab-bar";
+import SidebarContent from "./sidebar";
 import { useClusterSummary } from "./use-cluster-summary";
 
 const loadPalette = () => import("./palette");
@@ -46,26 +43,35 @@ const useSignOut = () => {
   return { signOut: () => mutation.mutate(), pending: mutation.isPending };
 };
 
+const isMac = () => /Mac|iPhone|iPad/.test(navigator.userAgent);
+
+const healthTone = {
+  ok: "bg-ok-soft text-ok",
+  warn: "bg-warn-soft text-warn",
+  bad: "bg-bad-soft text-bad",
+  idle: "bg-surface-2 text-ink-2",
+} as const;
+
 /**
- * The frame around every signed-in page: desktop rail, address bar, phone tab bar and the palette.
- * Pages render inside the main element with their own PageHeader.
+ * The frame around every signed-in page: the dark sidebar (a drawer on phone), a top bar with breadcrumbs and the
+ * search button, and the palette. Pages render inside the main element with their own PageHeader.
  */
 const AppShell = ({ children }: PropsWithChildren) => {
-  const theme = useStore(appStore, (s) => s.theme);
-  const toggleTheme = () =>
-    appStore.setTheme(theme === "dark" ? "light" : "dark");
-  const themeLabel =
-    theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
-  const ThemeIcon = theme === "dark" ? Sun : Moon;
-
-  const auth = useAuth();
   const { signOut, pending } = useSignOut();
   const cluster = useClusterSummary();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+
+  // The sidebar is the fixed column from 961 px up and a drawer below; the drawer is a modal dialog, so it traps
+  // focus, closes on Escape and returns focus to the menu button.
+  const wide = useMediaQuery("(min-width: 961px)");
+  const [drawer, setDrawer] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (wide) setDrawer(false);
+  }, [wide]);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
-  // The palette is a dialog opened by state, so it returns focus to whatever had it (the address bar button, say).
+  // The palette is a dialog opened by state, so it returns focus to whatever had it (the search button, say).
   const opener = useRef<HTMLElement | null>(null);
   const openPalette = useCallback(() => {
     opener.current = document.activeElement as HTMLElement | null;
@@ -83,10 +89,6 @@ const AppShell = ({ children }: PropsWithChildren) => {
     return () => window.clearTimeout(t);
   }, [paletteOpen]);
   const pendingG = useRef<number | null>(null);
-  const navigated = useRef(false);
-  useEffect(() => {
-    navigated.current = true;
-  }, [pathname]);
 
   // Fetch the palette chunk in idle time so the first Ctrl+K opens at once.
   useEffect(() => {
@@ -131,147 +133,117 @@ const AppShell = ({ children }: PropsWithChildren) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [onKey]);
 
-  const who = auth.displayName || "Administrator";
+  const sidebar = (onNavigate?: () => void) => (
+    <SidebarContent
+      onNavigate={onNavigate}
+      onSignOut={signOut}
+      signingOut={pending}
+    />
+  );
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[13rem_minmax(0,1fr)]">
+    <div className="min-h-dvh nav:grid nav:grid-cols-[var(--sb-w)_minmax(0,1fr)]">
       <a href="#main" className="skip-link">
         Skip to content
       </a>
 
-      {/* Rail (desktop) */}
-      <aside
-        className="sticky top-0 hidden h-dvh flex-col border-r border-rule md:flex"
-        aria-label="Sidebar"
-      >
-        <Link
-          to="/"
-          className="caret-row flex h-11 items-center gap-2.5 border-b border-rule px-3.5"
-          aria-label="Garage console, overview"
-        >
-          <img
-            src={garageLogo}
-            alt=""
-            width={22}
-            height={22}
-            className="rounded-sm bg-[#fff3c4] p-0.5"
-          />
-          <span className="font-display text-h3 font-semibold tracking-[-0.03em]">
-            garage
-          </span>
-        </Link>
-        <nav aria-label="Primary" className="flex-1 px-2 py-3">
-          <ul className="grid gap-px">
-            {NAV.map((n) => (
-              <li key={n.to}>
-                <NavLink
-                  to={n.to}
-                  end={n.end}
-                  className="caret-row flex h-8 items-center gap-2 rounded-sm px-2.5 text-ink-2 hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink"
-                >
-                  <n.icon size={14} aria-hidden />
-                  {n.label}
-                  <span className="ml-auto flex gap-0.5">
-                    <Kbd>g</Kbd>
-                    <Kbd>{n.key}</Kbd>
-                  </span>
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="grid gap-2 border-t border-rule p-3">
-          <Link
-            to="/cluster"
-            aria-label={cluster.railLabel}
-            className="caret-row -mx-1 flex items-center gap-2.5 rounded-sm px-1 py-1"
-          >
-            <StatusGlyph health={cluster.health} size={30} />
-            <span className="grid min-w-0 gap-0.5">
-              <Status tone={cluster.tone}>{cluster.word}</Status>{" "}
-              <span className="text-caption text-ink-3">
-                {cluster.nodes} <span className="block">{cluster.layout}</span>
-              </span>
-            </span>
-          </Link>
-          <div className="grid gap-0.5 text-caption text-ink-3">
-            <span className="min-w-0 truncate" title={who}>
-              {who}
-            </span>
-            <button
-              type="button"
-              onClick={signOut}
-              disabled={pending}
-              className="caret-row -ml-1.5 inline-flex min-h-6 items-center gap-1 justify-self-start rounded-sm px-1.5 hover:text-ink disabled:opacity-40"
-            >
-              <LogOut size={12} aria-hidden /> sign out
-            </button>
-          </div>
+      {wide ? (
+        <div className="border-r border-sb-line bg-sb-bg">
+          <aside aria-label="Sidebar" className="sticky top-0 h-dvh">
+            {sidebar()}
+          </aside>
         </div>
-      </aside>
+      ) : (
+        <RDialog.Root open={drawer} onOpenChange={setDrawer}>
+          <RDialog.Portal>
+            <RDialog.Overlay className="veil fixed inset-0 z-[60] bg-scrim" />
+            <RDialog.Content
+              aria-describedby={undefined}
+              onCloseAutoFocus={(e) => {
+                // Radix returns focus only to a Trigger; this drawer is opened by state.
+                e.preventDefault();
+                menuButton.current?.focus();
+              }}
+              className="drawer fixed bottom-0 left-0 top-0 z-[70] w-[min(280px,86vw)] border-r border-sb-line bg-sb-bg"
+            >
+              <RDialog.Title className="sr-only">Navigation</RDialog.Title>
+              {sidebar(() => setDrawer(false))}
+            </RDialog.Content>
+          </RDialog.Portal>
+        </RDialog.Root>
+      )}
 
-      <div className="flex min-w-0 flex-col pb-14 md:pb-0">
-        {/* Top bar: the address bar is the centre of the product. */}
-        <header className="sticky top-0 z-30 flex h-11 items-center gap-2 border-b border-rule bg-ground px-4 md:px-5">
-          <Link
-            to="/"
-            className="-m-1 shrink-0 p-1 md:hidden"
-            aria-label="Garage console, overview"
-          >
-            <img
-              src={garageLogo}
-              alt=""
-              width={22}
-              height={22}
-              className="rounded-sm bg-[#fff3c4] p-0.5"
+      <div className="flex min-w-0 flex-col">
+        <header className="sticky top-0 z-30 flex h-[52px] items-center gap-1.5 border-b border-line bg-bg px-2 nav:gap-3 nav:px-8">
+          {!wide ? (
+            <IconButton
+              ref={menuButton}
+              label="Open navigation"
+              icon={Menu}
+              onClick={() => setDrawer(true)}
+              aria-expanded={drawer}
             />
-          </Link>
-          <AddressBar onOpenPalette={openPalette} />
-          <Link
-            to="/cluster"
-            className="-m-1 ml-auto shrink-0 rounded-sm p-1 transition-colors duration-caret hover:bg-fill md:hidden"
-            aria-label={`${cluster.label}. ${cluster.nodes}, ${cluster.layout}`}
+          ) : null}
+          <Breadcrumbs />
+          {!wide ? (
+            <Link
+              to="/cluster"
+              aria-label={`${cluster.label}. ${cluster.nodes}, ${cluster.layout}`}
+              className={cn(
+                "inline-flex size-9 flex-none items-center justify-center rounded-full",
+                healthTone[cluster.tone],
+              )}
+            >
+              <StateGlyph
+                state={
+                  cluster.tone === "ok"
+                    ? "full"
+                    : cluster.tone === "warn"
+                      ? "degraded"
+                      : cluster.tone === "bad"
+                        ? "lost"
+                        : "unknown"
+                }
+                size={16}
+              />
+              <span className="sr-only">
+                {cluster.word.charAt(0).toUpperCase() + cluster.word.slice(1)}
+              </span>
+            </Link>
+          ) : null}
+          <IconButton
+            label="Search"
+            icon={Search}
+            onClick={openPalette}
+            className="nav:hidden"
+          />
+          <button
+            type="button"
+            onClick={openPalette}
+            aria-haspopup="dialog"
+            aria-label="Search buckets, keys and pages"
+            className="hidden h-[34px] w-[280px] items-center gap-2 rounded border border-line-strong bg-surface pl-2.5 pr-2 text-left text-ink-3 hover:border-ink-3 nav:flex"
           >
-            <StatusGlyph health={cluster.health} size={24} />
-          </Link>
-          <IconButton
-            label={themeLabel}
-            icon={ThemeIcon}
-            onClick={toggleTheme}
-            className="shrink-0 md:ml-auto"
-          />
-          <IconButton
-            label="Sign out"
-            icon={LogOut}
-            onClick={signOut}
-            disabled={pending}
-            className="shrink-0 md:hidden"
-          />
+            <Search size={16} aria-hidden />
+            <span className="flex-1">Search…</span>
+            <Kbd>{isMac() ? "⌘ K" : "Ctrl K"}</Kbd>
+          </button>
         </header>
 
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[1200px] flex-1 px-4 outline-none md:px-5"
+          className="w-full max-w-[1400px] flex-1 px-4 pb-16 pt-5 outline-none nav:px-8 nav:pt-6"
         >
-          <div
-            key={pathname}
-            className={navigated.current ? "page-in" : undefined}
-          >
-            {children}
-          </div>
+          {children}
         </main>
       </div>
-
-      <TabBar />
 
       {paletteOpen ? (
         <Suspense fallback={null}>
           <Palette
             open={paletteOpen}
             onOpenChange={setPaletteOpen}
-            theme={theme}
-            onToggleTheme={toggleTheme}
             onSignOut={signOut}
           />
         </Suspense>

@@ -3,9 +3,16 @@ import { Meter, Status } from "@/components/ui/status";
 import Diff from "@/components/ui/diff";
 import IconButton from "@/components/ui/icon-button";
 import { dec, readableBytes } from "@/lib/utils";
-import { safeRatio } from "@/lib/partitions";
 import { Network, RouteIcon, Trash2 } from "lucide-react";
-import { capacityLabel, duration, NodeRow, nodeName, shortId } from "../model";
+import {
+  capacityLabel,
+  diskReading,
+  diskTone,
+  duration,
+  NodeRow,
+  nodeName,
+  shortId,
+} from "../model";
 import ZoneMark from "./zone-mark";
 
 type Props = {
@@ -36,14 +43,20 @@ const NodeLedger = ({
         <span className="inline-flex min-w-0 items-center gap-2">
           <ZoneMark zone={r.zone} zones={zones} up={r.node.isUp} />
           <span className="min-w-0">
-            <span className="font-medium [overflow-wrap:anywhere]">
+            <span
+              className="font-medium [overflow-wrap:anywhere]"
+              title={r.node.hostname}
+            >
               {r.node.hostname || "unnamed node"}
             </span>{" "}
-            <span className="text-ink-3" title={r.node.id}>
+            <span
+              className="block font-mono text-caption text-ink-3"
+              title={r.node.id}
+            >
               {shortId(r.node.id)}
             </span>
             {r.staged ? (
-              <span className="block text-caption text-gold-text">
+              <span className="block text-caption text-warn">
                 {r.removing ? "removal staged" : "change staged"}
               </span>
             ) : null}
@@ -76,7 +89,10 @@ const NodeLedger = ({
       width: "13%",
       cell: (r) =>
         r.node.addr ? (
-          <span className="text-ink-2" title={r.node.addr}>
+          <span
+            className="font-mono text-caption text-ink-2"
+            title={r.node.addr}
+          >
             {r.node.addr}
           </span>
         ) : (
@@ -142,21 +158,19 @@ const NodeLedger = ({
       header: "Data disk",
       width: "16%",
       cell: (r) => {
-        const d = r.node.dataPartition;
         if (r.capacity === null) return <span className="text-ink-3">n/a</span>;
-        if (!d || d.total <= 0)
-          return <span className="text-bad">no report</span>;
-        const freeShare = safeRatio(d.available, d.total);
+        const d = diskReading(r.node);
+        if (!d) return <span className="text-bad">no report</span>;
         return (
-          <span className="grid w-full grid-cols-[minmax(3rem,1fr)_auto] items-center gap-3">
+          <span className="grid w-full gap-1.5">
             <Meter
-              value={d.total - d.available}
+              value={d.used}
               max={d.total}
-              tone={freeShare < 0.1 ? "bad" : freeShare < 0.25 ? "warn" : "ink"}
-              label={`${nodeName(r.node)} data disk: ${readableBytes(d.available)} free of ${readableBytes(d.total)}`}
+              tone={diskTone(d.free, d.total)}
+              label={`${nodeName(r.node)} data disk: ${readableBytes(d.free)} free of ${readableBytes(d.total)}`}
             />
             <span className="text-ink-2">
-              {readableBytes(d.available)} free ({Math.round(freeShare * 100)}%)
+              {readableBytes(d.free)} free ({Math.round(d.share * 100)}%)
             </span>
           </span>
         );
@@ -182,7 +196,7 @@ const NodeLedger = ({
       align: "right",
       width: "6.5rem",
       cell: (r) => (
-        <span className="inline-flex gap-1">
+        <span className="row-actions inline-flex gap-1 max-md:[&_button]:min-h-9 max-md:[&_button]:min-w-9">
           <IconButton
             variant="secondary"
             icon={RouteIcon}

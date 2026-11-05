@@ -1,5 +1,5 @@
 import { Plus, X } from "lucide-react";
-import Dialog from "@/components/ui/dialog";
+import Dialog, { FormActions } from "@/components/ui/dialog";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +38,7 @@ const AliasesSection = () => {
     <Panel
       id="aliases"
       title="Aliases"
-      aside={
+      meta={
         <>
           {aliases.length} global, {locals.length} local
         </>
@@ -56,7 +56,7 @@ const AliasesSection = () => {
               key={alias}
               className="flex min-h-8 items-center justify-between gap-2"
             >
-              <span className="min-w-0 [overflow-wrap:anywhere]">
+              <span className="min-w-0 font-mono text-[12.5px] [overflow-wrap:anywhere]">
                 <span className="text-ink-3">s3://</span>
                 {alias}
               </span>
@@ -71,7 +71,7 @@ const AliasesSection = () => {
         </ul>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
         <p className="text-ink-3">
           Global names clients use to reach this bucket.
         </p>
@@ -79,8 +79,8 @@ const AliasesSection = () => {
       </div>
 
       {locals.length > 0 ? (
-        <div className="mt-3 border-t border-rule pt-3">
-          <h3 className="font-medium">Local aliases</h3>
+        <div className="mt-3 border-t border-line pt-3">
+          <h3 className="font-semibold">Local aliases</h3>
           <p className="mt-0.5 text-ink-3">
             Names a single key uses for this bucket. Managed on the key, listed
             here.
@@ -91,7 +91,7 @@ const AliasesSection = () => {
                 key={`${l.accessKeyId}-${l.alias}`}
                 className="min-w-0 [overflow-wrap:anywhere]"
               >
-                {l.alias}{" "}
+                <span className="font-mono text-[12.5px]">{l.alias}</span>{" "}
                 <span className="text-ink-3">
                   on key {l.keyName || l.accessKeyId}
                 </span>
@@ -146,19 +146,12 @@ const AddAliasDialog = ({ id }: { id?: string }) => {
         title="Add alias"
         description="Another global name for this bucket. Garage rejects a name that is taken or not valid."
         actions={
-          <>
-            <Button onClick={close} disabled={addAlias.isPending}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              variant="primary"
-              loading={addAlias.isPending}
-            >
-              Add alias
-            </Button>
-          </>
+          <FormActions
+            onCancel={close}
+            pending={addAlias.isPending}
+            formId={FORM_ID}
+            submitLabel="Add alias"
+          />
         }
       >
         <form id={FORM_ID} onSubmit={onSubmit}>
