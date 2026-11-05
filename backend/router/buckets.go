@@ -1,54 +1,47 @@
 package router
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"khairul169/garage-webui/schema"
 	"khairul169/garage-webui/utils"
 	"net/http"
+	"net/url"
+	"sync"
 )
 
 type Buckets struct{}
 
+const maxBucketFanout = 8
+
 func (b *Buckets) GetAll(w http.ResponseWriter, r *http.Request) {
-	body, err := utils.Garage.Fetch("/v2/ListBuckets", &utils.FetchOptions{})
+	buckets, err := utils.FetchJSON[[]schema.GetBucketsRes]("/v2/ListBuckets")
 	if err != nil {
 		utils.ResponseError(w, err)
 		return
 	}
 
-	var buckets []schema.GetBucketsRes
-	if err := json.Unmarshal(body, &buckets); err != nil {
-		utils.ResponseError(w, err)
-		return
-	}
-
-	ch := make(chan *schema.Bucket, len(buckets))
-
-	for _, bucket := range buckets {
+	// At most maxBucketFanout detail calls at once; results keep the order Garage listed them in.
+	details := make([]*schema.Bucket, len(buckets))
+	slots := make(chan struct{}, maxBucketFanout)
+	var wg sync.WaitGroup
+	for i, bucket := range buckets {
+		slots <- struct{}{}
+		wg.Add(1)
 		go func() {
-			body, err := utils.Garage.Fetch(fmt.Sprintf("/v2/GetBucketInfo?id=%s", bucket.ID), &utils.FetchOptions{})
-
+			defer func() { <-slots; wg.Done() }()
+			data, err := utils.FetchJSON[schema.Bucket]("/v2/GetBucketInfo?" + url.Values{"id": {bucket.ID}}.Encode())
 			if err != nil {
-				ch <- nil
-				return
-			}
-
-			var data schema.Bucket
-			if err := json.Unmarshal(body, &data); err != nil {
-				ch <- nil
 				return
 			}
 
 			data.LocalAliases = bucket.LocalAliases
-			ch <- &data
+			details[i] = &data
 		}()
 	}
+	wg.Wait()
 
 	res := make([]schema.Bucket, 0, len(buckets))
-	for i := 0; i < len(buckets); i++ {
-		bucket := <-ch
+	for _, bucket := range details {
 		if bucket == nil {
 			utils.ResponseError(w, errors.New("bucket details unavailable; retry when Garage is reachable"))
 			return

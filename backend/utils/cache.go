@@ -43,7 +43,3 @@ func (c *CacheManager) Get(key string) interface{} {
 
 	return cacheEntry.value
 }
-
-func (c *CacheManager) IsExpired(entry CacheEntry) bool {
-	return entry.expiresAt.Before(time.Now())
-}

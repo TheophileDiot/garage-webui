@@ -1,15 +1,16 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"khairul169/garage-webui/schema"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -19,6 +20,21 @@ type garage struct {
 }
 
 var Garage = &garage{}
+
+// AdminTransport carries every call to the Garage admin API, the proxy's included. It bounds
+// connecting and waiting for the reply headers, never the body: the proxy relays what Garage streams.
+var AdminTransport = newAdminTransport()
+
+func newAdminTransport() *http.Transport {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.DialContext = (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext
+	t.TLSHandshakeTimeout = 5 * time.Second
+	t.ResponseHeaderTimeout = time.Minute
+	return t
+}
+
+// adminClient is for Fetch, whose replies are small JSON documents, so a total timeout is safe.
+var adminClient = &http.Client{Transport: AdminTransport, Timeout: 2 * time.Minute}
 
 func (g *garage) LoadConfig() error {
 	path := GetEnv("CONFIG_PATH", "/etc/garage.toml")
@@ -92,85 +108,45 @@ func (g *garage) GetAdminKey() string {
 	return g.Config.Admin.AdminToken
 }
 
-type FetchOptions struct {
-	Method  string
-	Params  map[string]string
-	Body    interface{}
-	Headers map[string]string
-}
-
-func (g *garage) Fetch(url string, options *FetchOptions) ([]byte, error) {
-	var reqBody io.Reader
-	reqUrl := fmt.Sprintf("%s%s", g.GetAdminEndpoint(), url)
-	method := http.MethodGet
-
-	if len(options.Method) > 0 {
-		method = options.Method
-	}
-
-	if options.Body != nil {
-		body, err := json.Marshal(options.Body)
-		if err != nil {
-			return nil, err
-		}
-		reqBody = bytes.NewBuffer(body)
-	}
-
-	req, err := http.NewRequest(method, reqUrl, reqBody)
+// Fetch GETs an admin API path (with its query string) using the admin token and returns the body
+// of a 200 reply. Any other status is an error carrying Garage's own message when it sent one.
+func (g *garage) Fetch(path string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, g.GetAdminEndpoint()+path, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	if options.Params != nil {
-		q := req.URL.Query()
-		for k, v := range options.Params {
-			q.Add(k, v)
-		}
-		req.URL.RawQuery = q.Encode()
-	}
-
-	// Add auth token
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", g.GetAdminKey()))
 
-	if options.Headers != nil {
-		for k, v := range options.Headers {
-			req.Header.Add(k, v)
-		}
-	}
-
-	client := &http.Client{}
-	res, err := client.Do(req)
+	res, err := adminClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	if res.Body != nil {
-		defer res.Body.Close()
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
 	}
-
 	if res.StatusCode != 200 {
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		var data map[string]interface{}
-
-		if err := json.Unmarshal(body, &data); err != nil {
-			return nil, err
-		}
-
 		message := fmt.Sprintf("unexpected status code: %d", res.StatusCode)
-		if data["message"] != nil {
+		var data map[string]interface{}
+		if json.Unmarshal(body, &data) == nil && data["message"] != nil {
 			message = fmt.Sprintf("%v", data["message"])
 		}
 
 		return nil, errors.New(message)
 	}
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	return body, nil
+}
+
+// FetchJSON is Fetch followed by decoding the body into T.
+func FetchJSON[T any](path string) (T, error) {
+	var data T
+	body, err := Garage.Fetch(path)
+	if err != nil {
+		return data, err
+	}
+	err = json.Unmarshal(body, &data)
+	return data, err
 }
